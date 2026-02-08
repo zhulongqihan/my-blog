@@ -1,6 +1,15 @@
 # 开发指导文档（不上传到 GitHub）
 docs/
 
+# Maven 构建产物
+backend/target/
+**/target/
+
+# Node.js 构建产物
+frontend/dist/
+frontend/node_modules/
+**/node_modules/
+
 # 日志文件
 *.log
 logs/
