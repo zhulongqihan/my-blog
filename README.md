@@ -1,22 +1,33 @@
-# 个人博客系统 - 项目文档
+# 个人博客系统
 
 > 📝 创建日期：2026年1月27日  
-> 🔄 最后更新：2026年1月27日  
-> 📌 版本：v1.0.0
+> 🔄 最后更新：2026年2月8日  
+> 📌 版本：v1.0.0  
+> 🔗 GitHub: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)
 
 ---
 
-## 📖 项目概述
+## 📖 项目简介
 
-这是一个全栈个人博客系统，采用前后端分离架构，后端使用 Java Spring Boot，前端使用 React + TypeScript。设计风格为极简主义大地色系，营造复古温暖的阅读体验。
+这是一个现代化的全栈个人博客系统，采用前后端分离架构。后端基于 Spring Boot 3.x 构建 RESTful API，前端使用 React 18 + TypeScript + Vite 开发。设计风格为极简主义大地色系，营造温暖舒适的阅读体验。
+
+### ✨ 核心特性
+
+- 🎨 **极简设计** - 大地色系配色，复古温暖的视觉风格
+- 🔐 **JWT 认证** - 基于 Spring Security 的安全认证机制
+- 📝 **Markdown 支持** - 文章内容支持 Markdown 格式
+- 🎯 **代码高亮** - 集成 React Syntax Highlighter
+- 🏷️ **分类标签** - 灵活的文章分类和标签系统
+- 💬 **评论功能** - 支持游客和用户评论
+- 📱 **响应式设计** - 适配各种屏幕尺寸
+- 🚀 **快速部署** - 提供完整的部署脚本和文档
 
 ### 🎯 项目目标
 
-- ✅ 搭建一个炫酷的个人博客网站
-- ✅ 使用 Java 后端开发技术
-- ✅ 部署到互联网供其他人访问
-
-**📌 想要部署上线？** 查看 [部署指南 →](DEPLOYMENT.md)
+- ✅ 搭建一个功能完整的个人博客网站
+- ✅ 使用现代化的 Java 后端技术栈
+- ✅ 实现前后端分离架构
+- 🚀 部署到公网供他人访问（进行中）
 
 ---
 
@@ -194,55 +205,85 @@ myblog/
 
 ## 🚀 快速启动
 
-### 本地开发
-
-详细的本地运行指南请查看 [RUNNING_GUIDE.md](RUNNING_GUIDE.md)
-
-### 部署到线上
-
-**如果你已经有阿里云服务器和域名**，直接查看：
-👉 [DEPLOYMENT_ALIYUN.md - 第四步：连接服务器](DEPLOYMENT_ALIYUN.md#第四步连接服务器)
-
-**如果还没有服务器**，查看完整部署方案对比：
-👉 [DEPLOYMENT.md - 部署指南总览](DEPLOYMENT.md)
-
 ### 环境要求
 
-- **Java**: 17+
-- **Node.js**: 18+
-- **Maven**: 3.6+
-- **npm**: 9+
+在开始之前，请确保已安装以下软件：
 
-### 启动后端
+| 软件 | 最低版本 | 推荐版本 | 说明 |
+|------|---------|---------|------|
+| **Java JDK** | 17 | 17+ | 后端运行环境 |
+| **Maven** | 3.6 | 3.8+ | 后端构建工具 |
+| **Node.js** | 18 | 20+ | 前端运行环境 |
+| **npm** | 9 | 10+ | 前端包管理器 |
 
+### 一键启动（推荐）
+
+项目提供了自动化启动脚本，可以一键启动前后端服务：
+
+**Windows 系统：**
 ```bash
-# 方式一：使用 Maven
-cd backend
-mvn spring-boot:run
-
-# 方式二：使用打包好的 JAR
-cd backend
-mvn package -DskipTests
-java -jar target/blog-backend-1.0.0.jar
+# 双击运行或在命令行执行
+start.bat
 ```
 
-### 启动前端
+**Linux/Mac 系统：**
+```bash
+# 添加执行权限
+chmod +x start.sh
 
+# 运行启动脚本
+./start.sh
+```
+
+启动脚本会自动：
+1. 检查环境依赖（Java、Maven、Node.js）
+2. 启动后端服务（端口 8080）
+3. 安装前端依赖（如果需要）
+4. 启动前端服务（端口 5173）
+
+### 手动启动
+
+如果需要分别启动前后端，可以使用以下命令：
+
+**启动后端：**
+```bash
+cd backend
+mvn spring-boot:run
+```
+
+**启动前端：**
 ```bash
 cd frontend
-npm install
+npm install  # 首次运行需要安装依赖
 npm run dev
+```
+
+### 停止服务
+
+**Windows 系统：**
+```bash
+stop.bat
+```
+
+**Linux/Mac 系统：**
+```bash
+./stop.sh
 ```
 
 ### 访问地址
 
-| 服务 | 地址 |
-|------|------|
-| 前端页面 | http://localhost:5173 |
-| 后端 API | http://localhost:8080 |
-| H2 数据库控制台 | http://localhost:8080/h2-console |
+启动成功后，可以通过以下地址访问：
 
-**💡 想要获得一个随时可访问的网址？** 查看 [部署指南 →](DEPLOYMENT.md)
+| 服务 | 地址 | 说明 |
+|------|------|------|
+| 📱 **前端页面** | http://localhost:5173 | 博客主页 |
+| 🔌 **后端 API** | http://localhost:8080 | RESTful API |
+| 🗄️ **H2 控制台** | http://localhost:8080/h2-console | 数据库管理 |
+
+**H2 数据库连接信息：**
+- JDBC URL: `jdbc:h2:mem:blogdb`
+- 用户名: `sa`
+- 密码: （留空）
 
 ---
 
@@ -397,135 +438,144 @@ npm run dev
 
 ## 📚 项目文档
 
-### 在线文档
+本项目包含完整的开发和部署文档，存放在本地 `docs/` 目录中（不上传到 GitHub）。
 
-本项目的详细开发文档存放在本地 `docs/` 目录中（不上传到 GitHub）：
+### 文档列表
 
-| 文档 | 说明 |
-|------|------|
-| `docs/RUNNING_GUIDE.md` | 详细运行指南 |
-| `docs/DEPLOYMENT_ALIYUN.md` | 阿里云部署教程 |
-| `docs/DEPLOYMENT_VPS.md` | VPS 部署教程 |
-| `docs/DEPLOYMENT.md` | 部署方案对比 |
-| `docs/NEXT_STEPS.md` | 后续改进计划 |
-| `docs/.cursorrules` | 开发规范 |
-| `docs/PROJECT_STRUCTURE_ANALYSIS.md` | 项目结构分析 |
-| `docs/IMPROVEMENTS_SUMMARY.md` | 改进总结 |
-| `docs/TUTORIAL.md` | 从零开始教程 |
-| `docs/DOCS_GUIDE.md` | 文档导航指南 |
+| 文档 | 说明 | 适用场景 |
+|------|------|---------|
+| `docs/RUNNING_GUIDE.md` | 详细运行指南 | 本地开发和调试 |
+| `docs/DEPLOYMENT_ALIYUN.md` | 阿里云部署教程 | 使用阿里云服务器部署 |
+| `docs/DEPLOYMENT_VPS.md` | VPS 部署教程 | 使用其他 VPS 部署 |
+| `docs/DEPLOYMENT.md` | 部署方案对比 | 选择部署方案 |
+| `docs/.cursorrules` | 开发规范 | 代码风格和规范 |
+| `docs/NEXT_STEPS.md` | 后续改进计划 | 功能扩展参考 |
+| `docs/TUTORIAL.md` | 从零开始教程 | 学习项目架构 |
+| `docs/DOCS_GUIDE.md` | 文档导航指南 | 快速找到所需文档 |
 
-### 快速链接
+### 快速导航
 
-- **本地开发**: 查看 `docs/RUNNING_GUIDE.md`
-- **部署上线**: 查看 `docs/DEPLOYMENT_ALIYUN.md`
-- **开发规范**: 查看 `docs/.cursorrules`
+- 🏃 **想要本地运行？** → 查看 `docs/RUNNING_GUIDE.md`
+- 🚀 **想要部署上线？** → 查看 `docs/DEPLOYMENT_ALIYUN.md`
+- 📖 **想要学习架构？** → 查看 `docs/TUTORIAL.md`
+- 🔧 **想要贡献代码？** → 查看 `docs/.cursorrules`
 
----
-
-## 📋 待完成任务
-
-### 高优先级 🔴
-
-- [x] **项目成功启动** - 前后端都已运行 ✅
-- [x] **代码规范修复** - ESLint 检查通过 ✅
-- [ ] **代码格式化** - 使用 Prettier 统一格式
-- [ ] **提取 CSS 变量** - 统一设计系统
-- [ ] **添加示例文章数据** - 在 DataInitializer 中添加测试文章
-- [ ] **文章创建页面** - 实现 Markdown 编辑器
-- [ ] **用户登录/注册页面** - 完成认证 UI
-- [ ] **管理后台** - 文章、分类、标签管理界面
-- [ ] **生产环境数据库** - 切换到 MySQL
-
-### 中优先级 🟡
-
-- [ ] **文章搜索功能** - 前端搜索组件
-- [ ] **评论功能** - 前端评论组件
-- [ ] **分页组件** - 文章列表分页
-- [ ] **按分类/标签筛选** - 前端筛选功能
-- [ ] **文章目录导航** - TOC 组件
-- [ ] **响应式优化** - 移动端适配
-
-### 低优先级 🟢
-
-- [ ] **暗色模式** - 主题切换功能
-- [ ] **国际化 (i18n)** - 多语言支持
-- [ ] **SEO 优化** - Meta 标签、sitemap
-- [ ] **RSS 订阅** - 生成 RSS Feed
-- [ ] **文章统计** - 阅读时间、字数统计
-- [ ] **社交分享** - 分享按钮
-- [ ] **图片上传** - 文件存储服务
-
-### 部署相关 🚀
-
-- [x] **部署方案选择** - Vercel + Railway 方案
-- [x] **数据库迁移** - PostgreSQL/MySQL 配置
-- [x] **环境配置** - 生产环境变量设置
-- [x] **CORS配置** - 跨域访问设置
-- [x] **HTTPS 证书** - 自动配置SSL
-- [x] **自定义域名** - 域名绑定指南
-- [ ] **Docker 容器化** - 编写 Dockerfile（可选）
-- [ ] **CI/CD 配置** - GitHub Actions（自动化）
-
-**🚀 完整部署教程**: [查看 DEPLOYMENT.md →](DEPLOYMENT.md)
-
----
-- [ ] **云服务器部署** - 阿里云/腾讯云
-- [ ] **Nginx 配置** - 反向代理
-- [ ] **数据库迁移** - MySQL 生产环境
+> 💡 **提示**：如果你克隆了这个仓库但没有 `docs/` 目录，这是正常的。这些文档是开发指导文档，不包含在 GitHub 仓库中。你可以根据本 README 的说明直接开始使用项目。
 
 ---
 
-## 🔧 开发记录
+## 📋 开发路线图
+
+### ✅ 已完成
+
+- [x] 项目架构设计和初始化
+- [x] 后端 RESTful API 开发
+- [x] 前端页面和组件开发
+- [x] JWT 认证机制
+- [x] 文章、分类、标签功能
+- [x] 代码规范和 ESLint 配置
+- [x] 本地开发环境搭建
+- [x] 启动和停止脚本
+- [x] 项目文档编写
+- [x] GitHub 仓库创建
+
+### 🚧 进行中
+
+- [ ] 阿里云服务器部署
+- [ ] 域名配置和 SSL 证书
+- [ ] 生产环境数据库配置（MySQL）
+
+### 📝 计划中
+
+**核心功能：**
+- [ ] 文章创建和编辑页面（Markdown 编辑器）
+- [ ] 用户登录/注册页面
+- [ ] 管理后台界面
+- [ ] 评论功能前端实现
+- [ ] 文章搜索功能
+- [ ] 分页组件
+
+**优化改进：**
+- [ ] 响应式设计优化
+- [ ] 代码格式化（Prettier）
+- [ ] CSS 变量提取
+- [ ] 性能优化
+- [ ] SEO 优化
+
+**扩展功能：**
+- [ ] 暗色模式
+- [ ] 图片上传
+- [ ] RSS 订阅
+- [ ] 社交分享
+- [ ] 文章统计
+- [ ] Docker 容器化
+- [ ] CI/CD 自动化部署
+
+---
+
+## 🔧 开发日志
+
+### 2026-02-08
+- ✅ 创建 GitHub 仓库并上传代码
+- ✅ 配置 .gitignore 排除构建产物和文档
+- ✅ 解决 Git 推送问题（代理配置、SSH 密钥）
+- ✅ 更新项目文档
+- 🚧 准备阿里云服务器部署
 
 ### 2026-01-27
-
-#### 项目初始化
-1. 创建项目目录结构
-2. 初始化 Spring Boot 后端项目
-3. 初始化 React + Vite 前端项目
-
-#### 后端开发
-1. 设计数据库实体 (User, Article, Category, Tag, Comment)
-2. 实现 JPA Repository
-3. 实现 Service 层业务逻辑
-4. 实现 REST API 控制器
-5. 配置 Spring Security + JWT 认证
-6. 解决循环依赖问题 (@Lazy 注解)
-7. 添加数据初始化器
-
-#### 前端开发
-1. 创建页面组件 (HomePage, ArticlePage, AboutPage, ArchivePage)
-2. 实现大地色系极简设计
-3. 添加代码语法高亮
-4. 配置 API 服务层
-5. 实现认证上下文
-
-#### 问题解决
-- **循环依赖**: `JwtAuthenticationFilter -> UserService -> SecurityConfig`
-  - 解决方案: 在 UserService 中为 PasswordEncoder 添加 @Lazy 注解
+- ✅ 项目初始化（Spring Boot + React + Vite）
+- ✅ 数据库实体设计（User, Article, Category, Tag, Comment）
+- ✅ 实现 JPA Repository 和 Service 层
+- ✅ 实现 RESTful API 控制器
+- ✅ 配置 Spring Security + JWT 认证
+- ✅ 前端页面和组件开发
+- ✅ 大地色系极简设计实现
+- ✅ 代码语法高亮集成
+- ✅ 解决循环依赖问题（@Lazy 注解）
+- ✅ 添加数据初始化器
+- ✅ 创建启动和停止脚本
+- ✅ 编写项目文档
 
 ---
+
+## 🤝 贡献指南
+
+欢迎提交 Issue 和 Pull Request！
+
+在提交代码前，请确保：
+1. 代码符合项目规范（参考 `docs/.cursorrules`）
+2. 通过 ESLint 检查（前端）
+3. 添加必要的注释和文档
 
 ## 📚 参考资源
 
+**官方文档：**
 - [Spring Boot 官方文档](https://docs.spring.io/spring-boot/docs/current/reference/html/)
+- [Spring Security 参考](https://docs.spring.io/spring-security/reference/)
 - [React 官方文档](https://react.dev/)
 - [Vite 官方文档](https://vitejs.dev/)
-- [Spring Security 参考](https://docs.spring.io/spring-security/reference/)
-- [JWT.io](https://jwt.io/)
+- [TypeScript 官方文档](https://www.typescriptlang.org/)
 
----
+**技术参考：**
+- [JWT.io](https://jwt.io/) - JWT 认证
+- [React Router](https://reactrouter.com/) - 路由管理
+- [Axios](https://axios-http.com/) - HTTP 客户端
+- [Framer Motion](https://www.framer.com/motion/) - 动画库
 
 ## 📄 许可证
 
 MIT License
 
----
-
 ## 👤 作者
 
-个人博客项目
+**zhulongqihan**
+- GitHub: [@zhulongqihan](https://github.com/zhulongqihan)
+- 项目地址: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)
+
+## 🙏 致谢
+
+感谢所有开源项目和社区的支持！
 
 ---
 
-> 💡 **提示**: 本文档会随着项目进展持续更新
+> 💡 **提示**: 本项目持续更新中，欢迎 Star ⭐ 和 Fork 🍴
