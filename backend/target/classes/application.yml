@@ -1,0 +1,36 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: blog-backend
+  
+  # 开发环境使用 H2 内存数据库
+  datasource:
+    url: jdbc:h2:mem:blogdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    database-platform: org.hibernate.dialect.H2Dialect
+
+# JWT 配置 (Base64编码的密钥，至少256位)
+jwt:
+  secret: bXktc3VwZXItc2VjcmV0LWtleS1mb3Itand0LXRva2VuLWdlbmVyYXRpb24tbXVzdC1iZS1hdC1sZWFzdC0yNTYtYml0cy1sb25n
+  expiration: 86400000  # 24小时
+
+# 跨域配置
+cors:
+  allowed-origins: http://localhost:5173,http://localhost:3000

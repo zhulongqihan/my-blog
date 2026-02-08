@@ -1,0 +1,187 @@
+/* ===== About Header ===== */
+.about-header {
+  text-align: center;
+  margin-bottom: var(--spacing-3xl);
+}
+
+.about-header__title {
+  font-family: var(--font-serif);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.about-header__divider {
+  width: 60px;
+  height: 1px;
+  background-color: var(--accent-rust);
+  margin: 0 auto;
+  transform-origin: center;
+}
+
+/* ===== Intro Section ===== */
+.about-intro {
+  display: flex;
+  gap: var(--spacing-2xl);
+  margin-bottom: var(--spacing-3xl);
+  padding-bottom: var(--spacing-2xl);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.about-intro__avatar {
+  flex-shrink: 0;
+}
+
+.about-intro__avatar-placeholder {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background-color: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-rust);
+}
+
+.about-intro__content {
+  flex: 1;
+}
+
+.about-intro__greeting {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.about-intro__text {
+  font-size: 1.0625rem;
+  line-height: 1.8;
+  color: var(--text-secondary);
+}
+
+/* ===== Stats Section ===== */
+.about-stats {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-3xl);
+  margin-bottom: var(--spacing-3xl);
+  padding: var(--spacing-2xl);
+  background-color: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+.about-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.about-stat__icon {
+  color: var(--accent-rust);
+  margin-bottom: var(--spacing-xs);
+}
+
+.about-stat__value {
+  font-family: var(--font-serif);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.about-stat__label {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+/* ===== Section Title ===== */
+.about-section-title {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--border-light);
+}
+
+/* ===== Skills Section ===== */
+.about-skills {
+  margin-bottom: var(--spacing-3xl);
+}
+
+.about-skills__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.about-skill__header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-sm);
+}
+
+.about-skill__name {
+  font-size: 0.9375rem;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.about-skill__level {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.about-skill__bar {
+  height: 4px;
+  background-color: var(--bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.about-skill__progress {
+  height: 100%;
+  background-color: var(--accent-rust);
+  border-radius: 2px;
+}
+
+/* ===== Contact Section ===== */
+.about-contact__text {
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-md);
+}
+
+.about-contact__info {
+  padding: var(--spacing-lg);
+  background-color: var(--bg-code);
+  border-radius: 4px;
+}
+
+.about-contact__email {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--accent-rust-light);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .about-intro {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .about-stats {
+    flex-direction: column;
+    gap: var(--spacing-xl);
+  }
+
+  .about-header__title {
+    font-size: 2rem;
+  }
+}

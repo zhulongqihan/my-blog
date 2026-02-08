@@ -1,0 +1,137 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: var(--bg-primary);
+  border-bottom: 1px solid transparent;
+  transition: all var(--transition-normal);
+}
+
+.header--scrolled {
+  border-bottom-color: var(--border-light);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.header__container {
+  max-width: var(--max-width-wide);
+  margin: 0 auto;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Logo */
+.header__logo {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: opacity var(--transition-fast);
+}
+
+.header__logo:hover {
+  opacity: 0.8;
+  color: var(--text-primary);
+}
+
+.header__logo-icon {
+  color: var(--accent-rust);
+}
+
+.header__logo-text {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Navigation */
+.header__nav {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xl);
+}
+
+.header__nav-link {
+  position: relative;
+  font-size: 0.9375rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: var(--spacing-xs) 0;
+  transition: color var(--transition-fast);
+}
+
+.header__nav-link:hover {
+  color: var(--text-primary);
+}
+
+.header__nav-link--active {
+  color: var(--text-primary);
+}
+
+.header__nav-indicator {
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: var(--accent-rust);
+}
+
+/* Mobile Toggle */
+.header__mobile-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+}
+
+/* Mobile Menu */
+.header__mobile-menu {
+  display: none;
+  flex-direction: column;
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-top: 1px solid var(--border-light);
+  overflow: hidden;
+}
+
+.header__mobile-link {
+  display: block;
+  padding: var(--spacing-md) 0;
+  font-size: 1rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.header__mobile-link:last-child {
+  border-bottom: none;
+}
+
+.header__mobile-link--active {
+  color: var(--accent-rust);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header__container {
+    padding: var(--spacing-md);
+  }
+
+  .header__nav {
+    display: none;
+  }
+
+  .header__mobile-toggle {
+    display: block;
+  }
+
+  .header__mobile-menu {
+    display: flex;
+  }
+}

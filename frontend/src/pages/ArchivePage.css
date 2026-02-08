@@ -1,0 +1,151 @@
+/* ===== Archive Header ===== */
+.archive-header {
+  text-align: center;
+  margin-bottom: var(--spacing-3xl);
+}
+
+.archive-header__title {
+  font-family: var(--font-serif);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.archive-header__count {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-lg);
+}
+
+.archive-header__divider {
+  width: 60px;
+  height: 1px;
+  background-color: var(--accent-rust);
+  margin: 0 auto;
+  transform-origin: center;
+}
+
+/* ===== Timeline ===== */
+.archive-timeline {
+  position: relative;
+}
+
+.archive-timeline::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: var(--border-color);
+}
+
+/* ===== Year ===== */
+.archive-year {
+  position: relative;
+  padding-left: var(--spacing-2xl);
+  margin-bottom: var(--spacing-2xl);
+}
+
+.archive-year__title {
+  font-family: var(--font-serif);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xl);
+}
+
+.archive-year__title::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: 8px;
+  width: 9px;
+  height: 9px;
+  background-color: var(--accent-rust);
+  border-radius: 50%;
+}
+
+/* ===== Month ===== */
+.archive-month {
+  margin-bottom: var(--spacing-xl);
+}
+
+.archive-month__title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-md);
+}
+
+/* ===== Article List ===== */
+.archive-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.archive-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px dashed var(--border-light);
+}
+
+.archive-item:last-child {
+  border-bottom: none;
+}
+
+.archive-item__date {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--text-light);
+  width: 50px;
+}
+
+.archive-item__title {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+  line-height: 1.5;
+}
+
+.archive-item__title:hover {
+  color: var(--accent-rust);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .archive-header__title {
+    font-size: 2rem;
+  }
+
+  .archive-timeline::before {
+    display: none;
+  }
+
+  .archive-year {
+    padding-left: 0;
+  }
+
+  .archive-year__title::before {
+    display: none;
+  }
+
+  .archive-item {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+}

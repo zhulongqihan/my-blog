@@ -1,0 +1,28 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  flex: 1;
+  padding: var(--spacing-3xl) 0;
+}
+
+/* Page transition wrapper */
+.page-wrapper {
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--spacing-lg);
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: var(--spacing-xl) 0;
+  }
+
+  .page-wrapper {
+    padding: 0 var(--spacing-md);
+  }
+}
