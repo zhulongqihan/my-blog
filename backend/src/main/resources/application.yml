@@ -5,6 +5,10 @@ spring:
   application:
     name: blog-backend
   
+  # 激活的配置文件（默认dev，生产环境通过启动参数指定）
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  
   # 开发环境使用 H2 内存数据库
   datasource:
     url: jdbc:h2:mem:blogdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
@@ -25,6 +29,20 @@ spring:
       hibernate:
         format_sql: true
     database-platform: org.hibernate.dialect.H2Dialect
+  
+  # Redis配置
+  redis:
+    host: localhost
+    port: 6379
+    password: 
+    database: 0
+    timeout: 5000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-wait: -1ms
+        max-idle: 8
+        min-idle: 0
 
 # JWT 配置 (Base64编码的密钥，至少256位)
 # 生产环境请使用环境变量或配置文件覆盖此密钥
@@ -35,3 +53,21 @@ jwt:
 # 跨域配置
 cors:
   allowed-origins: http://localhost:5173,http://localhost:3000
+
+# MyBatis-Plus配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: isDeleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  mapper-locations: classpath:mapper/*.xml
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.myblog: DEBUG

@@ -59,4 +59,21 @@ public class JwtUtils {
             return false;
         }
     }
+    
+    /**
+     * 获取Token的过期时间（毫秒时间戳）
+     * 用途：将Token加入黑名单时，需要设置TTL为Token剩余有效期
+     */
+    public Long getExpirationTime(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(getSigningKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            return claims.getExpiration().getTime();
+        } catch (JwtException | IllegalArgumentException e) {
+            return null;
+        }
+    }
 }

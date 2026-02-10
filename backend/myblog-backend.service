@@ -1,0 +1,21 @@
+[Unit]
+Description=MyBlog Backend Service
+After=network.target mysqld.service redis.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/www/my-blog/backend
+# 使用生产环境配置启动
+ExecStart=/usr/bin/java -jar -Dspring.profiles.active=prod /www/my-blog/backend/target/blog-backend-1.0.0.jar
+Restart=always
+RestartSec=10
+StandardOutput=append:/www/my-blog/backend/logs/backend.log
+StandardError=append:/www/my-blog/backend/logs/backend.log
+
+# 环境变量（可选，如果不想在配置文件中写敏感信息）
+# Environment="SPRING_DATASOURCE_PASSWORD=MyBlog2026"
+# Environment="JWT_SECRET=0vC37MKrX3ncvfxFacfkojXfawfX8VXtOLjZKA2yU7U="
+
+[Install]
+WantedBy=multi-user.target

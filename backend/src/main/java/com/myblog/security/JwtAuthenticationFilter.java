@@ -22,6 +22,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtils jwtUtils;
     private final UserService userService;
+    private final JwtBlacklistService jwtBlacklistService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -30,6 +31,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String jwt = parseJwt(request);
             if (jwt != null && jwtUtils.validateToken(jwt)) {
+                // 检查Token是否在黑名单中（用户已登出）
+                if (jwtBlacklistService.isBlacklisted(jwt)) {
+                    logger.warn("Token已失效（用户已登出），拒绝访问");
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+                
                 String username = jwtUtils.getUsernameFromToken(jwt);
                 UserDetails userDetails = userService.loadUserByUsername(username);
                 
