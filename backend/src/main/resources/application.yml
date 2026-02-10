@@ -27,8 +27,9 @@ spring:
     database-platform: org.hibernate.dialect.H2Dialect
 
 # JWT 配置 (Base64编码的密钥，至少256位)
+# 生产环境请使用环境变量或配置文件覆盖此密钥
 jwt:
-  secret: bXktc3VwZXItc2VjcmV0LWtleS1mb3Itand0LXRva2VuLWdlbmVyYXRpb24tbXVzdC1iZS1hdC1sZWFzdC0yNTYtYml0cy1sb25n
+  secret: your-secret-key-change-this-in-production-at-least-32-characters-long
   expiration: 86400000  # 24小时
 
 # 跨域配置

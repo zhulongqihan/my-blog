@@ -1,9 +1,10 @@
 # 个人博客系统
 
 > 📝 创建日期：2026年1月27日  
-> 🔄 最后更新：2026年2月8日  
+> 🔄 最后更新：2026年2月10日  
 > 📌 版本：v1.0.0  
-> 🔗 GitHub: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)
+> 🔗 GitHub: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)  
+> 🌐 网站：http://cyruszhang.online （备案中）
 
 ---
 
@@ -515,12 +516,20 @@ stop.bat
 
 ## 🔧 开发日志
 
+### 2026-02-10
+- ✅ 完成阿里云服务器部署（CentOS系统）
+- ✅ 配置MySQL数据库和Nginx
+- ✅ 后端服务成功启动（8080端口）
+- ✅ 前端静态文件部署完成
+- ✅ 域名解析配置完成（cyruszhang.online）
+- 🚧 等待ICP备案审核（15-20个工作日）
+
 ### 2026-02-08
 - ✅ 创建 GitHub 仓库并上传代码
 - ✅ 配置 .gitignore 排除构建产物和文档
-- ✅ 解决 Git 推送问题（代理配置、SSH 密钥）
+- ✅ 解决 Git 推送问题（SSH密钥配置）
 - ✅ 更新项目文档
-- 🚧 准备阿里云服务器部署
+- ✅ 开始阿里云服务器部署
 
 ### 2026-01-27
 - ✅ 项目初始化（Spring Boot + React + Vite）
