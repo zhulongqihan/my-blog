@@ -7,7 +7,7 @@ Type=simple
 User=root
 WorkingDirectory=/www/my-blog/backend
 # 使用生产环境配置启动
-ExecStart=/usr/bin/java -jar -Dspring.profiles.active=prod /www/my-blog/backend/target/blog-backend-1.0.0.jar
+ExecStart=/usr/bin/java -Xms256m -Xmx512m -jar /www/my-blog/backend/target/blog-backend-1.0.0.jar --spring.profiles.active=prod
 Restart=always
 RestartSec=10
 StandardOutput=append:/www/my-blog/backend/logs/backend.log
