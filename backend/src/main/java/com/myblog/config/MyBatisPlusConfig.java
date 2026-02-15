@@ -15,15 +15,15 @@ import org.springframework.context.annotation.Configuration;
  * 3. 配置性能分析插件（开发环境）
  * 
  * 设计说明：
- * - 明确指定sqlSessionFactoryRef避免与JPA冲突
- * - 只扫描com.myblog.mapper包（MyBatis-Plus的Mapper）
- * - com.myblog.repository包由JPA管理
+ * - 暂时注释掉@MapperScan，避免与JPA的factoryBean冲突
+ * - 操作日志改用JPA Repository实现
+ * - 保留MyBatis-Plus配置，后续如需使用可以启用
  */
 @Configuration
-@MapperScan(
-    basePackages = "com.myblog.mapper",
-    sqlSessionFactoryRef = "sqlSessionFactory"
-)
+// @MapperScan(
+//     basePackages = "com.myblog.mapper",
+//     sqlSessionFactoryRef = "sqlSessionFactory"
+// )
 public class MyBatisPlusConfig {
     
     /**
