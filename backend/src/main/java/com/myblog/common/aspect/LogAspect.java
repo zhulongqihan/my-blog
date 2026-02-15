@@ -1,7 +1,6 @@
 package com.myblog.common.aspect;
 
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.extra.servlet.ServletUtil;
 import cn.hutool.http.useragent.UserAgent;
 import cn.hutool.http.useragent.UserAgentUtil;
 import cn.hutool.json.JSONUtil;
@@ -74,7 +73,7 @@ public class LogAspect {
                 // 设置请求信息
                 operationLog.setRequestUrl(request.getRequestURI());
                 operationLog.setRequestMethod(request.getMethod());
-                operationLog.setIpAddress(ServletUtil.getClientIP(request));
+                operationLog.setIpAddress(getClientIp(request));
                 
                 // 解析User-Agent
                 String userAgentStr = request.getHeader("User-Agent");
@@ -154,6 +153,31 @@ public class LogAspect {
         ServletRequestAttributes attributes = 
                 (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         return attributes != null ? attributes.getRequest() : null;
+    }
+    
+    /**
+     * 获取客户端IP地址
+     * 支持通过代理获取真实IP
+     */
+    private String getClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("X-Real-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("WL-Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        // 对于通过多个代理的情况，第一个IP为客户端真实IP
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        return ip;
     }
     
     /**
