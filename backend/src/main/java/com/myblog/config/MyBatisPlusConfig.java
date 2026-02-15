@@ -13,9 +13,17 @@ import org.springframework.context.annotation.Configuration;
  * 1. 配置分页插件
  * 2. 配置Mapper扫描路径
  * 3. 配置性能分析插件（开发环境）
+ * 
+ * 设计说明：
+ * - 明确指定sqlSessionFactoryRef避免与JPA冲突
+ * - 只扫描com.myblog.mapper包（MyBatis-Plus的Mapper）
+ * - com.myblog.repository包由JPA管理
  */
 @Configuration
-@MapperScan("com.myblog.mapper")
+@MapperScan(
+    basePackages = "com.myblog.mapper",
+    sqlSessionFactoryRef = "sqlSessionFactory"
+)
 public class MyBatisPlusConfig {
     
     /**
