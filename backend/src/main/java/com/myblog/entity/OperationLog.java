@@ -1,6 +1,6 @@
 package com.myblog.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,18 +11,22 @@ import java.time.LocalDateTime;
 /**
  * 操作日志实体
  * 设计目标：记录用户的所有操作，用于审计和分析
+ * 
+ * 技术说明：使用JPA注解（移除了MyBatis-Plus依赖，避免与Spring Boot 3.x冲突）
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("operation_log")
+@Entity
+@Table(name = "operation_log")
 public class OperationLog {
     
     /**
      * 日志ID
      */
-    @TableId(type = IdType.AUTO)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
     /**
@@ -68,11 +72,13 @@ public class OperationLog {
     /**
      * 请求参数（JSON）
      */
+    @Column(columnDefinition = "TEXT")
     private String requestParams;
     
     /**
      * 响应结果（JSON，可选）
      */
+    @Column(columnDefinition = "TEXT")
     private String responseResult;
     
     /**
@@ -108,11 +114,19 @@ public class OperationLog {
     /**
      * 错误信息
      */
+    @Column(columnDefinition = "TEXT")
     private String errorMsg;
     
     /**
      * 操作时间
      */
-    @TableField(fill = FieldFill.INSERT)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
+    
+    @PrePersist
+    public void prePersist() {
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
+    }
 }

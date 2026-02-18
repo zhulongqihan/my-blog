@@ -83,7 +83,6 @@
 | **Spring Boot** | 3.2.2 | 核心框架 |
 | **Spring Security** | 6.x | 安全认证框架 |
 | **Spring Data JPA** | 3.x | 数据持久层 |
-| **MyBatis-Plus** | 3.5.5 | 增强的ORM框架 |
 | **Hibernate** | 6.4.1 | ORM 框架 |
 | **JWT (jjwt)** | 0.12.3 | Token 认证 |
 | **Redis** | 7.x | 缓存和黑名单 |
@@ -431,7 +430,6 @@ stop.bat
 - [x] JWT 黑名单机制（解决登出问题）
 - [x] Spring Security 配置
 - [x] Redis 缓存配置
-- [x] MyBatis-Plus 集成
 - [x] 统一响应体（Result<T>）
 - [x] 全局异常处理
 - [x] AOP 操作日志（异步记录）
@@ -501,7 +499,6 @@ stop.bat
 - [x] JWT 黑名单机制
 - [x] 统一响应体和异常处理
 - [x] Redis 缓存配置
-- [x] MyBatis-Plus 集成
 - [x] AOP 操作日志
 - [x] 异步任务配置
 - [x] RBAC 权限体系设计
@@ -563,9 +560,11 @@ stop.bat
 ### 2026-02-18
 - ✅ 修复RedisConfig与Spring Boot 3.x兼容性问题
 - ✅ 将Jackson2JsonRedisSerializer改为GenericJackson2JsonRedisSerializer
+- ✅ **彻底移除MyBatis-Plus依赖**（解决与Spring Boot 3.2.2的factoryBeanObjectType冲突）
+- ✅ OperationLog实体从 MyBatis-Plus注解迁移为JPA注解
+- ✅ 创建application-prod.yml生产环境配置
 - ✅ 解决服务器启动失败问题（status=1/FAILURE）
 - ✅ 更新部署文档，添加详细故障排查步骤
-- 🚧 继续验证服务器部署
 
 ### 2026-02-15
 - ✅ 完成后台管理系统基础架构搭建（第一阶段100%）
