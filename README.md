@@ -2,7 +2,7 @@
 
 > 📝 创建日期：2026年1月27日  
 > 🔄 最后更新：2026年2月18日  
-> 📌 版本：v1.1.1  
+> 📌 版本：v1.2.0  
 > 🔗 GitHub: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)  
 > 🌐 网站：http://cyruszhang.online （备案中）
 
@@ -457,6 +457,7 @@ stop.bat
 - [x] Nginx 反向代理
 - [x] systemd 服务配置
 - [x] 域名解析配置
+- [x] **生产环境API接口验证成功** ✅
 
 ---
 
@@ -563,8 +564,8 @@ stop.bat
 - ✅ **彻底移除MyBatis-Plus依赖**（解决与Spring Boot 3.2.2的factoryBeanObjectType冲突）
 - ✅ OperationLog实体从 MyBatis-Plus注解迁移为JPA注解
 - ✅ 创建application-prod.yml生产环境配置
-- ✅ 解决服务器启动失败问题（status=1/FAILURE）
-- ✅ 更新部署文档，添加详细故障排查步骤
+- ✅ **服务器部署最终成功** - API接口正常返回数据
+- ✅ MySQL连接正常，Redis连接正常，JWT安全配置正常
 
 ### 2026-02-15
 - ✅ 完成后台管理系统基础架构搭建（第一阶段100%）
