@@ -11,7 +11,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Data
 @Builder
@@ -42,6 +44,36 @@ public class User implements UserDetails {
 
     @Enumerated(EnumType.STRING)
     private Role role;
+
+    /**
+     * 用户状态：0-禁用，1-启用
+     */
+    @Builder.Default
+    private Integer status = 1;
+
+    /**
+     * 是否删除：0-否，1-是
+     */
+    @Column(name = "is_deleted")
+    @Builder.Default
+    private Integer isDeleted = 0;
+
+    /**
+     * 最后登录时间
+     */
+    private LocalDateTime lastLoginTime;
+
+    /**
+     * 关联的系统角色（用于RBAC权限控制）
+     */
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "sys_user_role",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    @Builder.Default
+    private Set<SysRole> sysRoles = new HashSet<>();
 
     private LocalDateTime createdAt;
 
