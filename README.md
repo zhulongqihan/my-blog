@@ -1,8 +1,8 @@
 # 个人博客系统
 
 > 📝 创建日期：2026年1月27日  
-> 🔄 最后更新：2026年2月15日  
-> 📌 版本：v1.1.0  
+> 🔄 最后更新：2026年2月18日  
+> 📌 版本：v1.1.1  
 > 🔗 GitHub: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)  
 > 🌐 网站：http://cyruszhang.online （备案中）
 
@@ -560,6 +560,13 @@ stop.bat
 
 ## 🔧 开发日志
 
+### 2026-02-18
+- ✅ 修复RedisConfig与Spring Boot 3.x兼容性问题
+- ✅ 将Jackson2JsonRedisSerializer改为GenericJackson2JsonRedisSerializer
+- ✅ 解决服务器启动失败问题（status=1/FAILURE）
+- ✅ 更新部署文档，添加详细故障排查步骤
+- 🚧 继续验证服务器部署
+
 ### 2026-02-15
 - ✅ 完成后台管理系统基础架构搭建（第一阶段100%）
 - ✅ 实现JWT黑名单机制（解决登出问题）
@@ -575,7 +582,6 @@ stop.bat
 - ✅ 创建当前状态总结文档
 - ✅ 创建部署检查清单文档
 - ✅ 更新所有相关文档
-- 🚧 服务器部署验证中
 
 ### 2026-02-10
 - ✅ 完成阿里云服务器部署（CentOS系统）
