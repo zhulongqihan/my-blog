@@ -121,6 +121,8 @@ export interface Category {
 export interface CategoryForm {
   name: string
   description?: string
+  icon?: string
+  sortOrder?: number
 }
 
 // ==================== 标签管理 ====================
@@ -133,6 +135,7 @@ export interface Tag {
 
 export interface TagForm {
   name: string
+  color?: string
 }
 
 // ==================== 评论管理 ====================

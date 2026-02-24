@@ -38,6 +38,10 @@
         <el-form-item label="标签名称" prop="name">
           <el-input v-model="form.name" placeholder="请输入标签名称" />
         </el-form-item>
+        <el-form-item label="颜色" prop="color">
+          <el-color-picker v-model="form.color" show-alpha />
+          <span v-if="form.color" style="margin-left: 12px; font-size: 13px; color: #909399">{{ form.color }}</span>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -64,6 +68,7 @@ const formRef = ref<FormInstance>()
 
 const form = reactive<TagForm>({
   name: '',
+  color: '#409eff',
 })
 
 const rules: FormRules = {
@@ -86,10 +91,12 @@ function openDialog(row?: Tag) {
     isEdit.value = true
     editId.value = row.id
     form.name = row.name
+    form.color = row.color || '#409eff'
   } else {
     isEdit.value = false
     editId.value = null
     form.name = ''
+    form.color = '#409eff'
   }
 }
 

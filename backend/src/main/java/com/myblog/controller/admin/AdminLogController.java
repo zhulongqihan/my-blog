@@ -36,7 +36,7 @@ public class AdminLogController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         Page<OperationLog> logPage = operationLogRepository.findAll(
-                PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "operationTime"))
+                PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"))
         );
         return Result.success(new PageResult<>(
                 logPage.getContent(),

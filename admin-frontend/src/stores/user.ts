@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { AuthResponse } from '@/types'
-import { login as apiLogin, getMe } from '@/api/auth'
+import { login as apiLogin, getMe, logout as apiLogout } from '@/api/auth'
 
 export const useUserStore = defineStore('user', () => {
   const token = ref<string>(localStorage.getItem('admin_token') || '')
@@ -25,7 +25,12 @@ export const useUserStore = defineStore('user', () => {
     localStorage.setItem('admin_user', JSON.stringify(data))
   }
 
-  function logout() {
+  async function logout() {
+    try {
+      await apiLogout()
+    } catch {
+      // 即使后端登出失败也清理本地状态
+    }
     token.value = ''
     userInfo.value = null
     localStorage.removeItem('admin_token')

@@ -1,44 +1,43 @@
 # 个人博客系统
 
-> 📝 创建日期：2026年1月27日  
-> 🔄 最后更新：2026年2月24日  
-> 📌 版本：v1.3.0  
-> 🔗 GitHub: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)  
-> 🌐 网站：http://cyruszhang.online （备案中）
+> 创建日期：2026年1月27日  
+> 最后更新：2026年2月25日  
+> 版本：v1.3.1  
+> GitHub: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)  
+> 网站：http://cyruszhang.online （备案中）
 
 ---
 
-## 📖 项目简介
+## 项目简介
 
-这是一个现代化的全栈个人博客系统，采用前后端分离架构。后端基于 Spring Boot 3.x 构建 RESTful API，前台使用 React 19 + TypeScript + Vite 开发，后台管理系统使用 Vue 3 + Element Plus + Pinia 开发（双前端框架，面试展示利器）。设计风格为极简主义大地色系，营造温暖舒适的阅读体验。
+这是一个全栈个人博客系统，前后端分离架构。后端使用 Spring Boot 3.x 提供 RESTful API，前台页面使用 React 19 + TypeScript + Vite，后台管理系统使用 Vue 3 + Element Plus + Pinia（双前端框架）。前台设计为大地色系极简风格。
 
-**🎯 项目亮点**：双前端框架（React + Vue）、完整的后台管理系统、JWT + RBAC 权限体系、Redis 缓存、ECharts 数据可视化。
+**项目亮点**：双前端框架（React + Vue）、完整的后台管理系统、JWT + RBAC 权限体系、Redis 缓存、ECharts 数据可视化。
 
-### ✨ 核心特性
+### 核心特性
 
-- 🎨 **极简设计** - 大地色系配色，复古温暖的视觉风格
-- 🔐 **JWT 认证** - 基于 Spring Security 的安全认证机制
-- 🛡️ **JWT 黑名单** - 解决登出后Token依然有效的问题
-- 📝 **Markdown 支持** - 文章内容支持 Markdown 格式
-- 🎯 **代码高亮** - 集成 React Syntax Highlighter
-- 🏷️ **分类标签** - 灵活的文章分类和标签系统
-- 💬 **评论功能** - 支持游客和用户评论
-- 📱 **响应式设计** - 适配各种屏幕尺寸
-- 🚀 **快速部署** - 提供完整的部署脚本和文档
-- 🔧 **后台管理** - Vue 3 + Element Plus 构建的完整后台管理系统
-- 📊 **数据看板** - ECharts 数据可视化仪表盘
+- **极简设计** - 大地色系配色，复古温暖的视觉风格
+- **JWT 认证** - 基于 Spring Security 的安全认证机制
+- **JWT 黑名单** - 解决登出后 Token 依然有效的问题
+- **Markdown 支持** - 文章内容支持 Markdown 格式
+- **代码高亮** - 集成 React Syntax Highlighter
+- **分类标签** - 灵活的文章分类和标签系统
+- **评论功能** - 支持游客和用户评论
+- **响应式设计** - 适配各种屏幕尺寸
+- **后台管理** - Vue 3 + Element Plus 后台管理系统
+- **数据看板** - ECharts 数据可视化仪表盘
 
-### 🎯 项目目标
+### 项目目标
 
-- ✅ 搭建一个功能完整的个人博客网站
-- ✅ 使用现代化的 Java 后端技术栈
-- ✅ 实现前后端分离架构
-- ✅ 部署到公网供他人访问
-- ✅ 打造完整的后台管理系统（React + Vue 双框架展示）
+- [x] 搭建一个功能完整的个人博客网站
+- [x] 使用现代化的 Java 后端技术栈
+- [x] 实现前后端分离架构
+- [x] 部署到公网供他人访问
+- [x] 打造完整的后台管理系统（React + Vue 双框架）
 
 ---
 
-## 🏗️ 技术架构
+## 技术架构
 
 ```
 ┌─────────────────────────────┐   ┌─────────────────────────────┐
@@ -68,7 +67,7 @@
 
 ---
 
-## 🛠️ 技术栈详情
+## 技术栈详情
 
 ### 后端技术
 
@@ -129,7 +128,7 @@
 
 ---
 
-## 📁 项目结构
+## 项目结构
 
 ```
 myblog/
@@ -219,7 +218,7 @@ myblog/
 
 ---
 
-## 🚀 快速启动
+## 快速启动
 
 ### 环境要求
 
@@ -292,10 +291,10 @@ stop.bat
 
 | 服务 | 地址 | 说明 |
 |------|------|------|
-| 📱 **前台页面** | http://localhost:5173 | 博客主页 |
-| 🔧 **后台管理** | http://localhost:5174/admin/ | 管理后台 |
-| 🔌 **后端 API** | http://localhost:8080 | RESTful API |
-| 🗄️ **H2 控制台** | http://localhost:8080/h2-console | 数据库管理 |
+| **前台页面** | http://localhost:5173 | 博客主页 |
+| **后台管理** | http://localhost:5174/admin/ | 管理后台 |
+| **后端 API** | http://localhost:8080 | RESTful API |
+| **H2 控制台** | http://localhost:8080/h2-console | 数据库管理 |
 
 **H2 数据库连接信息：**
 - JDBC URL: `jdbc:h2:mem:blogdb`
@@ -304,7 +303,7 @@ stop.bat
 
 ---
 
-## 🔑 默认账号
+## 默认账号
 
 | 角色 | 用户名 | 密码 |
 |------|--------|------|
@@ -312,7 +311,7 @@ stop.bat
 
 ---
 
-## 📡 API 接口文档
+## API 接口文档
 
 ### 认证接口
 
@@ -377,7 +376,7 @@ stop.bat
 
 ---
 
-## 📊 数据模型
+## 数据模型
 
 ### 用户 (User)
 
@@ -448,7 +447,7 @@ stop.bat
 
 ---
 
-## ✅ 已完成功能
+## 已完成功能
 
 ### 后端
 - [x] Spring Boot 项目初始化
@@ -511,11 +510,11 @@ stop.bat
 - [x] Nginx 反向代理
 - [x] systemd 服务配置
 - [x] 域名解析配置
-- [x] **生产环境API接口验证成功** ✅
+- [x] **生产环境API接口验证成功**
 
 ---
 
-## 📚 项目文档
+## 项目文档
 
 本项目包含完整的开发和部署文档，存放在本地 `docs/` 目录中（不上传到 GitHub）。
 
@@ -527,6 +526,7 @@ stop.bat
 | `docs/DEPLOYMENT_ALIYUN.md` | 阿里云部署教程 | 使用阿里云服务器部署 |
 | `docs/DEPLOYMENT_VPS.md` | VPS 部署教程 | 使用其他 VPS 部署 |
 | `docs/DEPLOYMENT.md` | 部署方案对比 | 选择部署方案 |
+| `docs/ADMIN_GUIDE.md` | 后台管理操作指南 | 后台管理系统使用 |
 | `docs/.cursorrules` | 开发规范 | 代码风格和规范 |
 | `docs/NEXT_STEPS.md` | 后续改进计划 | 功能扩展参考 |
 | `docs/TUTORIAL.md` | 从零开始教程 | 学习项目架构 |
@@ -534,18 +534,18 @@ stop.bat
 
 ### 快速导航
 
-- 🏃 **想要本地运行？** → 查看 `docs/RUNNING_GUIDE.md`
-- 🚀 **想要部署上线？** → 查看 `docs/DEPLOYMENT_ALIYUN.md`
-- 📖 **想要学习架构？** → 查看 `docs/TUTORIAL.md`
-- 🔧 **想要贡献代码？** → 查看 `docs/.cursorrules`
+- **想要本地运行？** → 查看 `docs/RUNNING_GUIDE.md`
+- **想要部署上线？** → 查看 `docs/DEPLOYMENT_ALIYUN.md`
+- **想要学习架构？** → 查看 `docs/TUTORIAL.md`
+- **想要贡献代码？** → 查看 `docs/.cursorrules`
 
-> 💡 **提示**：如果你克隆了这个仓库但没有 `docs/` 目录，这是正常的。这些文档是开发指导文档，不包含在 GitHub 仓库中。你可以根据本 README 的说明直接开始使用项目。
+> **提示**：如果你克隆了这个仓库但没有 `docs/` 目录，这是正常的。这些文档是开发指导文档，不包含在 GitHub 仓库中。你可以根据本 README 的说明直接开始使用项目。
 
 ---
 
-## 📋 开发路线图
+## 开发路线图
 
-### ✅ 第一阶段：基础架构（已完成）
+### 第一阶段：基础架构（已完成）
 
 - [x] 项目架构设计和初始化
 - [x] 后端 RESTful API 开发
@@ -566,7 +566,7 @@ stop.bat
 - [x] GitHub 仓库创建
 - [x] 阿里云服务器部署
 
-### ✅ 第二阶段：后台管理系统（已完成）
+### 第二阶段：后台管理系统（已完成）
 
 **后台管理 API：**
 - [x] 管理员登录/登出接口
@@ -589,7 +589,7 @@ stop.bat
 - [ ] 文章搜索功能
 - [ ] 分页组件
 
-### 📝 第三阶段：进阶功能（计划中）
+### 第三阶段：进阶功能（计划中）
 
 **核心功能：**
 - [ ] API 限流和防护
@@ -616,87 +616,91 @@ stop.bat
 
 ---
 
-## 🔧 开发日志
+## 开发日志
+
+### 2026-02-25
+- 修复操作日志排序字段错误（operationTime → createdAt）
+- 标签管理增加颜色选择功能
+- 分类管理增加排序和图标编辑
+- 退出登录对接后端 logout API（JWT 黑名单生效）
+- 去除 README 中的 emoji 和 AI 痕迹
+- 创建后台管理操作指南文档
 
 ### 2026-02-24
-- ✅ 创建后台管理前端项目（Vue 3 + Element Plus + Pinia + ECharts）
-- ✅ 实现 7 个管理页面：登录、仪表盘、文章、分类、标签、评论、日志
-- ✅ 实现 Axios 封装、Pinia 状态管理、路由导航守卫
-- ✅ 实现 ECharts 数据可视化仪表盘
-- ✅ 配置 Nginx 反向代理（/admin/ 路径）
-- ✅ 修复 API 路径重复问题（/api/api/ 双前缀）
-- ✅ 服务器部署后台管理系统
+- 创建后台管理前端项目（Vue 3 + Element Plus + Pinia + ECharts）
+- 实现 7 个管理页面：登录、仪表盘、文章、分类、标签、评论、日志
+- 实现 Axios 封装、Pinia 状态管理、路由导航守卫
+- 实现 ECharts 数据可视化仪表盘
+- 配置 Nginx 反向代理（/admin/ 路径）
+- 修复 API 路径重复问题（/api/api/ 双前缀）
+- 服务器部署后台管理系统
 
 ### 2026-02-22
-- ✅ 完成后台管理 API 开发（6 个控制器、21 个端点）
-- ✅ 实现 AdminDashboardController（CompletableFuture 并行查询）
-- ✅ 实现 AdminArticleController（分页/搜索/筛选/批量操作）
-- ✅ 实现 AdminCategory/Tag/Comment/LogController
-- ✅ 服务器部署后端 API 更新
+- 完成后台管理 API 开发（6 个控制器、21 个端点）
+- 实现 AdminDashboardController（CompletableFuture 并行查询）
+- 实现 AdminArticleController（分页/搜索/筛选/批量操作）
+- 实现 AdminCategory/Tag/Comment/LogController
+- 服务器部署后端 API 更新
 
 ### 2026-02-18
-- ✅ 修复RedisConfig与Spring Boot 3.x兼容性问题
-- ✅ 将Jackson2JsonRedisSerializer改为GenericJackson2JsonRedisSerializer
-- ✅ **彻底移除MyBatis-Plus依赖**（解决与Spring Boot 3.2.2的factoryBeanObjectType冲突）
-- ✅ OperationLog实体从 MyBatis-Plus注解迁移为JPA注解
-- ✅ 创建application-prod.yml生产环境配置
-- ✅ **服务器部署最终成功** - API接口正常返回数据
-- ✅ MySQL连接正常，Redis连接正常，JWT安全配置正常
+- 修复 RedisConfig 与 Spring Boot 3.x 兼容性问题
+- 将 Jackson2JsonRedisSerializer 改为 GenericJackson2JsonRedisSerializer
+- 彻底移除 MyBatis-Plus 依赖（解决与 Spring Boot 3.2.2 的 factoryBeanObjectType 冲突）
+- OperationLog 实体从 MyBatis-Plus 注解迁移为 JPA 注解
+- 创建 application-prod.yml 生产环境配置
+- 服务器部署成功，API 接口正常返回数据
+- MySQL、Redis、JWT 安全配置均正常
 
 ### 2026-02-15
-- ✅ 完成后台管理系统基础架构搭建（第一阶段100%）
-- ✅ 实现JWT黑名单机制（解决登出问题）
-- ✅ 实现AOP操作日志（异步记录）
-- ✅ 实现统一响应体和全局异常处理
-- ✅ 集成Redis缓存（JSON序列化）
-- ✅ 配置异步任务线程池
-- ✅ 设计RBAC权限体系
-- ✅ 实现配置管理（开发/生产环境分离）
-- ✅ 编写完整的DDL脚本（含详细注释）
-- ✅ 创建项目实施路线图文档
-- ✅ 更新所有相关文档
+- 完成基础架构搭建（第一阶段）
+- 实现 JWT 黑名单机制（解决登出问题）
+- 实现 AOP 操作日志（异步记录）
+- 实现统一响应体和全局异常处理
+- 集成 Redis 缓存（JSON 序列化）
+- 配置异步任务线程池
+- 设计 RBAC 权限体系
+- 实现配置管理（开发/生产环境分离）
+- 编写 DDL 脚本和项目文档
 
 ### 2026-02-10
-- ✅ 完成阿里云服务器部署（CentOS系统）
-- ✅ 配置MySQL数据库和Nginx
-- ✅ 后端服务成功启动（8080端口）
-- ✅ 前端静态文件部署完成
-- ✅ 域名解析配置完成（cyruszhang.online）
-- 🚧 等待ICP备案审核（15-20个工作日）
+- 完成阿里云服务器部署（CentOS 系统）
+- 配置 MySQL 数据库和 Nginx
+- 后端服务成功启动（8080 端口）
+- 前端静态文件部署完成
+- 域名解析配置完成（cyruszhang.online）
+- 等待 ICP 备案审核
 
 ### 2026-02-08
-- ✅ 创建 GitHub 仓库并上传代码
-- ✅ 配置 .gitignore 排除构建产物和文档
-- ✅ 解决 Git 推送问题（SSH密钥配置）
-- ✅ 更新项目文档
-- ✅ 开始阿里云服务器部署
+- 创建 GitHub 仓库并上传代码
+- 配置 .gitignore 排除构建产物和文档
+- 解决 Git 推送问题（SSH 密钥配置）
+- 开始阿里云服务器部署
 
 ### 2026-01-27
-- ✅ 项目初始化（Spring Boot + React + Vite）
-- ✅ 数据库实体设计（User, Article, Category, Tag, Comment）
-- ✅ 实现 JPA Repository 和 Service 层
-- ✅ 实现 RESTful API 控制器
-- ✅ 配置 Spring Security + JWT 认证
-- ✅ 前端页面和组件开发
-- ✅ 大地色系极简设计实现
-- ✅ 代码语法高亮集成
-- ✅ 解决循环依赖问题（@Lazy 注解）
-- ✅ 添加数据初始化器
-- ✅ 创建启动和停止脚本
-- ✅ 编写项目文档
+- 项目初始化（Spring Boot + React + Vite）
+- 数据库实体设计（User, Article, Category, Tag, Comment）
+- 实现 JPA Repository 和 Service 层
+- 实现 RESTful API 控制器
+- 配置 Spring Security + JWT 认证
+- 前端页面和组件开发
+- 大地色系极简设计实现
+- 代码语法高亮集成
+- 解决循环依赖问题（@Lazy 注解）
+- 添加数据初始化器
+- 创建启动脚本和项目文档
 
 ---
 
-## 🤝 贡献指南
+## 贡献指南
 
-欢迎提交 Issue 和 Pull Request！
+欢迎提交 Issue 和 Pull Request。
 
 在提交代码前，请确保：
 1. 代码符合项目规范（参考 `docs/.cursorrules`）
 2. 通过 ESLint 检查（前端）
 3. 添加必要的注释和文档
 
-## 📚 参考资源
+## 参考资源
 
 **官方文档：**
 - [Spring Boot 官方文档](https://docs.spring.io/spring-boot/docs/current/reference/html/)
@@ -715,20 +719,20 @@ stop.bat
 - [ECharts](https://echarts.apache.org/zh/) - 数据可视化
 - [Framer Motion](https://www.framer.com/motion/) - 动画库
 
-## 📄 许可证
+## 许可证
 
 MIT License
 
-## 👤 作者
+## 作者
 
 **zhulongqihan**
 - GitHub: [@zhulongqihan](https://github.com/zhulongqihan)
 - 项目地址: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)
 
-## 🙏 致谢
+## 致谢
 
-感谢所有开源项目和社区的支持！
+感谢所有开源项目和社区的支持。
 
 ---
 
-> 💡 **提示**: 本项目持续更新中，欢迎 Star ⭐ 和 Fork 🍴
+> 本项目持续更新中，欢迎 Star 和 Fork。

@@ -36,6 +36,12 @@
         <el-form-item label="描述" prop="description">
           <el-input v-model="form.description" type="textarea" :rows="3" placeholder="请输入分类描述" />
         </el-form-item>
+        <el-form-item label="图标" prop="icon">
+          <el-input v-model="form.icon" placeholder="请输入图标（如 📝）" />
+        </el-form-item>
+        <el-form-item label="排序" prop="sortOrder">
+          <el-input-number v-model="form.sortOrder" :min="0" :max="999" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -63,6 +69,8 @@ const formRef = ref<FormInstance>()
 const form = reactive<CategoryForm>({
   name: '',
   description: '',
+  icon: '',
+  sortOrder: 0,
 })
 
 const rules: FormRules = {
@@ -86,11 +94,15 @@ function openDialog(row?: Category) {
     editId.value = row.id
     form.name = row.name
     form.description = row.description || ''
+    form.icon = row.icon || ''
+    form.sortOrder = row.sortOrder || 0
   } else {
     isEdit.value = false
     editId.value = null
     form.name = ''
     form.description = ''
+    form.icon = ''
+    form.sortOrder = 0
   }
 }
 
