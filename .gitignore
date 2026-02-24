@@ -12,6 +12,8 @@ backend/target/
 # Node.js 构建产物
 frontend/dist/
 frontend/node_modules/
+admin-frontend/dist/
+admin-frontend/node_modules/
 **/node_modules/
 
 # 日志文件

@@ -52,7 +52,7 @@ jwt:
 
 # 跨域配置
 cors:
-  allowed-origins: http://localhost:5173,http://localhost:3000
+  allowed-origins: http://localhost:5173,http://localhost:3000,http://localhost:5174
 
 # 日志配置
 logging:
