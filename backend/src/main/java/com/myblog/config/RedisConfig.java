@@ -1,5 +1,12 @@
 package com.myblog.config;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
@@ -30,30 +37,43 @@ import java.util.Map;
 @Configuration
 @EnableCaching
 public class RedisConfig {
+
+    /**
+     * 创建配置完整的JSON序列化器
+     * 关键：必须手动注册 JavaTimeModule，否则 LocalDateTime 无法序列化
+     * GenericJackson2JsonRedisSerializer 默认构造器创建的 ObjectMapper 
+     * 不会自动注册 JavaTimeModule，导致缓存含 LocalDateTime 的对象时报500
+     */
+    private GenericJackson2JsonRedisSerializer createJsonSerializer() {
+        ObjectMapper mapper = new ObjectMapper();
+        // 注册 Java 8 时间模块（关键！解决 LocalDateTime 序列化问题）
+        mapper.registerModule(new JavaTimeModule());
+        // 日期输出为 ISO-8601 字符串而非时间戳数组
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        // 设置所有字段可见（包括 private）
+        mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+        // 启用类型信息，反序列化时能正确还原对象类型
+        mapper.activateDefaultTyping(
+                LaissezFaireSubTypeValidator.instance,
+                ObjectMapper.DefaultTyping.NON_FINAL,
+                JsonTypeInfo.As.PROPERTY
+        );
+        return new GenericJackson2JsonRedisSerializer(mapper);
+    }
     
     /**
      * 配置RedisTemplate
-     * 设计亮点：
-     * - Key使用String序列化（便于在Redis客户端查看）
-     * - Value使用JSON序列化（可读性好，支持复杂对象）
-     * - 自动处理类型信息（反序列化时能正确还原对象类型）
      */
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
         
-        // 使用GenericJackson2JsonRedisSerializer（Spring Boot 3.x推荐）
-        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer();
-        
-        // String序列化器
+        GenericJackson2JsonRedisSerializer serializer = createJsonSerializer();
         StringRedisSerializer stringSerializer = new StringRedisSerializer();
         
-        // Key使用String序列化
         template.setKeySerializer(stringSerializer);
         template.setHashKeySerializer(stringSerializer);
-        
-        // Value使用JSON序列化
         template.setValueSerializer(serializer);
         template.setHashValueSerializer(serializer);
         
@@ -79,8 +99,7 @@ public class RedisConfig {
      */
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-        // 使用GenericJackson2JsonRedisSerializer
-        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer();
+        GenericJackson2JsonRedisSerializer serializer = createJsonSerializer();
         
         // 默认缓存配置（1小时兜底）
         RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()

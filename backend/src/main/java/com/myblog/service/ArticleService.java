@@ -33,6 +33,14 @@ public class ArticleService {
     private final CommentRepository commentRepository;
     private final RedisTemplate<String, Object> redisTemplate;
 
+    /**
+     * 注入自身代理，解决 @Cacheable 同类调用（self-invocation）导致 AOP 失效的问题
+     * Spring AOP 只拦截通过代理对象的方法调用，this.getArticle() 不走代理
+     */
+    @org.springframework.beans.factory.annotation.Autowired
+    @org.springframework.context.annotation.Lazy
+    private ArticleService self;
+
     public Page<ArticleResponse> getPublishedArticles(Pageable pageable) {
         return articleRepository.findByPublishedTrue(pageable)
                 .map(this::toResponse);
@@ -107,8 +115,8 @@ public class ArticleService {
                 + LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
         redisTemplate.opsForValue().increment(todayKey);
         
-        // 3. 从缓存获取文章详情（复用 @Cacheable 方法）
-        return getArticle(id);
+        // 3. 从缓存获取文章详情（通过 self 代理调用，确保 @Cacheable 生效）
+        return self.getArticle(id);
     }
 
     /**
