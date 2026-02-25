@@ -7,6 +7,8 @@ import com.myblog.entity.Article;
 import com.myblog.repository.ArticleRepository;
 import com.myblog.repository.CommentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -67,6 +69,12 @@ public class AdminArticleService {
      * @param publish true=发布，false=撤回草稿
      */
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "articleDetail", key = "#id"),
+        @CacheEvict(value = "featuredArticles", allEntries = true),
+        @CacheEvict(value = "popularArticles", allEntries = true),
+        @CacheEvict(value = "dashboardStats", allEntries = true)
+    })
     public void togglePublish(Long id, boolean publish) {
         Article article = articleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("文章不存在，id=" + id));
@@ -81,6 +89,10 @@ public class AdminArticleService {
      * @param featured true=置顶，false=取消
      */
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "articleDetail", key = "#id"),
+        @CacheEvict(value = "featuredArticles", allEntries = true)
+    })
     public void toggleFeatured(Long id, boolean featured) {
         Article article = articleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("文章不存在，id=" + id));
@@ -94,6 +106,11 @@ public class AdminArticleService {
      * @param ids 要删除的文章ID列表
      */
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "featuredArticles", allEntries = true),
+        @CacheEvict(value = "popularArticles", allEntries = true),
+        @CacheEvict(value = "dashboardStats", allEntries = true)
+    })
     public void batchDelete(List<Long> ids) {
         articleRepository.deleteAllById(ids);
     }

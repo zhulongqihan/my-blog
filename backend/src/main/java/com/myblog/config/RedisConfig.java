@@ -1,9 +1,5 @@
 package com.myblog.config;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
@@ -17,6 +13,8 @@ import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Redis配置类（Spring Boot 3.x 兼容版本）
@@ -64,26 +62,45 @@ public class RedisConfig {
     }
     
     /**
-     * 配置缓存管理器
+     * 配置缓存管理器（多级TTL）
      * 设计亮点：
-     * - 设置默认过期时间为1小时（避免缓存永久存在）
+     * - 不同缓存空间设置不同的过期时间（精细化控制）
+     * - 高频变更数据短TTL，低频变更数据长TTL
      * - 禁用缓存null值（避免缓存穿透）
      * - 使用JSON序列化（便于调试）
+     *
+     * 缓存空间说明：
+     *   articleDetail     - 文章详情（30分钟）
+     *   featuredArticles  - 精选文章（10分钟）
+     *   popularArticles   - 热门文章（10分钟）
+     *   categories        - 分类列表（2小时）
+     *   tags              - 标签列表（2小时）
+     *   dashboardStats    - 仪表盘统计（5分钟）
      */
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         // 使用GenericJackson2JsonRedisSerializer
         GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer();
         
-        // 配置缓存
-        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofHours(1)) // 默认过期时间1小时
-                .disableCachingNullValues() // 不缓存null值
+        // 默认缓存配置（1小时兜底）
+        RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofHours(1))
+                .disableCachingNullValues()
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer));
         
+        // 各缓存空间的自定义TTL配置
+        Map<String, RedisCacheConfiguration> cacheConfigs = new HashMap<>();
+        cacheConfigs.put("articleDetail", defaultConfig.entryTtl(Duration.ofMinutes(30)));
+        cacheConfigs.put("featuredArticles", defaultConfig.entryTtl(Duration.ofMinutes(10)));
+        cacheConfigs.put("popularArticles", defaultConfig.entryTtl(Duration.ofMinutes(10)));
+        cacheConfigs.put("categories", defaultConfig.entryTtl(Duration.ofHours(2)));
+        cacheConfigs.put("tags", defaultConfig.entryTtl(Duration.ofHours(2)));
+        cacheConfigs.put("dashboardStats", defaultConfig.entryTtl(Duration.ofMinutes(5)));
+        
         return RedisCacheManager.builder(connectionFactory)
-                .cacheDefaults(config)
+                .cacheDefaults(defaultConfig)
+                .withInitialCacheConfigurations(cacheConfigs)
                 .build();
     }
 }

@@ -98,6 +98,7 @@ const menuItems = [
   { path: '/comments', title: '评论管理', icon: 'ChatDotRound' },
   { path: '/logs', title: '操作日志', icon: 'Tickets' },
   { path: '/rate-limit', title: '限流监控', icon: 'Odometer' },
+  { path: '/cache', title: '缓存监控', icon: 'Coin' },
 ]
 
 function handleCommand(command: string) {

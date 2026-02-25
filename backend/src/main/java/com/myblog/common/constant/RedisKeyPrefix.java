@@ -81,4 +81,26 @@ public class RedisKeyPrefix {
      * TTL：根据限流策略设置
      */
     public static final String RATE_LIMIT = "rate:limit:";
+    
+    /**
+     * 今日访问量
+     * Key格式：stats:views:daily:{yyyy-MM-dd}
+     * Value：当日访问次数（String，INCR 操作）
+     * TTL：48小时（隔天自动清理）
+     */
+    public static final String DAILY_VIEW_COUNT = "stats:views:daily:";
+    
+    /**
+     * 缓存命中计数器
+     * Key格式：cache:hits:{cacheName}
+     * Value：命中次数
+     */
+    public static final String CACHE_HITS = "cache:hits:";
+    
+    /**
+     * 缓存未命中计数器
+     * Key格式：cache:misses:{cacheName}
+     * Value：未命中次数
+     */
+    public static final String CACHE_MISSES = "cache:misses:";
 }

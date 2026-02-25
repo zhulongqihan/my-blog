@@ -1,12 +1,16 @@
 package com.myblog.service.admin;
 
+import com.myblog.common.constant.RedisKeyPrefix;
 import com.myblog.dto.admin.DashboardStatsDTO;
 import com.myblog.entity.Article;
 import com.myblog.entity.Comment;
 import com.myblog.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -20,7 +24,13 @@ import java.util.stream.Collectors;
 /**
  * 仪表盘服务
  * 提供后台管理首页的统计数据
+ * 
+ * 缓存策略：
+ *   - 统计数据缓存5分钟（dashboardStats）
+ *   - 今日访问量通过Redis实时累计（不缓存）
+ *   - 访问趋势使用Redis记录的日访问量
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DashboardService {
@@ -29,11 +39,14 @@ public class DashboardService {
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     /**
-     * 获取仪表盘统计数据
+     * 获取仪表盘统计数据（缓存5分钟）
      */
+    @Cacheable(value = "dashboardStats", key = "'overview'")
     public DashboardStatsDTO getStats() {
+        log.info("[Cache MISS] 仪表盘统计 - 从数据库加载");
         LocalDateTime todayStart = LocalDateTime.of(LocalDate.now(), LocalTime.MIN);
         LocalDateTime todayEnd = LocalDateTime.of(LocalDate.now(), LocalTime.MAX);
 
@@ -88,26 +101,31 @@ public class DashboardService {
     }
 
     /**
-     * 获取今日访问量
-     * TODO: 可以通过Redis实现更精确的统计
+     * 获取今日访问量（从Redis读取，实时数据）
+     * 由 ArticleService.getArticleAndIncrementView() 每次访问时累加
      */
     private long getTodayViews() {
-        // 暂时返回0，后续可以通过Redis实现
-        return 0L;
+        String todayKey = RedisKeyPrefix.DAILY_VIEW_COUNT 
+                + LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
+        Object value = redisTemplate.opsForValue().get(todayKey);
+        return value != null ? ((Number) value).longValue() : 0L;
     }
 
     /**
-     * 获取访问趋势
+     * 获取访问趋势（从Redis日访问量读取，7天数据）
      */
     private List<DashboardStatsDTO.TrendItem> getViewTrend(int days) {
-        // TODO: 实现真实的访问量统计，需要添加访问日志表
         List<DashboardStatsDTO.TrendItem> trend = new ArrayList<>();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-dd");
+        DateTimeFormatter displayFormatter = DateTimeFormatter.ofPattern("MM-dd");
         for (int i = days - 1; i >= 0; i--) {
             LocalDate date = LocalDate.now().minusDays(i);
+            String key = RedisKeyPrefix.DAILY_VIEW_COUNT 
+                    + date.format(DateTimeFormatter.ISO_LOCAL_DATE);
+            Object value = redisTemplate.opsForValue().get(key);
+            long count = value != null ? ((Number) value).longValue() : 0L;
             trend.add(DashboardStatsDTO.TrendItem.builder()
-                    .date(date.format(formatter))
-                    .count(0L) // 暂时返回0
+                    .date(date.format(displayFormatter))
+                    .count(count)
                     .build());
         }
         return trend;

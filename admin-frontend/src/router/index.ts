@@ -67,6 +67,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/RateLimitMonitor.vue'),
         meta: { title: '限流监控', icon: 'Odometer' },
       },
+      {
+        path: 'cache',
+        name: 'CacheMonitor',
+        component: () => import('@/views/CacheMonitor.vue'),
+        meta: { title: '缓存监控', icon: 'Coin' },
+      },
     ],
   },
 ]
