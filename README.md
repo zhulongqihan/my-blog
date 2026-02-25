@@ -1,8 +1,8 @@
 # 个人博客系统
 
 > 创建日期：2026年1月27日  
-> 最后更新：2026年2月25日  
-> 版本：v1.4.0  
+> 最后更新：2026年2月26日  
+> 版本：v1.5.0  
 > GitHub: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)  
 > 网站：http://cyruszhang.online （备案中）
 
@@ -12,7 +12,7 @@
 
 这是一个全栈个人博客系统，前后端分离架构。后端使用 Spring Boot 3.x 提供 RESTful API，前台页面使用 React 19 + TypeScript + Vite，后台管理系统使用 Vue 3 + Element Plus + Pinia（双前端框架）。前台设计为大地色系极简风格。
 
-**项目亮点**：双前端框架（React + Vue）、Markdown 编辑器 + 图片上传、完整的后台管理系统、JWT + RBAC 权限体系、Redis 缓存、ECharts 数据可视化。
+**项目亮点**：双前端框架（React + Vue）、Markdown 编辑器 + 图片上传、完整的后台管理系统、JWT + RBAC 权限体系、Redis 缓存、ECharts 数据可视化、**API 限流与防护系统**（Redis Lua 滑动窗口 + AOP + IP 黑白名单）。
 
 ### 核心特性
 
@@ -29,6 +29,9 @@
 - **响应式设计** - 适配各种屏幕尺寸
 - **后台管理** - Vue 3 + Element Plus 后台管理系统
 - **数据看板** - ECharts 数据可视化仪表盘
+- **API 限流防护** - Redis Lua 滑动窗口算法，自定义注解 + AOP 实现
+- **IP 黑白名单** - 支持永久/临时封禁，白名单优先放行
+- **限流监控** - 实时监控面板，拦截统计、API 排行、事件追踪
 
 ### 项目目标
 
@@ -58,13 +61,14 @@
 │  Spring Security + JWT  │  Spring Data JPA + Hibernate   │
 │  Redis 缓存 + 黑名单     │  AOP 操作日志 + 异步任务       │
 │  RBAC 权限体系          │  CompletableFuture 并行查询    │
+│  API 限流（Lua滑动窗口） │  IP 黑白名单防护               │
 └─────────────────────────────────────────────────────────────┘
                               │
                     ┌─────────┴─────────┐
                     ▼                    ▼
 ┌────────────────────────────┐ ┌────────────────────────────┐
 │   数据库 (H2/MySQL)       │ │     Redis 7.x 缓存          │
-│  开发: H2  |  生产: MySQL │ │  JWT黑名单 │ 文章缓存 │ 统计 │
+│  开发: H2  |  生产: MySQL │ │ JWT黑名单│文章缓存│限流│黑名单 │
 └────────────────────────────┘ └────────────────────────────┘
 ```
 
@@ -89,6 +93,7 @@
 | **MySQL** | 8.0 | 生产环境数据库 |
 | **Lombok** | 1.18.x | 代码简化工具 |
 | **Maven** | 3.x | 项目构建工具 |
+| **Spring AOP** | 6.x | 切面编程（限流、日志） |
 
 ### 前台前端技术
 
@@ -157,17 +162,26 @@ myblog/
 │   │   │   ├── AdminCommentController.java
 │   │   │   ├── AdminDashboardController.java
 │   │   │   ├── AdminLogController.java
+│   │   │   ├── AdminRateLimitController.java  # 限流监控 API
 │   │   │   └── FileUploadController.java
+│   │   ├── common/annotation/        # 自定义注解
+│   │   │   └── RateLimit.java         # 限流注解
+│   │   ├── common/aspect/            # AOP 切面
+│   │   │   └── RateLimitAspect.java   # 限流切面
 │   │   ├── dto/                      # 数据传输对象
 │   │   ├── entity/                   # JPA 实体类
 │   │   ├── repository/               # 数据访问层
 │   │   ├── security/                 # JWT + 安全配置
+│   │   │   └── IpBlacklistFilter.java # IP 黑名单过滤器
 │   │   ├── service/                  # 业务逻辑层
+│   │   │   └── IpBlacklistService.java # IP 黑白名单服务
 │   │   └── aspect/                   # AOP 切面（操作日志）
 │   ├── src/main/resources/
 │   │   ├── application.yml           # 通用配置
 │   │   ├── application-dev.yml       # 开发环境配置
-│   │   └── application-prod.yml      # 生产环境配置
+│   │   ├── application-prod.yml      # 生产环境配置
+│   │   └── scripts/
+│   │       └── rate_limit.lua        # Redis 滑动窗口限流脚本
 │   └── pom.xml                       # Maven 配置
 │
 ├── frontend/                         # 前台前端 (React 19)
@@ -193,7 +207,8 @@ myblog/
 │   │   │   ├── category.ts           # 分类管理接口
 │   │   │   ├── tag.ts                # 标签管理接口
 │   │   │   ├── comment.ts            # 评论管理接口
-│   │   │   └── log.ts                # 操作日志接口
+│   │   │   ├── log.ts                # 操作日志接口
+│   │   │   └── rateLimit.ts          # 限流监控接口
 │   │   ├── layout/                   # 布局组件
 │   │   │   └── AdminLayout.vue       # 管理后台布局
 │   │   ├── router/                   # 路由配置
@@ -212,7 +227,8 @@ myblog/
 │   │   │   ├── CategoryManage.vue    # 分类管理
 │   │   │   ├── TagManage.vue         # 标签管理
 │   │   │   ├── CommentManage.vue     # 评论管理
-│   │   │   └── LogList.vue           # 操作日志
+│   │   │   ├── LogList.vue           # 操作日志
+│   │   │   └── RateLimitMonitor.vue  # 限流监控面板
 │   │   ├── App.vue
 │   │   └── main.ts
 │   ├── package.json
@@ -384,6 +400,20 @@ stop.bat
 | DELETE | `/api/admin/comments/batch` | 批量删除评论 | ADMIN |
 | GET | `/api/admin/logs` | 操作日志列表（分页） | ADMIN |
 
+### 限流监控接口（需管理员权限）
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| GET | `/api/admin/rate-limit/stats` | 限流统计数据（7日趋势、API排行） | ADMIN |
+| GET | `/api/admin/rate-limit/events` | 最近限流事件列表 | ADMIN |
+| GET | `/api/admin/rate-limit/blacklist` | 获取IP黑名单 | ADMIN |
+| POST | `/api/admin/rate-limit/blacklist` | 添加IP到黑名单（支持临时/永久） | ADMIN |
+| DELETE | `/api/admin/rate-limit/blacklist/{ip}` | 从IP黑名单移除 | ADMIN |
+| GET | `/api/admin/rate-limit/whitelist` | 获取IP白名单 | ADMIN |
+| POST | `/api/admin/rate-limit/whitelist` | 添加IP到白名单 | ADMIN |
+| DELETE | `/api/admin/rate-limit/whitelist/{ip}` | 从IP白名单移除 | ADMIN |
+| GET | `/api/admin/rate-limit/blacklist/log` | 黑名单操作日志 | ADMIN |
+
 ---
 
 ## 数据模型
@@ -488,6 +518,7 @@ stop.bat
 - [x] 标签管理接口（CRUD）
 - [x] 评论管理接口（审核/删除/批量）
 - [x] 操作日志接口（分页查询）
+- [x] 限流监控接口（统计/事件/黑白名单CRUD）
 
 ### 前台前端 (React)
 - [x] Vite + React + TypeScript 项目初始化
@@ -516,6 +547,7 @@ stop.bat
 - [x] 标签管理页面（CRUD）
 - [x] 评论管理页面（审核/删除）
 - [x] 操作日志页面（分页查询）
+- [x] 限流监控页面（拦截统计、API排行、黑白名单管理、事件追踪）
 
 ### 部署
 - [x] 阿里云服务器部署
@@ -541,6 +573,7 @@ stop.bat
 | `docs/DEPLOYMENT.md` | 部署方案对比 | 选择部署方案 |
 | `docs/ADMIN_GUIDE.md` | 后台管理操作指南 | 后台管理系统使用 |
 | `docs/ARTICLE_EDITOR_GUIDE.md` | 文章编辑器实现文档 | Markdown 编辑器功能说明 |
+| `docs/RATE_LIMIT_GUIDE.md` | 限流系统操作指南 | API 限流与防护系统使用 |
 | `docs/.cursorrules` | 开发规范 | 代码风格和规范 |
 | `docs/NEXT_STEPS.md` | 后续改进计划 | 功能扩展参考 |
 | `docs/TUTORIAL.md` | 从零开始教程 | 学习项目架构 |
@@ -606,10 +639,13 @@ stop.bat
 - [ ] 文章搜索功能
 - [ ] 分页组件
 
-### 第三阶段：进阶功能（计划中）
+### 第三阶段：进阶功能（进行中）
+
+**已完成：**
+- [x] API 限流和防护（Redis Lua 滑动窗口 + AOP 切面 + IP 黑白名单）
+- [x] 限流监控面板（ECharts 趋势图、实时统计、事件追踪）
 
 **核心功能：**
-- [ ] API 限流和防护
 - [ ] 数据导出功能
 - [ ] 性能监控
 - [ ] 单元测试
@@ -632,6 +668,17 @@ stop.bat
 ---
 
 ## 开发日志
+
+### 2026-02-26
+- 实现 API 限流与防护系统（v1.5.0）
+- 自定义 @RateLimit 注解 + AOP 切面，Redis Lua 滑动窗口算法
+- 支持 IP/USER/IP_AND_API 三种限流粒度
+- 实现 IP 黑白名单机制（永久/临时封禁，白名单优先）
+- IpBlacklistFilter 在 JWT 认证之前拦截恶意 IP
+- 后台限流监控页面（ECharts 趋势图、API 排行、黑白名单管理、事件追踪）
+- 对登录、注册、文章、搜索、评论接口应用限流规则
+- 修复 IP/IP_AND_API 限流粒度逻辑 Bug
+- 添加 spring-boot-starter-aop 显式依赖
 
 ### 2026-02-25
 - 实现 Markdown 编辑器 + 文章创建/编辑功能（md-editor-v3）

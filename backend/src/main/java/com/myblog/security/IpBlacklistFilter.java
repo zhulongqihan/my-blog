@@ -56,16 +56,6 @@ public class IpBlacklistFilter extends OncePerRequestFilter {
         
         // 设置限流响应头（如果有）
         filterChain.doFilter(request, response);
-        
-        // 在响应完成后写入限流头信息
-        String rateLimitHeader = (String) request.getAttribute("X-RateLimit-Limit");
-        if (rateLimitHeader != null) {
-            response.setHeader("X-RateLimit-Limit", rateLimitHeader);
-            response.setHeader("X-RateLimit-Remaining", 
-                    (String) request.getAttribute("X-RateLimit-Remaining"));
-            response.setHeader("X-RateLimit-Reset", 
-                    (String) request.getAttribute("X-RateLimit-Reset"));
-        }
     }
     
     /**

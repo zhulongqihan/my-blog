@@ -30,7 +30,7 @@ public class CommentController {
         return ResponseEntity.ok(ApiResponse.success(commentService.getCommentsByArticle(articleId, pageable)));
     }
 
-    @RateLimit(maxRequests = 10, timeWindow = 60, prefix = "comment", message = "评论过于频繁，请1分钟后再试")
+    @RateLimit(maxRequests = 10, timeWindow = 60, limitType = RateLimit.LimitType.IP_AND_API, prefix = "comment", message = "评论过于频繁，请1分钟后再试")
     @PostMapping("/article/{articleId}")
     public ResponseEntity<ApiResponse<CommentResponse>> createComment(
             @PathVariable Long articleId,

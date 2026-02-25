@@ -25,14 +25,14 @@ public class ArticleController {
 
     private final ArticleService articleService;
 
-    @RateLimit(maxRequests = 60, timeWindow = 60)
+    @RateLimit(maxRequests = 60, timeWindow = 60, limitType = RateLimit.LimitType.IP_AND_API)
     @GetMapping
     public ResponseEntity<ApiResponse<Page<ArticleResponse>>> getArticles(
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success(articleService.getPublishedArticles(pageable)));
     }
 
-    @RateLimit(maxRequests = 60, timeWindow = 60)
+    @RateLimit(maxRequests = 60, timeWindow = 60, limitType = RateLimit.LimitType.IP_AND_API)
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ArticleResponse>> getArticle(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success(articleService.getArticleAndIncrementView(id)));
@@ -63,7 +63,7 @@ public class ArticleController {
         return ResponseEntity.ok(ApiResponse.success(articleService.getArticlesByTag(tagId, pageable)));
     }
 
-    @RateLimit(maxRequests = 30, timeWindow = 60, prefix = "search")
+    @RateLimit(maxRequests = 30, timeWindow = 60, limitType = RateLimit.LimitType.IP_AND_API, prefix = "search")
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<Page<ArticleResponse>>> searchArticles(
             @RequestParam String keyword,

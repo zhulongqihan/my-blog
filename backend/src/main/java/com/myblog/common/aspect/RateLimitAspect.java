@@ -125,29 +125,35 @@ public class RateLimitAspect {
     /**
      * 构建限流Key
      * 
-     * 格式：rate:limit:{limitType}:{identifier}:{api}
-     * 示例：rate:limit:ip:192.168.1.1:POST:/api/auth/login
+     * 格式：
+     * - IP模式：rate:limit:ip:{ip}  (全局per-IP限流)
+     * - USER模式：rate:limit:user:{userId}:{api}
+     * - IP_AND_API模式：rate:limit:ip_api:{ip}:{api}  (精细的per-IP-per-API限流)
      */
     private String buildRateLimitKey(RateLimit rateLimit, ProceedingJoinPoint joinPoint) {
         StringBuilder key = new StringBuilder(RedisKeyPrefix.RATE_LIMIT);
         
-        switch (rateLimit.limitType()) {
-            case IP:
-                key.append("ip:").append(getClientIp());
-                break;
-            case USER:
-                key.append("user:").append(getCurrentUserId());
-                break;
-            case IP_AND_API:
-                key.append("ip_api:").append(getClientIp());
-                break;
-        }
-        
-        // 添加方法标识
+        // API标识
         String apiKey = rateLimit.prefix().isEmpty() 
                 ? getMethodSignature(joinPoint)
                 : rateLimit.prefix();
-        key.append(":").append(apiKey);
+        
+        switch (rateLimit.limitType()) {
+            case IP:
+                // 全局per-IP限流：同一IP的所有使用相同prefix的接口共享配额
+                key.append("ip:").append(getClientIp());
+                if (!rateLimit.prefix().isEmpty()) {
+                    key.append(":").append(apiKey);
+                }
+                break;
+            case USER:
+                key.append("user:").append(getCurrentUserId()).append(":").append(apiKey);
+                break;
+            case IP_AND_API:
+                // 精细限流：同一IP对每个接口独立计数
+                key.append("ip_api:").append(getClientIp()).append(":").append(apiKey);
+                break;
+        }
         
         return key.toString();
     }
