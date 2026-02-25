@@ -1,5 +1,6 @@
 package com.myblog.controller;
 
+import com.myblog.common.annotation.RateLimit;
 import com.myblog.common.result.Result;
 import com.myblog.dto.*;
 import com.myblog.entity.User;
@@ -25,6 +26,7 @@ public class AuthController {
     private final JwtUtils jwtUtils;
     private final JwtBlacklistService jwtBlacklistService;
 
+    @RateLimit(maxRequests = 5, timeWindow = 60, prefix = "login", message = "登录尝试过于频繁，请1分钟后再试")
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
@@ -49,6 +51,7 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("登录成功", response));
     }
 
+    @RateLimit(maxRequests = 3, timeWindow = 60, prefix = "register", message = "注册请求过于频繁，请1分钟后再试")
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
         User user = userService.createUser(

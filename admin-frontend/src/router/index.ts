@@ -61,6 +61,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/LogList.vue'),
         meta: { title: '操作日志', icon: 'Tickets' },
       },
+      {
+        path: 'rate-limit',
+        name: 'RateLimit',
+        component: () => import('@/views/RateLimitMonitor.vue'),
+        meta: { title: '限流监控', icon: 'Odometer' },
+      },
     ],
   },
 ]

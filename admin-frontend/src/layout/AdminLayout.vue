@@ -97,6 +97,7 @@ const menuItems = [
   { path: '/tags', title: '标签管理', icon: 'PriceTag' },
   { path: '/comments', title: '评论管理', icon: 'ChatDotRound' },
   { path: '/logs', title: '操作日志', icon: 'Tickets' },
+  { path: '/rate-limit', title: '限流监控', icon: 'Odometer' },
 ]
 
 function handleCommand(command: string) {

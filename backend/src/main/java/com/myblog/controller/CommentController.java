@@ -1,5 +1,6 @@
 package com.myblog.controller;
 
+import com.myblog.common.annotation.RateLimit;
 import com.myblog.dto.ApiResponse;
 import com.myblog.dto.CommentRequest;
 import com.myblog.dto.CommentResponse;
@@ -29,6 +30,7 @@ public class CommentController {
         return ResponseEntity.ok(ApiResponse.success(commentService.getCommentsByArticle(articleId, pageable)));
     }
 
+    @RateLimit(maxRequests = 10, timeWindow = 60, prefix = "comment", message = "评论过于频繁，请1分钟后再试")
     @PostMapping("/article/{articleId}")
     public ResponseEntity<ApiResponse<CommentResponse>> createComment(
             @PathVariable Long articleId,

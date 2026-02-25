@@ -73,7 +73,10 @@ public enum ErrorCode {
     FILE_TYPE_NOT_ALLOWED(6003, "文件类型不支持"),
     
     // ========== 限流相关 7000-7999 ==========
-    RATE_LIMIT_EXCEEDED(7001, "请求过于频繁，请稍后再试");
+    RATE_LIMIT_EXCEEDED(7001, "请求过于频繁，请稍后再试"),
+    IP_BLACKLISTED(7002, "您的IP已被限制访问"),
+    IP_ALREADY_IN_BLACKLIST(7003, "该IP已在黑名单中"),
+    IP_NOT_IN_BLACKLIST(7004, "该IP不在黑名单中");
     
     private final Integer code;
     private final String message;

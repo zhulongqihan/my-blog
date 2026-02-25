@@ -28,6 +28,11 @@ request.interceptors.response.use(
     if (data.code === 200) {
       return data
     }
+    // 限流错误特殊处理
+    if (data.code === 7001 || data.code === 7002) {
+      ElMessage.warning(data.message || '请求过于频繁，请稍后再试')
+      return Promise.reject(new Error(data.message || '请求被限流'))
+    }
     // 业务逻辑错误
     ElMessage.error(data.message || '请求失败')
     return Promise.reject(new Error(data.message || '请求失败'))

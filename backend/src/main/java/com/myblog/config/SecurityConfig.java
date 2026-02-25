@@ -1,5 +1,6 @@
 package com.myblog.config;
 
+import com.myblog.security.IpBlacklistFilter;
 import com.myblog.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,6 +35,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
+    private final IpBlacklistFilter ipBlacklistFilter;
     private final UserDetailsService userDetailsService;
 
     @Value("${cors.allowed-origins}")
@@ -60,6 +62,7 @@ public class SecurityConfig {
             )
             .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
             .authenticationProvider(authenticationProvider())
+            .addFilterBefore(ipBlacklistFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
