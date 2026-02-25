@@ -87,7 +87,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="createdAt" label="创建时间" width="170" />
-        <el-table-column label="操作" width="240" fixed="right">
+        <el-table-column label="操作" width="300" fixed="right">
           <template #default="{ row }">
             <el-button
               type="primary"
@@ -124,6 +124,13 @@
               text
               @click="handleUntop(row.id)"
             >取消置顶</el-button>
+            <el-button
+              type="danger"
+              size="small"
+              text
+              icon="Delete"
+              @click="handleDelete(row.id, row.title)"
+            >删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -241,6 +248,17 @@ async function handleTop(id: number) {
 async function handleUntop(id: number) {
   await untopArticle(id)
   ElMessage.success('已取消置顶')
+  fetchArticles()
+}
+
+async function handleDelete(id: number, title: string) {
+  await ElMessageBox.confirm(`确定要删除文章「${title}」吗？此操作不可恢复！`, '删除确认', {
+    type: 'warning',
+    confirmButtonText: '确认删除',
+    confirmButtonClass: 'el-button--danger',
+  })
+  await batchDeleteArticles([id])
+  ElMessage.success('删除成功')
   fetchArticles()
 }
 

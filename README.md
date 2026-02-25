@@ -2,7 +2,7 @@
 
 > 创建日期：2026年1月27日  
 > 最后更新：2026年2月25日  
-> 版本：v1.3.1  
+> 版本：v1.4.0  
 > GitHub: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)  
 > 网站：http://cyruszhang.online （备案中）
 
@@ -12,13 +12,16 @@
 
 这是一个全栈个人博客系统，前后端分离架构。后端使用 Spring Boot 3.x 提供 RESTful API，前台页面使用 React 19 + TypeScript + Vite，后台管理系统使用 Vue 3 + Element Plus + Pinia（双前端框架）。前台设计为大地色系极简风格。
 
-**项目亮点**：双前端框架（React + Vue）、完整的后台管理系统、JWT + RBAC 权限体系、Redis 缓存、ECharts 数据可视化。
+**项目亮点**：双前端框架（React + Vue）、Markdown 编辑器 + 图片上传、完整的后台管理系统、JWT + RBAC 权限体系、Redis 缓存、ECharts 数据可视化。
 
 ### 核心特性
 
 - **极简设计** - 大地色系配色，复古温暖的视觉风格
 - **JWT 认证** - 基于 Spring Security 的安全认证机制
 - **JWT 黑名单** - 解决登出后 Token 依然有效的问题
+- **Markdown 编辑器** - 集成 md-editor-v3，支持实时预览、图片上传
+- **文章管理** - 后台创建/编辑文章，草稿/发布切换
+- **图片上传** - 支持粘贴/拖拽上传，UUID 重命名、按日期分目录
 - **Markdown 支持** - 文章内容支持 Markdown 格式
 - **代码高亮** - 集成 React Syntax Highlighter
 - **分类标签** - 灵活的文章分类和标签系统
@@ -112,6 +115,7 @@
 | **vue-router** | 4.3 | 路由管理 |
 | **ECharts** | 5.5 | 数据可视化 |
 | **vue-echarts** | 6.6 | ECharts Vue 封装 |
+| **md-editor-v3** | 4.x | Markdown 编辑器 |
 | **@element-plus/icons-vue** | 2.3 | Element Plus 图标 |
 
 ### 设计规范
@@ -152,7 +156,8 @@ myblog/
 │   │   │   ├── AdminTagController.java
 │   │   │   ├── AdminCommentController.java
 │   │   │   ├── AdminDashboardController.java
-│   │   │   └── AdminLogController.java
+│   │   │   ├── AdminLogController.java
+│   │   │   └── FileUploadController.java
 │   │   ├── dto/                      # 数据传输对象
 │   │   ├── entity/                   # JPA 实体类
 │   │   ├── repository/               # 数据访问层
@@ -203,6 +208,7 @@ myblog/
 │   │   │   ├── Login.vue             # 管理员登录
 │   │   │   ├── Dashboard.vue         # 数据仪表盘
 │   │   │   ├── ArticleList.vue       # 文章管理
+│   │   │   ├── ArticleEdit.vue       # 文章编辑（Markdown 编辑器）
 │   │   │   ├── CategoryManage.vue    # 分类管理
 │   │   │   ├── TagManage.vue         # 标签管理
 │   │   │   ├── CommentManage.vue     # 评论管理
@@ -356,10 +362,14 @@ stop.bat
 |------|------|------|------|
 | GET | `/api/admin/dashboard/stats` | 仪表盘统计数据 | ADMIN |
 | GET | `/api/admin/articles` | 文章列表（分页/搜索/筛选） | ADMIN |
+| GET | `/api/admin/articles/{id}` | 获取文章详情（编辑回显） | ADMIN |
+| POST | `/api/admin/articles` | 创建文章 | ADMIN |
+| PUT | `/api/admin/articles/{id}` | 更新文章 | ADMIN |
 | PUT | `/api/admin/articles/{id}/toggle-publish` | 切换发布状态 | ADMIN |
 | PUT | `/api/admin/articles/{id}/toggle-featured` | 切换精选状态 | ADMIN |
 | DELETE | `/api/admin/articles/{id}` | 删除文章 | ADMIN |
 | DELETE | `/api/admin/articles/batch` | 批量删除文章 | ADMIN |
+| POST | `/api/admin/upload/image` | 上传图片 | ADMIN |
 | GET | `/api/admin/categories` | 分类列表 | ADMIN |
 | POST | `/api/admin/categories` | 创建分类 | ADMIN |
 | PUT | `/api/admin/categories/{id}` | 更新分类 | ADMIN |
@@ -471,6 +481,8 @@ stop.bat
 ### 后台管理 API
 - [x] 管理员登录/登出接口
 - [x] 仪表盘统计接口（CompletableFuture 并行查询）
+- [x] 文章创建/编辑接口（Markdown 内容）
+- [x] 图片上传接口（本地存储 + 静态资源映射）
 - [x] 文章管理接口（CRUD + 缓存策略）
 - [x] 分类管理接口（CRUD）
 - [x] 标签管理接口（CRUD）
@@ -499,6 +511,7 @@ stop.bat
 - [x] 管理员登录页面
 - [x] 数据仪表盘（ECharts 图表）
 - [x] 文章管理页面（搜索/筛选/分页/批量操作）
+- [x] 文章创建/编辑页面（Markdown 编辑器 + 图片上传）
 - [x] 分类管理页面（CRUD）
 - [x] 标签管理页面（CRUD）
 - [x] 评论管理页面（审核/删除）
@@ -527,6 +540,7 @@ stop.bat
 | `docs/DEPLOYMENT_VPS.md` | VPS 部署教程 | 使用其他 VPS 部署 |
 | `docs/DEPLOYMENT.md` | 部署方案对比 | 选择部署方案 |
 | `docs/ADMIN_GUIDE.md` | 后台管理操作指南 | 后台管理系统使用 |
+| `docs/ARTICLE_EDITOR_GUIDE.md` | 文章编辑器实现文档 | Markdown 编辑器功能说明 |
 | `docs/.cursorrules` | 开发规范 | 代码风格和规范 |
 | `docs/NEXT_STEPS.md` | 后续改进计划 | 功能扩展参考 |
 | `docs/TUTORIAL.md` | 从零开始教程 | 学习项目架构 |
@@ -571,6 +585,7 @@ stop.bat
 **后台管理 API：**
 - [x] 管理员登录/登出接口
 - [x] 仪表盘统计接口（CompletableFuture并行查询）
+- [x] 文章创建/编辑接口 + 图片上传
 - [x] 文章管理接口（CRUD + 缓存策略）
 - [x] 分类标签管理接口
 - [x] 评论管理接口
@@ -580,10 +595,12 @@ stop.bat
 - [x] 管理后台界面（Vue 3 + Element Plus）
 - [x] 数据仪表盘（ECharts 可视化）
 - [x] 文章/分类/标签/评论管理页面
+- [x] 文章创建/编辑页面（Markdown 编辑器 + 图片上传）
 - [x] 操作日志页面
 
 **前台功能：**
-- [ ] 文章创建和编辑页面（Markdown 编辑器）
+- [x] 文章创建和编辑页面（Markdown 编辑器）
+- [x] 图片上传功能（封面图 + 编辑器内粘贴/拖拽上传）
 - [ ] 用户登录/注册页面
 - [ ] 评论功能前端实现
 - [ ] 文章搜索功能
@@ -593,7 +610,6 @@ stop.bat
 
 **核心功能：**
 - [ ] API 限流和防护
-- [ ] 文件上传功能
 - [ ] 数据导出功能
 - [ ] 性能监控
 - [ ] 单元测试
@@ -607,7 +623,6 @@ stop.bat
 
 **扩展功能：**
 - [ ] 暗色模式
-- [ ] 图片上传
 - [ ] RSS 订阅
 - [ ] 社交分享
 - [ ] 文章统计
@@ -619,11 +634,14 @@ stop.bat
 ## 开发日志
 
 ### 2026-02-25
+- 实现 Markdown 编辑器 + 文章创建/编辑功能（md-editor-v3）
+- 实现图片上传 API（本地存储 + 静态资源映射）
+- 文章列表新增「新建文章」、「编辑」、「删除」按钮
+- 修复 LogAspect 序列化 User 懒加载字段抛异常的问题
 - 修复操作日志排序字段错误（operationTime → createdAt）
 - 标签管理增加颜色选择功能
 - 分类管理增加排序和图标编辑
 - 退出登录对接后端 logout API（JWT 黑名单生效）
-- 去除 README 中的 emoji 和 AI 痕迹
 - 创建后台管理操作指南文档
 
 ### 2026-02-24
