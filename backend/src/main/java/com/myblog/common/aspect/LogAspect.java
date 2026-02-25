@@ -9,8 +9,10 @@ import com.myblog.entity.OperationLog;
 import com.myblog.entity.User;
 import com.myblog.service.OperationLogService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -110,6 +112,8 @@ public class LogAspect {
                     // 过滤掉HttpServletRequest等不需要序列化的参数
                     String params = Arrays.stream(args)
                             .filter(arg -> !(arg instanceof HttpServletRequest))
+                            .filter(arg -> !(arg instanceof HttpServletResponse))
+                            .filter(arg -> !(arg instanceof UserDetails))
                             .map(this::toJsonString)
                             .collect(Collectors.joining(", "));
                     operationLog.setRequestParams(params);
@@ -188,7 +192,11 @@ public class LogAspect {
         try {
             return JSONUtil.toJsonStr(obj);
         } catch (Exception e) {
-            return obj.toString();
+            try {
+                return obj.toString();
+            } catch (Exception ex) {
+                return obj.getClass().getSimpleName() + "(serialization failed)";
+            }
         }
     }
 }
