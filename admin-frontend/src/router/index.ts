@@ -26,6 +26,18 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '文章管理', icon: 'Document' },
       },
       {
+        path: 'articles/create',
+        name: 'ArticleCreate',
+        component: () => import('@/views/ArticleEdit.vue'),
+        meta: { title: '新建文章', icon: 'Edit', activeMenu: '/articles' },
+      },
+      {
+        path: 'articles/edit/:id',
+        name: 'ArticleEditById',
+        component: () => import('@/views/ArticleEdit.vue'),
+        meta: { title: '编辑文章', icon: 'Edit', activeMenu: '/articles' },
+      },
+      {
         path: 'categories',
         name: 'Categories',
         component: () => import('@/views/CategoryManage.vue'),

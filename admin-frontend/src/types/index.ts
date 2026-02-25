@@ -108,6 +108,51 @@ export interface ArticleAdminResponse {
   updatedAt: string
 }
 
+/** 文章详情（包含内容，用于编辑回显） */
+export interface ArticleDetail {
+  id: number
+  title: string
+  summary: string
+  content: string
+  coverImage: string
+  author: {
+    id: number
+    username: string
+    nickname: string
+    avatar: string
+  }
+  category: {
+    id: number
+    name: string
+    icon: string
+  } | null
+  tags: {
+    id: number
+    name: string
+    color: string
+  }[]
+  viewCount: number
+  likeCount: number
+  commentCount: number
+  published: boolean
+  featured: boolean
+  publishedAt: string
+  createdAt: string
+  updatedAt: string
+}
+
+/** 文章表单（创建/编辑） */
+export interface ArticleForm {
+  title: string
+  summary: string
+  content: string
+  coverImage: string
+  categoryId: number | null
+  tagIds: number[]
+  published: boolean
+  featured: boolean
+}
+
 // ==================== 分类管理 ====================
 
 export interface Category {

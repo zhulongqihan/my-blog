@@ -38,6 +38,7 @@
     <!-- 操作栏 -->
     <el-card shadow="never" style="margin-top: 16px">
       <div class="toolbar">
+        <el-button type="primary" icon="Plus" @click="handleCreate">新建文章</el-button>
         <el-button type="danger" icon="Delete" :disabled="!selectedIds.length" @click="handleBatchDelete">
           批量删除 ({{ selectedIds.length }})
         </el-button>
@@ -86,8 +87,15 @@
           </template>
         </el-table-column>
         <el-table-column prop="createdAt" label="创建时间" width="170" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="240" fixed="right">
           <template #default="{ row }">
+            <el-button
+              type="primary"
+              size="small"
+              text
+              icon="Edit"
+              @click="handleEdit(row.id)"
+            >编辑</el-button>
             <el-button
               v-if="!row.published"
               type="primary"
@@ -138,6 +146,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getArticles,
@@ -150,6 +159,7 @@ import {
 import { getCategories } from '@/api/category'
 import type { ArticleAdminResponse, ArticleQueryParams, Category } from '@/types'
 
+const router = useRouter()
 const loading = ref(false)
 const articles = ref<ArticleAdminResponse[]>([])
 const categories = ref<Category[]>([])
@@ -199,6 +209,14 @@ function handleReset() {
 
 function handleSelectionChange(rows: ArticleAdminResponse[]) {
   selectedIds.value = rows.map(r => r.id)
+}
+
+function handleCreate() {
+  router.push('/articles/create')
+}
+
+function handleEdit(id: number) {
+  router.push(`/articles/edit/${id}`)
 }
 
 async function handlePublish(id: number) {

@@ -3,11 +3,17 @@ package com.myblog.controller.admin;
 import com.myblog.common.annotation.Log;
 import com.myblog.common.result.PageResult;
 import com.myblog.common.result.Result;
+import com.myblog.dto.ArticleRequest;
+import com.myblog.dto.ArticleResponse;
 import com.myblog.dto.admin.ArticleAdminResponse;
 import com.myblog.dto.admin.ArticleQueryRequest;
+import com.myblog.entity.User;
+import com.myblog.service.ArticleService;
 import com.myblog.service.admin.AdminArticleService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,6 +25,9 @@ import java.util.List;
  *
  * 接口列表：
  *   GET    /api/admin/articles               - 分页查询文章（支持关键词/分类/状态筛选）
+ *   GET    /api/admin/articles/{id}          - 获取文章详情（用于编辑回显）
+ *   POST   /api/admin/articles               - 创建文章
+ *   PUT    /api/admin/articles/{id}          - 更新文章
  *   PUT    /api/admin/articles/{id}/publish   - 发布文章
  *   PUT    /api/admin/articles/{id}/unpublish - 取消发布
  *   PUT    /api/admin/articles/{id}/top       - 置顶文章
@@ -32,6 +41,7 @@ import java.util.List;
 public class AdminArticleController {
 
     private final AdminArticleService adminArticleService;
+    private final ArticleService articleService;
 
     /**
      * 分页查询文章列表
@@ -40,6 +50,40 @@ public class AdminArticleController {
     @GetMapping
     public Result<PageResult<ArticleAdminResponse>> list(ArticleQueryRequest request) {
         return Result.success(adminArticleService.getArticles(request));
+    }
+
+    /**
+     * 获取文章详情（编辑回显）
+     * GET /api/admin/articles/1
+     */
+    @GetMapping("/{id}")
+    public Result<ArticleResponse> getDetail(@PathVariable Long id) {
+        return Result.success(articleService.getArticle(id));
+    }
+
+    /**
+     * 创建文章
+     * POST /api/admin/articles
+     */
+    @PostMapping
+    @Log(module = "文章管理", operationType = "CREATE", description = "创建文章")
+    public Result<ArticleResponse> create(
+            @Valid @RequestBody ArticleRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        return Result.success(articleService.createArticle(request, currentUser));
+    }
+
+    /**
+     * 更新文章
+     * PUT /api/admin/articles/1
+     */
+    @PutMapping("/{id}")
+    @Log(module = "文章管理", operationType = "UPDATE", description = "更新文章")
+    public Result<ArticleResponse> update(
+            @PathVariable Long id,
+            @Valid @RequestBody ArticleRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        return Result.success(articleService.updateArticle(id, request, currentUser));
     }
 
     /**
