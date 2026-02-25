@@ -709,6 +709,8 @@ stop.bat
 - 所有写操作自动失效关联缓存（文章/分类/标签/管理操作）
 - 缓存监控 API（GET/DELETE /api/admin/cache/*）
 - 缓存监控前端页面（ECharts 命中率饼图、空间分布、Redis信息面板、缓存一键清理）
+- 修复 GenericJackson2JsonRedisSerializer + LocalDateTime 序列化问题（注册 JavaTimeModule）
+- 修复 @Cacheable 同类自调用 AOP 失效问题（注入 self 代理）
 
 ### 2026-02-26
 - 实现 API 限流与防护系统（v1.5.0）
