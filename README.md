@@ -1,8 +1,8 @@
 # 个人博客系统
 
 > 创建日期：2026年1月27日  
-> 最后更新：2026年2月26日  
-> 版本：v1.5.0  
+> 最后更新：2026年2月27日  
+> 版本：v1.6.0  
 > GitHub: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)  
 > 网站：http://cyruszhang.online （备案中）
 
@@ -12,7 +12,7 @@
 
 这是一个全栈个人博客系统，前后端分离架构。后端使用 Spring Boot 3.x 提供 RESTful API，前台页面使用 React 19 + TypeScript + Vite，后台管理系统使用 Vue 3 + Element Plus + Pinia（双前端框架）。前台设计为大地色系极简风格。
 
-**项目亮点**：双前端框架（React + Vue）、Markdown 编辑器 + 图片上传、完整的后台管理系统、JWT + RBAC 权限体系、Redis 缓存、ECharts 数据可视化、**API 限流与防护系统**（Redis Lua 滑动窗口 + AOP + IP 黑白名单）。
+**项目亮点**：双前端框架（React + Vue）、Markdown 编辑器 + 图片上传、完整的后台管理系统、JWT + RBAC 权限体系、**Redis 多级缓存系统**（Cache Aside + Write-Behind + 缓存预热 + 监控面板）、ECharts 数据可视化、**API 限流与防护系统**（Redis Lua 滑动窗口 + AOP + IP 黑白名单）。
 
 ### 核心特性
 
@@ -31,6 +31,10 @@
 - **数据看板** - ECharts 数据可视化仪表盘
 - **API 限流防护** - Redis Lua 滑动窗口算法，自定义注解 + AOP 实现
 - **IP 黑白名单** - 支持永久/临时封禁，白名单优先放行
+- **Redis 多级缓存** - Spring Cache + 多TTL策略，Cache Aside / Write-Behind 模式
+- **浏览量缓冲** - Redis INCR 原子计数 + 定时同步DB，减少数据库压力
+- **缓存预热** - 应用启动时自动预加载热点数据
+- **缓存监控** - ECharts 可视化命中率、空间分布、Redis 状态、一键清理
 - **限流监控** - 实时监控面板，拦截统计、API 排行、事件追踪
 
 ### 项目目标
@@ -59,16 +63,17 @@
 ┌─────────────────────────────────────────────────────────────┐
 │                    后端 (Spring Boot 3.2.2)                    │
 │  Spring Security + JWT  │  Spring Data JPA + Hibernate   │
-│  Redis 缓存 + 黑名单     │  AOP 操作日志 + 异步任务       │
+│   Redis 多级缓存 + 黑名单  │  AOP 操作日志 + 异步任务       │
 │  RBAC 权限体系          │  CompletableFuture 并行查询    │
 │  API 限流（Lua滑动窗口） │  IP 黑白名单防护               │
+│  Spring Cache（多TTL）  │  定时任务（浏览量同步）         │
 └─────────────────────────────────────────────────────────────┘
                               │
                     ┌─────────┴─────────┐
                     ▼                    ▼
 ┌────────────────────────────┐ ┌────────────────────────────┐
 │   数据库 (H2/MySQL)       │ │     Redis 7.x 缓存          │
-│  开发: H2  |  生产: MySQL │ │ JWT黑名单│文章缓存│限流│黑名单 │
+│  开发: H2  |  生产: MySQL │ │ 文章缓存│分类标签│浏览量│限流  │
 └────────────────────────────┘ └────────────────────────────┘
 ```
 
@@ -86,7 +91,7 @@
 | **Spring Data JPA** | 3.x | 数据持久层 |
 | **Hibernate** | 6.4.1 | ORM 框架 |
 | **JWT (jjwt)** | 0.12.3 | Token 认证 |
-| **Redis** | 7.x | 缓存和黑名单 |
+| **Redis** | 7.x | 多级缓存 + JWT黑名单 + 限流 |
 | **MapStruct** | 1.5.5 | 对象转换 |
 | **Hutool** | 5.8.24 | 工具库 |
 | **H2 Database** | 2.x | 开发环境数据库 |
@@ -94,6 +99,7 @@
 | **Lombok** | 1.18.x | 代码简化工具 |
 | **Maven** | 3.x | 项目构建工具 |
 | **Spring AOP** | 6.x | 切面编程（限流、日志） |
+| **Spring Cache** | 6.x | 声明式缓存（多TTL策略） |
 
 ### 前台前端技术
 
@@ -147,7 +153,7 @@ myblog/
 │   │   ├── config/                   # 配置类
 │   │   │   ├── SecurityConfig.java   # Spring Security 配置
 │   │   │   ├── RedisConfig.java      # Redis 配置
-│   │   │   ├── AsyncConfig.java      # 异步任务配置
+│   │   │   ├── AsyncConfig.java      # 异步任务 + 定时任务配置
 │   │   │   ├── DataInitializer.java  # 数据初始化
 │   │   │   └── GlobalExceptionHandler.java
 │   │   ├── controller/               # 公共 API 控制器
@@ -157,6 +163,7 @@ myblog/
 │   │   │   └── CategoryTagController.java
 │   │   ├── controller/admin/         # 管理后台 API 控制器
 │   │   │   ├── AdminArticleController.java
+│   │   │   ├── AdminCacheController.java   # 缓存监控 API
 │   │   │   ├── AdminCategoryController.java
 │   │   │   ├── AdminTagController.java
 │   │   │   ├── AdminCommentController.java
@@ -174,7 +181,13 @@ myblog/
 │   │   ├── security/                 # JWT + 安全配置
 │   │   │   └── IpBlacklistFilter.java # IP 黑名单过滤器
 │   │   ├── service/                  # 业务逻辑层
+│   │   │   ├── CacheService.java       # 缓存管理服务
+│   │   │   ├── CategoryService.java    # 分类服务（含缓存）
+│   │   │   ├── TagService.java         # 标签服务（含缓存）
 │   │   │   └── IpBlacklistService.java # IP 黑白名单服务
+│   │   ├── task/                      # 定时/启动任务
+│   │   │   ├── ViewCountSyncTask.java  # 浏览量同步（5分钟）
+│   │   │   └── CacheWarmupTask.java    # 缓存预热
 │   │   └── aspect/                   # AOP 切面（操作日志）
 │   ├── src/main/resources/
 │   │   ├── application.yml           # 通用配置
@@ -208,7 +221,8 @@ myblog/
 │   │   │   ├── tag.ts                # 标签管理接口
 │   │   │   ├── comment.ts            # 评论管理接口
 │   │   │   ├── log.ts                # 操作日志接口
-│   │   │   └── rateLimit.ts          # 限流监控接口
+│   │   │   ├── rateLimit.ts          # 限流监控接口
+│   │   │   └── cache.ts              # 缓存监控接口
 │   │   ├── layout/                   # 布局组件
 │   │   │   └── AdminLayout.vue       # 管理后台布局
 │   │   ├── router/                   # 路由配置
@@ -228,7 +242,8 @@ myblog/
 │   │   │   ├── TagManage.vue         # 标签管理
 │   │   │   ├── CommentManage.vue     # 评论管理
 │   │   │   ├── LogList.vue           # 操作日志
-│   │   │   └── RateLimitMonitor.vue  # 限流监控面板
+│   │   │   ├── RateLimitMonitor.vue  # 限流监控面板
+│   │   │   └── CacheMonitor.vue      # 缓存监控面板
 │   │   ├── App.vue
 │   │   └── main.ts
 │   ├── package.json
@@ -414,6 +429,15 @@ stop.bat
 | DELETE | `/api/admin/rate-limit/whitelist/{ip}` | 从IP白名单移除 | ADMIN |
 | GET | `/api/admin/rate-limit/blacklist/log` | 黑名单操作日志 | ADMIN |
 
+### 缓存监控接口（需管理员权限）
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| GET | `/api/admin/cache/stats` | 缓存统计（Redis信息+各缓存空间） | ADMIN |
+| GET | `/api/admin/cache/names` | 获取所有缓存名称 | ADMIN |
+| DELETE | `/api/admin/cache/{cacheName}` | 清除指定缓存空间 | ADMIN |
+| DELETE | `/api/admin/cache/all` | 清除所有缓存 | ADMIN |
+
 ---
 
 ## 数据模型
@@ -499,11 +523,11 @@ stop.bat
 - [x] JWT 认证机制
 - [x] JWT 黑名单机制（解决登出问题）
 - [x] Spring Security 配置
-- [x] Redis 缓存配置
+- [x] Redis 多级缓存（6个命名空间 + 多TTL策略）
 - [x] 统一响应体（Result<T>）
 - [x] 全局异常处理
 - [x] AOP 操作日志（异步记录）
-- [x] 异步任务配置
+- [x] 异步任务 + 定时任务配置
 - [x] CORS 跨域配置
 - [x] 数据初始化 (管理员账号、默认分类和标签)
 - [x] 配置管理（开发/生产环境分离）
@@ -519,6 +543,7 @@ stop.bat
 - [x] 评论管理接口（审核/删除/批量）
 - [x] 操作日志接口（分页查询）
 - [x] 限流监控接口（统计/事件/黑白名单CRUD）
+- [x] 缓存监控接口（统计/清除/空间管理）
 
 ### 前台前端 (React)
 - [x] Vite + React + TypeScript 项目初始化
@@ -548,6 +573,7 @@ stop.bat
 - [x] 评论管理页面（审核/删除）
 - [x] 操作日志页面（分页查询）
 - [x] 限流监控页面（拦截统计、API排行、黑白名单管理、事件追踪）
+- [x] 缓存监控页面（命中率分析、空间分布、Redis信息、缓存清理）
 
 ### 部署
 - [x] 阿里云服务器部署
@@ -574,6 +600,7 @@ stop.bat
 | `docs/ADMIN_GUIDE.md` | 后台管理操作指南 | 后台管理系统使用 |
 | `docs/ARTICLE_EDITOR_GUIDE.md` | 文章编辑器实现文档 | Markdown 编辑器功能说明 |
 | `docs/RATE_LIMIT_GUIDE.md` | 限流系统操作指南 | API 限流与防护系统使用 |
+| `docs/CACHE_GUIDE.md` | 缓存系统操作指南 | Redis 缓存系统使用与面试要点 |
 | `docs/.cursorrules` | 开发规范 | 代码风格和规范 |
 | `docs/NEXT_STEPS.md` | 后续改进计划 | 功能扩展参考 |
 | `docs/TUTORIAL.md` | 从零开始教程 | 学习项目架构 |
@@ -600,9 +627,9 @@ stop.bat
 - [x] JWT 认证机制
 - [x] JWT 黑名单机制
 - [x] 统一响应体和异常处理
-- [x] Redis 缓存配置
+- [x] Redis 多级缓存系统（Cache Aside + Write-Behind）
 - [x] AOP 操作日志
-- [x] 异步任务配置
+- [x] 异步任务 + 定时任务配置
 - [x] RBAC 权限体系设计
 - [x] 配置管理（开发/生产环境分离）
 - [x] 文章、分类、标签功能
@@ -644,6 +671,8 @@ stop.bat
 **已完成：**
 - [x] API 限流和防护（Redis Lua 滑动窗口 + AOP 切面 + IP 黑白名单）
 - [x] 限流监控面板（ECharts 趋势图、实时统计、事件追踪）
+- [x] Redis 多级缓存系统（Spring Cache + 多TTL + Cache Aside + Write-Behind）
+- [x] 缓存监控面板（ECharts 命中率/空间分布、Redis 状态、缓存管理）
 
 **核心功能：**
 - [ ] 数据导出功能
@@ -668,6 +697,18 @@ stop.bat
 ---
 
 ## 开发日志
+
+### 2026-02-27
+- 实现 Redis 多级缓存系统增强（v1.6.0）
+- 多TTL缓存配置：6个命名缓存空间（articleDetail/featuredArticles/popularArticles/categories/tags/dashboardStats）
+- 文章详情/推荐/热门缓存（Cache Aside模式，@Cacheable + @CacheEvict）
+- 浏览量 Redis 缓冲（INCR 原子计数 + 每5分钟定时同步到数据库，Write-Behind模式）
+- 分类/标签新建 Service 层，2小时缓存TTL
+- 仪表盘统计缓存（5分钟TTL），修复 todayViews 从 Redis 读取
+- 缓存预热（ApplicationRunner 启动时预加载热点数据）
+- 所有写操作自动失效关联缓存（文章/分类/标签/管理操作）
+- 缓存监控 API（GET/DELETE /api/admin/cache/*）
+- 缓存监控前端页面（ECharts 命中率饼图、空间分布、Redis信息面板、缓存一键清理）
 
 ### 2026-02-26
 - 实现 API 限流与防护系统（v1.5.0）
