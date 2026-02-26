@@ -99,6 +99,7 @@ const menuItems = [
   { path: '/logs', title: '操作日志', icon: 'Tickets' },
   { path: '/rate-limit', title: '限流监控', icon: 'Odometer' },
   { path: '/cache', title: '缓存监控', icon: 'Coin' },
+  { path: '/mq', title: 'MQ监控', icon: 'Connection' },
 ]
 
 function handleCommand(command: string) {

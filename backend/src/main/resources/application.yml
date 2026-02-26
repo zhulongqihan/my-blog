@@ -50,6 +50,50 @@ spring:
         max-idle: 8
         min-idle: 0
 
+  # RabbitMQ配置
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    # 开启消息发送确认
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    listener:
+      simple:
+        # 手动ACK模式
+        acknowledge-mode: manual
+        # 预取数量（每次从队列取1条，处理完再取下一条）
+        prefetch: 1
+        # 消费失败最大重试次数
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1000
+          multiplier: 2.0
+          max-interval: 10000
+
+  # 邮件配置（开发环境用假配置，不实际发送）
+  mail:
+    host: smtp.qq.com
+    port: 587
+    username: your-email@qq.com
+    password: your-auth-code
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+    default-encoding: UTF-8
+
+# 博客邮件通知配置
+blog:
+  mail:
+    enabled: false  # 开发环境关闭邮件发送
+    from-name: 博客通知
+
 # JWT 配置 (Base64编码的密钥，至少256位)
 # 生产环境请使用环境变量或配置文件覆盖此密钥
 jwt:

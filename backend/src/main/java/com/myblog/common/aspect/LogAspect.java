@@ -5,8 +5,10 @@ import cn.hutool.http.useragent.UserAgent;
 import cn.hutool.http.useragent.UserAgentUtil;
 import cn.hutool.json.JSONUtil;
 import com.myblog.common.annotation.Log;
+import com.myblog.dto.mq.LogMessage;
 import com.myblog.entity.OperationLog;
 import com.myblog.entity.User;
+import com.myblog.service.MQProducerService;
 import com.myblog.service.OperationLogService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -52,6 +54,7 @@ import java.util.stream.Collectors;
 public class LogAspect {
     
     private final OperationLogService operationLogService;
+    private final MQProducerService mqProducerService;
     
     /**
      * 环绕通知：拦截标记了@Log注解的方法
@@ -145,8 +148,33 @@ public class LogAspect {
             operationLog.setExecutionTime((int) (endTime - startTime));
             operationLog.setCreatedAt(LocalDateTime.now());
             
-            // 异步保存日志
-            operationLogService.saveLog(operationLog);
+            // 通过MQ异步保存日志（替代直接@Async调用）
+            try {
+                LogMessage logMessage = LogMessage.builder()
+                        .userId(operationLog.getUserId())
+                        .username(operationLog.getUsername())
+                        .operationType(operationLog.getOperationType())
+                        .module(operationLog.getModule())
+                        .description(operationLog.getDescription())
+                        .method(operationLog.getMethod())
+                        .requestUrl(operationLog.getRequestUrl())
+                        .requestMethod(operationLog.getRequestMethod())
+                        .requestParams(operationLog.getRequestParams())
+                        .responseResult(operationLog.getResponseResult())
+                        .ipAddress(operationLog.getIpAddress())
+                        .browser(operationLog.getBrowser())
+                        .os(operationLog.getOs())
+                        .executionTime(operationLog.getExecutionTime())
+                        .status(operationLog.getStatus())
+                        .errorMessage(operationLog.getErrorMsg())
+                        .operationTime(operationLog.getCreatedAt())
+                        .build();
+                mqProducerService.sendLogMessage(logMessage);
+            } catch (Exception mqException) {
+                // MQ发送失败则降级为直接异步保存
+                log.warn("MQ发送日志失败，降级为直接保存", mqException);
+                operationLogService.saveLog(operationLog);
+            }
         }
     }
     

@@ -2,25 +2,30 @@ package com.myblog.service;
 
 import com.myblog.dto.CommentRequest;
 import com.myblog.dto.CommentResponse;
+import com.myblog.dto.mq.CommentNotificationMessage;
 import com.myblog.entity.Article;
 import com.myblog.entity.Comment;
 import com.myblog.entity.User;
 import com.myblog.repository.ArticleRepository;
 import com.myblog.repository.CommentRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CommentService {
 
     private final CommentRepository commentRepository;
     private final ArticleRepository articleRepository;
+    private final MQProducerService mqProducerService;
 
     public Page<CommentResponse> getCommentsByArticle(Long articleId, Pageable pageable) {
         Article article = articleRepository.findById(articleId)
@@ -43,13 +48,57 @@ public class CommentService {
                 .guestEmail(user == null ? request.getGuestEmail() : null)
                 .build();
 
+        Comment parentComment = null;
         if (request.getParentId() != null) {
-            Comment parent = commentRepository.findById(request.getParentId())
+            parentComment = commentRepository.findById(request.getParentId())
                     .orElseThrow(() -> new RuntimeException("父评论不存在"));
-            comment.setParent(parent);
+            comment.setParent(parentComment);
         }
 
-        return toResponse(commentRepository.save(comment));
+        Comment savedComment = commentRepository.save(comment);
+
+        // 发送评论通知到MQ（异步邮件通知）
+        try {
+            sendCommentNotification(savedComment, article, parentComment, user);
+        } catch (Exception e) {
+            // MQ发送失败不影响评论创建
+            log.error("发送评论通知消息失败", e);
+        }
+
+        return toResponse(savedComment);
+    }
+
+    /**
+     * 构建并发送评论通知消息到MQ
+     */
+    private void sendCommentNotification(Comment comment, Article article, 
+                                          Comment parentComment, User user) {
+        String commenterName = user != null ? user.getNickname() : comment.getGuestName();
+        String commenterEmail = user != null ? user.getEmail() : comment.getGuestEmail();
+
+        CommentNotificationMessage.CommentNotificationMessageBuilder builder = 
+                CommentNotificationMessage.builder()
+                .commentId(comment.getId())
+                .articleId(article.getId())
+                .articleTitle(article.getTitle())
+                .commentContent(comment.getContent())
+                .commenterName(commenterName != null ? commenterName : "匿名用户")
+                .commenterEmail(commenterEmail)
+                .commentTime(LocalDateTime.now());
+
+        // 如果是回复评论，获取被回复者信息
+        if (parentComment != null) {
+            builder.parentCommentId(parentComment.getId());
+            if (parentComment.getUser() != null) {
+                builder.parentCommenterEmail(parentComment.getUser().getEmail());
+                builder.parentCommenterName(parentComment.getUser().getNickname());
+            } else {
+                builder.parentCommenterEmail(parentComment.getGuestEmail());
+                builder.parentCommenterName(parentComment.getGuestName());
+            }
+        }
+
+        mqProducerService.sendCommentNotification(builder.build());
     }
 
     @Transactional
