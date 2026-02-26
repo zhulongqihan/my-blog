@@ -10,6 +10,7 @@ import type {
   AuthResponse,
   LoginRequest,
   RegisterRequest,
+  ArchiveResponse,
 } from '../types';
 
 // ==================== 文章 API ====================
@@ -38,6 +39,9 @@ export const articleApi = {
   // 搜索文章
   search: (keyword: string, page = 0, size = 10) =>
     get<PageResponse<Article>>('/articles/search', { keyword, page, size }),
+
+  // 获取文章归档
+  getArchive: () => get<ArchiveResponse>('/articles/archive'),
 
   // 创建文章（需要登录）
   create: (data: ArticleRequest) => post<Article>('/articles', data),

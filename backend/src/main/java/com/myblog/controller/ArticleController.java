@@ -2,6 +2,7 @@ package com.myblog.controller;
 
 import com.myblog.common.annotation.RateLimit;
 import com.myblog.dto.ApiResponse;
+import com.myblog.dto.ArchiveResponse;
 import com.myblog.dto.ArticleRequest;
 import com.myblog.dto.ArticleResponse;
 import com.myblog.entity.User;
@@ -69,6 +70,11 @@ public class ArticleController {
             @RequestParam String keyword,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success(articleService.searchArticles(keyword, pageable)));
+    }
+
+    @GetMapping("/archive")
+    public ResponseEntity<ApiResponse<ArchiveResponse>> getArchive() {
+        return ResponseEntity.ok(ApiResponse.success(articleService.getArchive()));
     }
 
     @PostMapping

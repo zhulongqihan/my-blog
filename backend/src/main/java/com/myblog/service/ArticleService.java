@@ -1,6 +1,7 @@
 package com.myblog.service;
 
 import com.myblog.common.constant.RedisKeyPrefix;
+import com.myblog.dto.ArchiveResponse;
 import com.myblog.dto.ArticleRequest;
 import com.myblog.dto.ArticleResponse;
 import com.myblog.entity.*;
@@ -19,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -125,7 +126,8 @@ public class ArticleService {
     @Transactional
     @Caching(evict = {
         @CacheEvict(value = "featuredArticles", allEntries = true),
-        @CacheEvict(value = "popularArticles", allEntries = true)
+        @CacheEvict(value = "popularArticles", allEntries = true),
+        @CacheEvict(value = "articleArchive", allEntries = true)
     })
     public ArticleResponse createArticle(ArticleRequest request, User author) {
         Article article = Article.builder()
@@ -164,7 +166,8 @@ public class ArticleService {
     @Caching(evict = {
         @CacheEvict(value = "articleDetail", key = "#id"),
         @CacheEvict(value = "featuredArticles", allEntries = true),
-        @CacheEvict(value = "popularArticles", allEntries = true)
+        @CacheEvict(value = "popularArticles", allEntries = true),
+        @CacheEvict(value = "articleArchive", allEntries = true)
     })
     public ArticleResponse updateArticle(Long id, ArticleRequest request, User currentUser) {
         Article article = articleRepository.findById(id)
@@ -207,7 +210,8 @@ public class ArticleService {
     @Caching(evict = {
         @CacheEvict(value = "articleDetail", key = "#id"),
         @CacheEvict(value = "featuredArticles", allEntries = true),
-        @CacheEvict(value = "popularArticles", allEntries = true)
+        @CacheEvict(value = "popularArticles", allEntries = true),
+        @CacheEvict(value = "articleArchive", allEntries = true)
     })
     public void deleteArticle(Long id, User currentUser) {
         Article article = articleRepository.findById(id)
@@ -254,6 +258,70 @@ public class ArticleService {
                 .publishedAt(article.getPublishedAt())
                 .createdAt(article.getCreatedAt())
                 .updatedAt(article.getUpdatedAt())
+                .build();
+    }
+
+    /**
+     * 获取文章归档（按年-月分组）
+     * 只返回已发布文章，按时间倒序
+     */
+    @Cacheable(value = "articleArchive", key = "'all'")
+    public ArchiveResponse getArchive() {
+        log.info("[Cache MISS] 文章归档 - 从数据库加载");
+        List<Article> articles = articleRepository.findByPublishedTrueOrderByCreatedAtDesc();
+
+        String[] monthNames = {"", "一月", "二月", "三月", "四月", "五月", "六月",
+                "七月", "八月", "九月", "十月", "十一月", "十二月"};
+        DateTimeFormatter dayFormatter = DateTimeFormatter.ofPattern("MM-dd");
+
+        // 按年分组，保持倒序
+        Map<Integer, List<Article>> yearMap = new LinkedHashMap<>();
+        for (Article article : articles) {
+            int year = article.getCreatedAt().getYear();
+            yearMap.computeIfAbsent(year, k -> new ArrayList<>()).add(article);
+        }
+
+        List<ArchiveResponse.YearArchive> yearArchives = new ArrayList<>();
+        for (Map.Entry<Integer, List<Article>> yearEntry : yearMap.entrySet()) {
+            int year = yearEntry.getKey();
+            List<Article> yearArticles = yearEntry.getValue();
+
+            // 按月分组
+            Map<Integer, List<Article>> monthMap = new LinkedHashMap<>();
+            for (Article article : yearArticles) {
+                int month = article.getCreatedAt().getMonthValue();
+                monthMap.computeIfAbsent(month, k -> new ArrayList<>()).add(article);
+            }
+
+            List<ArchiveResponse.MonthArchive> monthArchives = new ArrayList<>();
+            for (Map.Entry<Integer, List<Article>> monthEntry : monthMap.entrySet()) {
+                int month = monthEntry.getKey();
+                List<ArchiveResponse.ArticleBrief> briefs = monthEntry.getValue().stream()
+                        .map(a -> ArchiveResponse.ArticleBrief.builder()
+                                .id(a.getId())
+                                .title(a.getTitle())
+                                .date(a.getCreatedAt().format(dayFormatter))
+                                .category(a.getCategory() != null ? a.getCategory().getName() : null)
+                                .build())
+                        .collect(Collectors.toList());
+
+                monthArchives.add(ArchiveResponse.MonthArchive.builder()
+                        .month(month)
+                        .monthName(monthNames[month])
+                        .articles(briefs)
+                        .build());
+            }
+
+            yearArchives.add(ArchiveResponse.YearArchive.builder()
+                    .year(year)
+                    .count(yearArticles.size())
+                    .months(monthArchives)
+                    .build());
+        }
+
+        return ArchiveResponse.builder()
+                .totalCount(articles.size())
+                .years(yearArchives)
                 .build();
     }
 }

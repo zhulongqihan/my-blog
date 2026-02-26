@@ -130,3 +130,28 @@ export interface CommentRequest {
   guestName?: string;
   guestEmail?: string;
 }
+
+// 文章归档
+export interface ArchiveResponse {
+  totalCount: number;
+  years: YearArchive[];
+}
+
+export interface YearArchive {
+  year: number;
+  count: number;
+  months: MonthArchive[];
+}
+
+export interface MonthArchive {
+  month: number;
+  monthName: string;
+  articles: ArticleBrief[];
+}
+
+export interface ArticleBrief {
+  id: number;
+  title: string;
+  date: string;
+  category?: string;
+}

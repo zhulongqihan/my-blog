@@ -59,4 +59,9 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
      */
     @Query("SELECT COUNT(a) FROM Article a WHERE a.category.id = :categoryId")
     long countByCategoryId(@Param("categoryId") Long categoryId);
+
+    /**
+     * 获取所有已发布文章（按创建时间倒序），用于归档页
+     */
+    List<Article> findByPublishedTrueOrderByCreatedAtDesc();
 }
