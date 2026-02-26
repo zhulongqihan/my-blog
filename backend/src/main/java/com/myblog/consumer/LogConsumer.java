@@ -37,7 +37,7 @@ public class LogConsumer {
     public void handleLogMessage(LogMessage message,
                                   Channel channel,
                                   @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
-        log.debug("[日志消费者] 收到日志消息: messageId={}, module={}", 
+        log.info("[日志消费者] 收到日志消息: messageId={}, module={}", 
                 message.getMessageId(), message.getModule());
 
         try {
@@ -47,7 +47,7 @@ public class LogConsumer {
             
             // 手动ACK
             channel.basicAck(deliveryTag, false);
-            log.debug("[日志消费者] 日志保存成功: messageId={}", message.getMessageId());
+            log.info("[日志消费者] 日志保存成功: messageId={}", message.getMessageId());
 
         } catch (Exception e) {
             log.error("[日志消费者] 日志保存失败: messageId={}", message.getMessageId(), e);

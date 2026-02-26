@@ -62,7 +62,7 @@ public class MQProducerService {
             message.setMessageId(UUID.randomUUID().toString());
         }
         
-        log.debug("[MQ生产者] 发送操作日志消息: messageId={}, module={}, operation={}", 
+        log.info("[MQ生产者] 发送操作日志消息: messageId={}, module={}, operation={}", 
                 message.getMessageId(), message.getModule(), message.getDescription());
         
         try {
