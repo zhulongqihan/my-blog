@@ -211,6 +211,20 @@ a:hover {
   }
 }
 
+/* ===== Typewriter Cursor ===== */
+.typewriter-cursor {
+  display: inline-block;
+  color: var(--accent-rust);
+  font-weight: 300;
+  animation: blink 0.8s step-end infinite;
+  margin-left: 2px;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
 .animate-fade-in {
   animation: fadeIn var(--transition-normal) ease forwards;
 }

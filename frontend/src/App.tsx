@@ -3,6 +3,9 @@ import { AnimatePresence } from 'framer-motion';
 import { AuthProvider } from './contexts/AuthContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import ScrollToTop from './components/ScrollToTop';
+import ReadingProgress from './components/ReadingProgress';
+import CursorGlow from './components/CursorGlow';
 import HomePage from './pages/HomePage';
 import ArticlePage from './pages/ArticlePage';
 import AboutPage from './pages/AboutPage';
@@ -14,6 +17,8 @@ function App() {
     <AuthProvider>
       <Router>
         <div className="app">
+          <CursorGlow />
+          <ReadingProgress />
           <Header />
           <main className="main-content">
             <AnimatePresence mode="wait">
@@ -26,6 +31,7 @@ function App() {
             </AnimatePresence>
           </main>
           <Footer />
+          <ScrollToTop />
         </div>
       </Router>
     </AuthProvider>

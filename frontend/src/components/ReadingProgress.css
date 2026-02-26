@@ -1,0 +1,16 @@
+/* ===== Reading Progress Bar ===== */
+.reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--accent-rust) 0%,
+    var(--accent-rust-light) 50%,
+    var(--accent-olive) 100%
+  );
+  transform-origin: 0%;
+  z-index: 1001;
+}

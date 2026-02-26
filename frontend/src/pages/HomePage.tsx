@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import ArticleCard from '../components/ArticleCard';
+import Typewriter from '../components/Typewriter';
 import { useArticles, useFeaturedArticles } from '../hooks/useArticles';
 import { Loader2 } from 'lucide-react';
 import './HomePage.css';
@@ -49,8 +50,10 @@ const HomePage = () => {
           transition={{ duration: 0.8, delay: 0.2 }}
         >
           <h1 className="home-hero__title">
-            代码与思考的
-            <span className="home-hero__title-accent">交汇之处</span>
+            <Typewriter text="代码与思考的" delay={400} speed={120} />
+            <span className="home-hero__title-accent">
+              <Typewriter text="交汇之处" delay={1300} speed={150} />
+            </span>
           </h1>
           <p className="home-hero__subtitle">
             关于编程、技术与生活的个人博客。在这里，我记录学习的点滴，分享技术的思考。

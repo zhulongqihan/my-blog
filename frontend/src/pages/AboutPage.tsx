@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Code2, Coffee, BookOpen, Briefcase } from 'lucide-react';
+import AnimatedCounter from '../components/AnimatedCounter';
 import './AboutPage.css';
 
 const pageVariants = {
@@ -77,17 +78,17 @@ const AboutPage = () => {
       >
         <div className="about-stat">
           <Coffee size={24} strokeWidth={1.5} className="about-stat__icon" />
-          <span className="about-stat__value">1000+</span>
+          <AnimatedCounter target={1000} suffix="+" className="about-stat__value" />
           <span className="about-stat__label">杯咖啡</span>
         </div>
         <div className="about-stat">
           <BookOpen size={24} strokeWidth={1.5} className="about-stat__icon" />
-          <span className="about-stat__value">50+</span>
+          <AnimatedCounter target={50} suffix="+" className="about-stat__value" />
           <span className="about-stat__label">篇文章</span>
         </div>
         <div className="about-stat">
           <Briefcase size={24} strokeWidth={1.5} className="about-stat__icon" />
-          <span className="about-stat__value">5+</span>
+          <AnimatedCounter target={5} suffix="+" duration={1500} className="about-stat__value" />
           <span className="about-stat__label">年经验</span>
         </div>
       </motion.section>
