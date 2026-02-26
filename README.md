@@ -1,8 +1,8 @@
 # 个人博客系统
 
 > 创建日期：2026年1月27日  
-> 最后更新：2026年2月28日  
-> 版本：v1.7.0  
+> 最后更新：2026年2月26日  
+> 版本：v1.7.1  
 > GitHub: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)  
 > 网站：http://cyruszhang.online （备案中）
 
@@ -12,7 +12,7 @@
 
 这是一个全栈个人博客系统，前后端分离架构。后端使用 Spring Boot 3.x 提供 RESTful API，前台页面使用 React 19 + TypeScript + Vite，后台管理系统使用 Vue 3 + Element Plus + Pinia（双前端框架）。前台设计为大地色系极简风格。
 
-**项目亮点**：双前端框架（React + Vue）、Markdown 编辑器 + 图片上传、完整的后台管理系统、JWT + RBAC 权限体系、**Redis 多级缓存系统**（Cache Aside + Write-Behind + 缓存预热 + 监控面板）、**RabbitMQ 消息队列**（评论邮件通知 + 日志异步化 + 死信队列 + 监控）、ECharts 数据可视化、**API 限流与防护系统**（Redis Lua 滑动窗口 + AOP + IP 黑白名单）。
+**项目亮点**：双前端框架（React + Vue）、Markdown 编辑器 + 图片上传、完整的后台管理系统、JWT + RBAC 权限体系、**Redis 多级缓存系统**（Cache Aside + Write-Behind + 缓存预热 + 监控面板）、**RabbitMQ 消息队列**（评论邮件通知 + 日志异步化 + 死信队列 + 监控）、ECharts 数据可视化、**API 限流与防护系统**（Redis Lua 滑动窗口 + AOP + IP 黑白名单）、**酷炫前端交互**（打字机标题 + 阅读进度条 + 鼠标光晕 + 3D卡片倾斜 + 数字滚动动画）。
 
 ### 核心特性
 
@@ -39,6 +39,13 @@
 - **RabbitMQ 消息队列** - 评论邮件通知、操作日志异步化、死信队列兜底
 - **消息可靠投递** - Publisher Confirm + 手动ACK + 消息持久化
 - **MQ 监控面板** - 队列状态、消费者数量、测试消息、架构可视化
+- **文章归档 API** - 按年月自动分组已发布文章，替代前端硬编码
+- **打字机标题** - 首页 Hero 区逐字打出效果 + 闪烁光标
+- **阅读进度条** - 文章详情页顶部大地色渐变进度指示
+- **鼠标光晕跟随** - 桌面端鼠标移动时淡棕色径向光晕
+- **卡片 3D 倾斜** - 文章卡片 hover 时根据鼠标位置微倾斜
+- **回到顶部按钮** - 滚动触发，弹簧动画
+- **数字滚动动画** - 关于页统计数值 easeOutExpo 缓动计数
 
 ### 项目目标
 
@@ -166,6 +173,10 @@ myblog/
 │   │   │   ├── ArticleController.java
 │   │   │   ├── CommentController.java
 │   │   │   └── CategoryTagController.java
+│   │   ├── consumer/                  # MQ 消费者
+│   │   │   ├── CommentNotificationConsumer.java
+│   │   │   ├── LogConsumer.java
+│   │   │   └── DeadLetterConsumer.java
 │   │   ├── controller/admin/         # 管理后台 API 控制器
 │   │   │   ├── AdminArticleController.java
 │   │   │   ├── AdminCacheController.java   # 缓存监控 API
@@ -175,12 +186,15 @@ myblog/
 │   │   │   ├── AdminDashboardController.java
 │   │   │   ├── AdminLogController.java
 │   │   │   ├── AdminRateLimitController.java  # 限流监控 API
+│   │   │   ├── AdminMQController.java         # MQ 监控 API
 │   │   │   └── FileUploadController.java
 │   │   ├── common/annotation/        # 自定义注解
 │   │   │   └── RateLimit.java         # 限流注解
 │   │   ├── common/aspect/            # AOP 切面
 │   │   │   └── RateLimitAspect.java   # 限流切面
 │   │   ├── dto/                      # 数据传输对象
+│   │   │   ├── ArchiveResponse.java    # 归档响应（年-月-文章层级）
+│   │   │   └── mq/                     # MQ 消息 DTO
 │   │   ├── entity/                   # JPA 实体类
 │   │   ├── repository/               # 数据访问层
 │   │   ├── security/                 # JWT + 安全配置
@@ -189,7 +203,9 @@ myblog/
 │   │   │   ├── CacheService.java       # 缓存管理服务
 │   │   │   ├── CategoryService.java    # 分类服务（含缓存）
 │   │   │   ├── TagService.java         # 标签服务（含缓存）
-│   │   │   └── IpBlacklistService.java # IP 黑白名单服务
+│   │   │   ├── IpBlacklistService.java # IP 黑白名单服务
+│   │   │   ├── MQProducerService.java  # MQ 消息生产者
+│   │   │   └── MQMonitorService.java   # MQ 监控服务
 │   │   ├── task/                      # 定时/启动任务
 │   │   │   ├── ViewCountSyncTask.java  # 浏览量同步（5分钟）
 │   │   │   └── CacheWarmupTask.java    # 缓存预热
@@ -205,6 +221,11 @@ myblog/
 ├── frontend/                         # 前台前端 (React 19)
 │   ├── src/
 │   │   ├── components/               # 公共组件
+│   │   │   ├── ScrollToTop.tsx         # 回到顶部按钮
+│   │   │   ├── ReadingProgress.tsx     # 阅读进度条
+│   │   │   ├── CursorGlow.tsx          # 鼠标光晕跟随
+│   │   │   ├── Typewriter.tsx          # 打字机效果
+│   │   │   └── AnimatedCounter.tsx     # 数字滚动动画
 │   │   ├── pages/                    # 页面组件
 │   │   ├── services/                 # API 服务
 │   │   ├── hooks/                    # 自定义 Hooks
@@ -248,7 +269,8 @@ myblog/
 │   │   │   ├── CommentManage.vue     # 评论管理
 │   │   │   ├── LogList.vue           # 操作日志
 │   │   │   ├── RateLimitMonitor.vue  # 限流监控面板
-│   │   │   └── CacheMonitor.vue      # 缓存监控面板
+│   │   │   ├── CacheMonitor.vue      # 缓存监控面板
+│   │   │   └── MQMonitor.vue         # MQ 监控面板
 │   │   ├── App.vue
 │   │   └── main.ts
 │   ├── package.json
@@ -373,6 +395,7 @@ stop.bat
 | GET | `/api/articles/category/{id}` | 按分类获取文章 | 公开 |
 | GET | `/api/articles/tag/{id}` | 按标签获取文章 | 公开 |
 | GET | `/api/articles/search` | 搜索文章 | 公开 |
+| GET | `/api/articles/archive` | 文章归档（按年月分组） | 公开 |
 | POST | `/api/articles` | 创建文章 | 需认证 |
 | PUT | `/api/articles/{id}` | 更新文章 | 需认证 |
 | DELETE | `/api/articles/{id}` | 删除文章 | 需认证 |
@@ -442,6 +465,14 @@ stop.bat
 | GET | `/api/admin/cache/names` | 获取所有缓存名称 | ADMIN |
 | DELETE | `/api/admin/cache/{cacheName}` | 清除指定缓存空间 | ADMIN |
 | DELETE | `/api/admin/cache/all` | 清除所有缓存 | ADMIN |
+
+### MQ 监控接口（需管理员权限）
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| GET | `/api/admin/mq/stats` | MQ 统计（队列/交换机/消费者） | ADMIN |
+| GET | `/api/admin/mq/health` | MQ 连接健康检查 | ADMIN |
+| POST | `/api/admin/mq/test/{queueName}` | 发送测试消息 | ADMIN |
 
 ---
 
@@ -549,6 +580,8 @@ stop.bat
 - [x] 操作日志接口（分页查询）
 - [x] 限流监控接口（统计/事件/黑白名单CRUD）
 - [x] 缓存监控接口（统计/清除/空间管理）
+- [x] MQ 监控接口（队列状态/健康检查/测试消息）
+- [x] 文章归档接口（按年月分组 + @Cacheable 缓存）
 
 ### 前台前端 (React)
 - [x] Vite + React + TypeScript 项目初始化
@@ -562,6 +595,13 @@ stop.bat
 - [x] 自定义 Hooks
 - [x] 认证上下文 (AuthContext)
 - [x] 前后端 API 连接
+- [x] 归档页接入真实 API（替代硬编码 mock 数据）
+- [x] 打字机标题（Typewriter 组件）
+- [x] 阅读进度条（ReadingProgress 组件）
+- [x] 鼠标光晕跟随（CursorGlow 组件）
+- [x] 回到顶部按钮（ScrollToTop 组件）
+- [x] 文章卡片 3D 微倾斜（ArticleCard 增强）
+- [x] 统计数字滚动动画（AnimatedCounter 组件）
 
 ### 后台管理前端 (Vue 3)
 - [x] Vue 3 + Element Plus + TypeScript 项目初始化
@@ -579,6 +619,7 @@ stop.bat
 - [x] 操作日志页面（分页查询）
 - [x] 限流监控页面（拦截统计、API排行、黑白名单管理、事件追踪）
 - [x] 缓存监控页面（命中率分析、空间分布、Redis信息、缓存清理）
+- [x] MQ 监控页面（连接状态、队列详情、交换机信息、测试消息）
 
 ### 部署
 - [x] 阿里云服务器部署
@@ -606,6 +647,8 @@ stop.bat
 | `docs/ARTICLE_EDITOR_GUIDE.md` | 文章编辑器实现文档 | Markdown 编辑器功能说明 |
 | `docs/RATE_LIMIT_GUIDE.md` | 限流系统操作指南 | API 限流与防护系统使用 |
 | `docs/CACHE_GUIDE.md` | 缓存系统操作指南 | Redis 缓存系统使用与面试要点 |
+| `docs/MQ_GUIDE.md` | MQ 消息队列指南 | RabbitMQ 架构设计与面试要点 |
+| `docs/FRONTEND_ENHANCEMENT_GUIDE.md` | 前端增强指南 | 归档修复 + 酷炫交互组件说明 |
 | `docs/.cursorrules` | 开发规范 | 代码风格和规范 |
 | `docs/NEXT_STEPS.md` | 后续改进计划 | 功能扩展参考 |
 | `docs/TUTORIAL.md` | 从零开始教程 | 学习项目架构 |
@@ -678,6 +721,9 @@ stop.bat
 - [x] 限流监控面板（ECharts 趋势图、实时统计、事件追踪）
 - [x] Redis 多级缓存系统（Spring Cache + 多TTL + Cache Aside + Write-Behind）
 - [x] 缓存监控面板（ECharts 命中率/空间分布、Redis 状态、缓存管理）
+- [x] RabbitMQ 消息队列（评论通知 + 日志异步 + 死信队列 + 监控面板）
+- [x] 文章归档 API（按年月自动分组 + 缓存）
+- [x] 前端酷炫交互（打字机 + 进度条 + 光晕 + 3D 卡片 + 滚动计数 + 回到顶部）
 
 **核心功能：**
 - [ ] 数据导出功能
@@ -703,7 +749,19 @@ stop.bat
 
 ## 开发日志
 
-### 2026-02-28
+### 2026-02-26（v1.7.1 归档修复 + 前端增强）
+- 修复归档页硬编码 mock 数据：新增 GET /api/articles/archive 接口（按年月分组已发布文章）
+- 新增 ArchiveResponse DTO（年→月→文章层级结构 + @Cacheable 缓存）
+- ArchivePage.tsx 改为 useEffect + API 调用，支持加载态/错误态/空态
+- 新增 ScrollToTop 组件：固定右下角回到顶部按钮，弹簧动画
+- 新增 ReadingProgress 组件：文章详情页顶部 2px 大地色渐变阅读进度条
+- 新增 CursorGlow 组件：桌面端鼠标跟随 300px 淡棕色径向光晕
+- 新增 Typewriter 组件：首页 Hero 标题逐字打出 + 闪烁光标
+- 新增 AnimatedCounter 组件：关于页统计数字 easeOutExpo 缓动滚动
+- 增强 ArticleCard：hover 时根据鼠标位置 3D 微倾斜（±2deg perspective）
+- 所有效果保持大地色系风格，零额外依赖（framer-motion + 原生 JS）
+
+### 2026-02-28（v1.7.0 RabbitMQ 消息队列）
 - 实现 RabbitMQ 消息队列集成（v1.7.0）
 - 新增 RabbitMQConfig 配置类（3个交换机、3个队列、3个绑定关系）
 - 评论通知消费者：用户评论/回复 → MQ → 异步发送邮件通知
