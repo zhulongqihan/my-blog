@@ -22,9 +22,9 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Entity
 @Table(name = "notifications", indexes = {
-    @Index(name = "idx_notification_recipient", columnList = "recipientId"),
-    @Index(name = "idx_notification_read", columnList = "recipientId, isRead"),
-    @Index(name = "idx_notification_created", columnList = "createdAt")
+    @Index(name = "idx_notification_recipient", columnList = "recipient_id"),
+    @Index(name = "idx_notification_read", columnList = "recipient_id, is_read"),
+    @Index(name = "idx_notification_created", columnList = "created_at")
 })
 public class Notification {
 
