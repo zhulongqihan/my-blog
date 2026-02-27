@@ -2,6 +2,7 @@ package com.myblog.consumer;
 
 import com.myblog.config.RabbitMQConfig;
 import com.myblog.dto.mq.CommentNotificationMessage;
+import com.myblog.service.NotificationService;
 import com.rabbitmq.client.Channel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +26,7 @@ import jakarta.mail.internet.MimeMessage;
  * - 幂等处理（通过messageId防止重复消费）
  * - 邮件发送失败 → nack + 不重回队列 → 进入死信队列
  * - 优雅降级：邮件功能关闭时直接ACK
+ * - 消费成功后通过 WebSocket 实时推送通知给管理员
  */
 @Slf4j
 @Component
@@ -32,6 +34,7 @@ import jakarta.mail.internet.MimeMessage;
 public class CommentNotificationConsumer {
 
     private final JavaMailSender mailSender;
+    private final NotificationService notificationService;
 
     @Value("${spring.mail.username:}")
     private String fromEmail;
@@ -59,12 +62,22 @@ public class CommentNotificationConsumer {
         try {
             if (!mailEnabled) {
                 log.info("[评论消费者] 邮件功能未开启，跳过发送: messageId={}", message.getMessageId());
-                channel.basicAck(deliveryTag, false);
-                return;
+            } else {
+                // 发送邮件通知
+                sendNotificationEmail(message);
             }
 
-            // 发送邮件通知
-            sendNotificationEmail(message);
+            // 通过 WebSocket 推送实时通知给管理员（无论邮件是否开启）
+            try {
+                notificationService.sendCommentNotification(
+                        message.getCommenterName(),
+                        message.getArticleId(),
+                        message.getArticleTitle(),
+                        message.getCommentContent()
+                );
+            } catch (Exception wsEx) {
+                log.warn("[评论消费者] WebSocket推送失败（不影响消息消费）: {}", wsEx.getMessage());
+            }
             
             // 手动ACK，消息消费成功
             channel.basicAck(deliveryTag, false);

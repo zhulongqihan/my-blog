@@ -79,6 +79,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/MQMonitor.vue'),
         meta: { title: 'MQ监控', icon: 'Connection' },
       },
+      {
+        path: 'notifications',
+        name: 'NotificationCenter',
+        component: () => import('@/views/NotificationCenter.vue'),
+        meta: { title: '通知中心', icon: 'Bell' },
+      },
     ],
   },
 ]

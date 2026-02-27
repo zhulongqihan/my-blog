@@ -47,6 +47,12 @@
           </el-breadcrumb>
         </div>
         <div class="header-right">
+          <el-badge :value="notificationStore.unreadCount" :hidden="!notificationStore.hasUnread" :max="99" class="notification-badge">
+            <el-button :icon="Bell" circle size="small" @click="router.push('/notifications')" />
+          </el-badge>
+          <el-tag v-if="notificationStore.connected" type="success" effect="plain" size="small" class="online-tag">
+            {{ notificationStore.onlineCount }} 在线
+          </el-tag>
           <el-dropdown @command="handleCommand">
             <span class="user-info">
               <el-avatar :size="32" icon="UserFilled" />
@@ -76,14 +82,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Bell } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
+import { useNotificationStore } from '@/stores/notification'
 import { ElMessageBox } from 'element-plus'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const notificationStore = useNotificationStore()
 
 const isCollapse = ref(false)
 
@@ -100,6 +109,7 @@ const menuItems = [
   { path: '/rate-limit', title: '限流监控', icon: 'Odometer' },
   { path: '/cache', title: '缓存监控', icon: 'Coin' },
   { path: '/mq', title: 'MQ监控', icon: 'Connection' },
+  { path: '/notifications', title: '通知中心', icon: 'Bell' },
 ]
 
 function handleCommand(command: string) {
@@ -109,6 +119,7 @@ function handleCommand(command: string) {
       cancelButtonText: '取消',
       type: 'warning',
     }).then(() => {
+      notificationStore.disconnect()
       userStore.logout()
       router.push('/login')
     })
@@ -116,6 +127,16 @@ function handleCommand(command: string) {
     window.open('/', '_blank')
   }
 }
+
+// WebSocket 连接生命周期
+onMounted(() => {
+  notificationStore.connect()
+  notificationStore.fetchUnreadCount()
+})
+
+onUnmounted(() => {
+  notificationStore.disconnect()
+})
 </script>
 
 <style scoped>
@@ -181,7 +202,11 @@ function handleCommand(command: string) {
 .header-right {
   display: flex;
   align-items: center;
+  gap: 12px;
 }
+
+.notification-badge { margin-right: 0; }
+.online-tag { font-size: 12px; }
 
 .user-info {
   display: flex;

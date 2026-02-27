@@ -1,0 +1,34 @@
+.online-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #8b7355);
+}
+
+.online-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  transition: background-color 0.3s;
+}
+
+.online-dot.connected {
+  background-color: #67c23a;
+  box-shadow: 0 0 6px rgba(103, 194, 58, 0.6);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.online-dot.disconnected {
+  background-color: #909399;
+}
+
+.online-text {
+  opacity: 0.85;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}

@@ -107,6 +107,12 @@
             <artifactId>spring-boot-starter-amqp</artifactId>
         </dependency>
         
+        <!-- WebSocket (STOMP + SockJS) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+        
         <!-- 邮件发送 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -1,4 +1,5 @@
 import { Github, Twitter, Mail, Terminal } from 'lucide-react';
+import OnlineCount from './OnlineCount';
 import './Footer.css';
 
 const Footer = () => {
@@ -60,7 +61,7 @@ const Footer = () => {
 
       <div className="footer__bottom">
         <p className="footer__copyright">© {currentYear} My Blog. Crafted with care.</p>
-        <p className="footer__built">Built with React + Spring Boot</p>
+        <p className="footer__built">Built with React + Spring Boot · <OnlineCount /></p>
       </div>
     </footer>
   );

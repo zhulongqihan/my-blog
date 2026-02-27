@@ -1,8 +1,8 @@
 # 个人博客系统
 
 > 创建日期：2026年1月27日  
-> 最后更新：2026年2月26日  
-> 版本：v1.7.1  
+> 最后更新：2026年2月27日  
+> 版本：v1.8.0  
 > GitHub: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)  
 > 网站：http://cyruszhang.online （备案中）
 
@@ -12,7 +12,7 @@
 
 这是一个全栈个人博客系统，前后端分离架构。后端使用 Spring Boot 3.x 提供 RESTful API，前台页面使用 React 19 + TypeScript + Vite，后台管理系统使用 Vue 3 + Element Plus + Pinia（双前端框架）。前台设计为大地色系极简风格。
 
-**项目亮点**：双前端框架（React + Vue）、Markdown 编辑器 + 图片上传、完整的后台管理系统、JWT + RBAC 权限体系、**Redis 多级缓存系统**（Cache Aside + Write-Behind + 缓存预热 + 监控面板）、**RabbitMQ 消息队列**（评论邮件通知 + 日志异步化 + 死信队列 + 监控）、ECharts 数据可视化、**API 限流与防护系统**（Redis Lua 滑动窗口 + AOP + IP 黑白名单）、**酷炫前端交互**（打字机标题 + 阅读进度条 + 鼠标光晕 + 3D卡片倾斜 + 数字滚动动画）。
+**项目亮点**：双前端框架（React + Vue）、Markdown 编辑器 + 图片上传、完整的后台管理系统、JWT + RBAC 权限体系、**Redis 多级缓存系统**（Cache Aside + Write-Behind + 缓存预热 + 监控面板）、**RabbitMQ 消息队列**（评论邮件通知 + 日志异步化 + 死信队列 + 监控）、**WebSocket 实时通知**（STOMP + SockJS + MQ联动 + 在线人数 + 通知中心）、ECharts 数据可视化、**API 限流与防护系统**（Redis Lua 滑动窗口 + AOP + IP 黑白名单）、**酷炫前端交互**（打字机标题 + 阅读进度条 + 鼠标光晕 + 3D卡片倾斜 + 数字滚动动画）。
 
 ### 核心特性
 
@@ -46,6 +46,10 @@
 - **卡片 3D 倾斜** - 文章卡片 hover 时根据鼠标位置微倾斜
 - **回到顶部按钮** - 滚动触发，弹簧动画
 - **数字滚动动画** - 关于页统计数值 easeOutExpo 缓动计数
+- **WebSocket 实时通知** - STOMP + SockJS 协议，JWT 认证，实时推送评论/公告
+- **在线人数统计** - WebSocket 连接/断开事件 + AtomicInteger 原子计数
+- **通知中心** - 管理后台铃铛实时红点 + 通知列表 + 系统公告广播
+- **MQ → WebSocket 联动** - 评论消息队列消费后自动推送实时通知
 
 ### 项目目标
 
@@ -196,7 +200,9 @@ myblog/
 │   │   │   ├── ArchiveResponse.java    # 归档响应（年-月-文章层级）
 │   │   │   └── mq/                     # MQ 消息 DTO
 │   │   ├── entity/                   # JPA 实体类
+│   │   │   └── Notification.java       # 通知实体
 │   │   ├── repository/               # 数据访问层
+│   │   │   └── NotificationRepository.java # 通知 Repository
 │   │   ├── security/                 # JWT + 安全配置
 │   │   │   └── IpBlacklistFilter.java # IP 黑名单过滤器
 │   │   ├── service/                  # 业务逻辑层
@@ -205,7 +211,10 @@ myblog/
 │   │   │   ├── TagService.java         # 标签服务（含缓存）
 │   │   │   ├── IpBlacklistService.java # IP 黑白名单服务
 │   │   │   ├── MQProducerService.java  # MQ 消息生产者
-│   │   │   └── MQMonitorService.java   # MQ 监控服务
+│   │   │   ├── MQMonitorService.java   # MQ 监控服务
+│   │   │   └── NotificationService.java # 通知服务（WebSocket推送）
+│   │   ├── websocket/                 # WebSocket 组件
+│   │   │   └── WebSocketEventListener.java # 连接事件+在线计数
 │   │   ├── task/                      # 定时/启动任务
 │   │   │   ├── ViewCountSyncTask.java  # 浏览量同步（5分钟）
 │   │   │   └── CacheWarmupTask.java    # 缓存预热
@@ -474,6 +483,19 @@ stop.bat
 | GET | `/api/admin/mq/health` | MQ 连接健康检查 | ADMIN |
 | POST | `/api/admin/mq/test/{queueName}` | 发送测试消息 | ADMIN |
 
+### 通知与 WebSocket 接口
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| GET | `/api/notifications/online-count` | 获取在线人数 | 公开 |
+| GET | `/api/admin/notifications` | 通知列表（分页） | ADMIN |
+| GET | `/api/admin/notifications/unread-count` | 未读通知数 | ADMIN |
+| PUT | `/api/admin/notifications/{id}/read` | 标记已读 | ADMIN |
+| PUT | `/api/admin/notifications/read-all` | 全部已读 | ADMIN |
+| POST | `/api/admin/notifications/broadcast` | 发送系统公告 | ADMIN |
+| GET | `/api/admin/notifications/ws-stats` | WebSocket 状态 | ADMIN |
+| WS | `/ws` | WebSocket STOMP 端点（SockJS） | 公开 |
+
 ---
 
 ## 数据模型
@@ -582,6 +604,11 @@ stop.bat
 - [x] 缓存监控接口（统计/清除/空间管理）
 - [x] MQ 监控接口（队列状态/健康检查/测试消息）
 - [x] 文章归档接口（按年月分组 + @Cacheable 缓存）
+- [x] WebSocket 实时通知（STOMP + SockJS + JWT 认证）
+- [x] 通知持久化（Notification 实体 + Repository）
+- [x] MQ → WebSocket 联动（评论消费后实时推送）
+- [x] 在线人数统计（AtomicInteger + 连接事件监听）
+- [x] 通知管理接口（列表/已读/广播/WS状态）
 
 ### 前台前端 (React)
 - [x] Vite + React + TypeScript 项目初始化
@@ -602,6 +629,7 @@ stop.bat
 - [x] 回到顶部按钮（ScrollToTop 组件）
 - [x] 文章卡片 3D 微倾斜（ArticleCard 增强）
 - [x] 统计数字滚动动画（AnimatedCounter 组件）
+- [x] WebSocket 在线人数显示（OnlineCount 组件）
 
 ### 后台管理前端 (Vue 3)
 - [x] Vue 3 + Element Plus + TypeScript 项目初始化
@@ -620,6 +648,8 @@ stop.bat
 - [x] 限流监控页面（拦截统计、API排行、黑白名单管理、事件追踪）
 - [x] 缓存监控页面（命中率分析、空间分布、Redis信息、缓存清理）
 - [x] MQ 监控页面（连接状态、队列详情、交换机信息、测试消息）
+- [x] 通知中心页面（铃铛实时红点 + 通知列表 + 系统公告广播）
+- [x] WebSocket 连接管理（Pinia Store + STOMP + JWT）
 
 ### 部署
 - [x] 阿里云服务器部署
@@ -649,6 +679,7 @@ stop.bat
 | `docs/CACHE_GUIDE.md` | 缓存系统操作指南 | Redis 缓存系统使用与面试要点 |
 | `docs/MQ_GUIDE.md` | MQ 消息队列指南 | RabbitMQ 架构设计与面试要点 |
 | `docs/FRONTEND_ENHANCEMENT_GUIDE.md` | 前端增强指南 | 归档修复 + 酷炫交互组件说明 |
+| `docs/WEBSOCKET_GUIDE.md` | WebSocket 实时通知指南 | STOMP + SockJS + MQ 联动 + 部署步骤 |
 | `docs/.cursorrules` | 开发规范 | 代码风格和规范 |
 | `docs/NEXT_STEPS.md` | 后续改进计划 | 功能扩展参考 |
 | `docs/TUTORIAL.md` | 从零开始教程 | 学习项目架构 |
@@ -724,6 +755,7 @@ stop.bat
 - [x] RabbitMQ 消息队列（评论通知 + 日志异步 + 死信队列 + 监控面板）
 - [x] 文章归档 API（按年月自动分组 + 缓存）
 - [x] 前端酷炫交互（打字机 + 进度条 + 光晕 + 3D 卡片 + 滚动计数 + 回到顶部）
+- [x] WebSocket 实时通知系统（STOMP + SockJS + JWT 认证 + 在线人数 + 通知中心）
 
 **核心功能：**
 - [ ] 数据导出功能
@@ -748,6 +780,20 @@ stop.bat
 ---
 
 ## 开发日志
+
+### 2026-02-27（v1.8.0 WebSocket 实时通知系统）
+- 新增 WebSocket 实时通知系统（STOMP + SockJS）
+- WebSocketConfig：STOMP 端点 /ws + SockJS 回退，/topic + /queue 消息代理
+- WebSocketAuthConfig：STOMP CONNECT 帧 JWT 认证拦截器
+- WebSocketEventListener：在线人数统计（AtomicInteger + ConcurrentHashMap）+ 实时广播
+- Notification 实体：COMMENT/SYSTEM/LIKE 三种类型，支持定向推送与全站广播
+- NotificationService：通知持久化 + WebSocket 推送 + MQ 消费者联动
+- CommentNotificationConsumer 增强：MQ 消费后自动触发 WebSocket 实时推送
+- NotificationController：公开在线人数接口
+- AdminNotificationController：通知列表/已读/全部已读/广播/WS 统计（6 个接口）
+- React 前端：useWebSocket Hook + OnlineCount 组件（绿色脉冲 + 在线人数）
+- Vue 管理前端：Pinia WebSocket Store + 通知中心页面 + 顶栏铃铛未读徽标
+- 安全配置：/ws/** 和在线人数接口放行
 
 ### 2026-02-26（v1.7.1 归档修复 + 前端增强）
 - 修复归档页硬编码 mock 数据：新增 GET /api/articles/archive 接口（按年月分组已发布文章）
