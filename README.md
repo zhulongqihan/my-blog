@@ -1,7 +1,7 @@
 # 个人博客系统
 
 > 创建日期：2026年1月27日  
-> 最后更新：2026年2月27日  
+> 最后更新：2026年2月28日  
 > 版本：v1.8.1  
 > GitHub: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)  
 > 网站：http://cyruszhang.online （备案中）
@@ -781,7 +781,7 @@ stop.bat
 
 ## 开发日志
 
-### 2026-02-27（v1.8.1 安全加固 + 代码审计修复）
+### 2026-02-28（v1.8.1 安全加固 + 代码审计修复）
 - 修复 AuthController 登出 Bug（Token 黑名单参数传递错误，登出功能失效）
 - 修复 Redis 反序列化漏洞（LaissezFaireSubTypeValidator → BasicPolymorphicTypeValidator 白名单）
 - 修复用户密码哈希通过 API 泄漏（User.password 添加 @JsonIgnore）
