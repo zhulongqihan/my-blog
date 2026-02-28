@@ -1,8 +1,8 @@
 # 个人博客系统
 
 > 创建日期：2026年1月27日  
-> 最后更新：2026年2月28日  
-> 版本：v1.9.0  
+> 最后更新：2026年3月1日  
+> 版本：v1.9.2  
 > GitHub: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)  
 > 网站：http://cyruszhang.online （备案中）
 
@@ -12,7 +12,7 @@
 
 这是一个全栈个人博客系统，前后端分离架构。后端使用 Spring Boot 3.x 提供 RESTful API，前台页面使用 React 19 + TypeScript + Vite，后台管理系统使用 Vue 3 + Element Plus + Pinia（双前端框架）。前台设计为大地色系极简风格。
 
-**项目亮点**：双前端框架（React + Vue）、**Docker Compose 一键部署**（5 容器编排 + 多阶段构建 + 健康检查）、Markdown 编辑器 + 图片上传、完整的后台管理系统、JWT + RBAC 权限体系、**Redis 多级缓存系统**（Cache Aside + Write-Behind + 缓存预热 + 监控面板）、**RabbitMQ 消息队列**（评论邮件通知 + 日志异步化 + 死信队列 + 监控）、**WebSocket 实时通知**（STOMP + SockJS + MQ联动 + 在线人数 + 通知中心）、ECharts 数据可视化、**API 限流与防护系统**（Redis Lua 滑动窗口 + AOP + IP 黑白名单）、**酷炫前端交互**（打字机标题 + 阅读进度条 + 鼠标光晕 + 3D卡片倾斜 + 数字滚动动画）。
+**项目亮点**：双前端框架（React + Vue）、**Docker Compose 一键部署**（5 容器编排 + 多阶段构建 + 健康检查）、Markdown 编辑器 + 图片上传、完整的后台管理系统、JWT + RBAC 权限体系、**Redis 多级缓存系统**（Cache Aside + Write-Behind + 缓存预热 + 监控面板）、**RabbitMQ 消息队列**（评论邮件通知 + 日志异步化 + 死信队列 + 监控）、**WebSocket 实时通知**（STOMP + SockJS + MQ联动 + 在线人数 + 通知中心）、ECharts 数据可视化、**API 限流与防护系统**（Redis Lua 滑动窗口 + AOP + IP 黑白名单）、**酷炫前端交互**（打字机标题 + 阅读进度条 + 鼠标光晕 + 3D卡片倾斜 + 数字滚动动画）、**像素猫桌宠系统**（CSS 像素画 + 心情/拖拽/鱼干收集/右键面板）、**AI 智能助手**（Dify Agent + DeepSeek + RAG 知识库 + SSE 流式输出）。
 
 ### 核心特性
 
@@ -50,6 +50,8 @@
 - **在线人数统计** - WebSocket 连接/断开事件 + AtomicInteger 原子计数
 - **通知中心** - 管理后台铃铛实时红点 + 通知列表 + 系统公告广播
 - **MQ → WebSocket 联动** - 评论消息队列消费后自动推送实时通知
+- **像素猫桌宠系统** - CSS box-shadow 像素画 + 心情系统 + 拖拽交互 + 鱼干收集小游戏 + 右键状态面板
+- **AI 智能助手** - Dify Agent + DeepSeek LLM + RAG 知识库检索 + SSE 流式打字机输出
 - **Docker 容器化** - Docker Compose 一键编排 5 个容器，多阶段构建，healthcheck 保证启动顺序
 
 ### 项目目标
@@ -806,6 +808,33 @@ stop.bat
 ---
 
 ## 开发日志
+
+### 2026-03-01（v1.9.2 AI 智能助手 + 像素猫增强）
+- 新增 AI 智能助手组件（Dify Agent + DeepSeek + RAG 知识库检索）
+- SSE 流式输出（原生 fetch + ReadableStream，打字机效果逐字显示）
+- AI 回复 Markdown 渲染 + 代码高亮（react-markdown + remark-gfm + react-syntax-highlighter）
+- 右下角浮动聊天气泡，展开式聊天面板，支持多轮对话
+- 对话记录 localStorage 持久化，流式输出闪烁光标 + 思考动画
+- 新建 difyApi.ts 服务（SSE 事件解析、错误处理、AbortController 取消）
+- 新建 AI_CHAT_ASSISTANT_GUIDE.md 详细实施文档（11 章节 + 面试话术）
+- 修复像素猫鱼干无法点击收集（box-shadow 不接收指针事件，改为包裹容器全区域可点击）
+- 鱼干掉落速度优化（6-10s → 14-22s，更易捕捉）
+- 鱼干掉落增加摇晃动画 + hover 高亮反馈，提升交互体验
+- 修复白屏 Bug（sockjs-client 全局变量兼容，index.html 注入 window.global）
+- 更新 Footer/AboutPage 个人信息（南京大学软工硕士、北邮计科本科）
+
+### 2026-02-28（v1.9.1 部署修复 + Bug 修复 + 前端增强）
+- 修复 Backend Dockerfile healthcheck 缺少 start-period（容器启动期间误判为 unhealthy）
+- Spring Boot 环境变量策略重写：application-prod.yml 硬编码 → docker-compose 通过标准 SPRING_* 环境变量覆盖
+- 修复 spring.redis → spring.data.redis 命名空间（Spring Boot 3.x 兼容）
+- 安全加固：MySQL/Redis/RabbitMQ 端口绑定 127.0.0.1、Redis 启用密码认证
+- Backend 内存限制 640MB → 1024MB（JVM 启动 + 运行时需求）
+- 修复 Nginx healthcheck IPv6 问题（Alpine localhost 解析为 ::1，改用 127.0.0.1）
+- 修复评论管理 500 错误（Hibernate LazyInitializer 序列化失败 → @JsonIgnoreProperties 忽略代理字段）
+- 新增 NotificationToast 组件（framer-motion 动画通知气泡，WebSocket 消息实时弹窗）
+- 更新 Footer 个人信息（GitHub: zhulongqihan、Email: 2511819891@qq.com）
+- 更新 AboutPage 个人信息（南京大学软件工程硕士、北邮计科本科、真实技术栈和联系方式）
+- 新增像素猫桌面宠物系统（CSS box-shadow 像素画 + React 状态机 + 彩蛋交互）
 
 ### 2026-02-28（v1.9.0 Docker 容器化部署）
 - Docker Compose 编排 5 个容器：Nginx + Backend + MySQL 8.0 + Redis 7 + RabbitMQ 3.13

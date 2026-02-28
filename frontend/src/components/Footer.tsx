@@ -1,4 +1,4 @@
-import { Github, Twitter, Mail, Terminal } from 'lucide-react';
+import { Github, Mail, Terminal } from 'lucide-react';
 import OnlineCount from './OnlineCount';
 import './Footer.css';
 
@@ -21,16 +21,16 @@ const Footer = () => {
         <div className="footer__terminal-body">
           <p className="footer__terminal-line">
             <span className="footer__terminal-prompt">$</span>
-            <span className="footer__terminal-command">whoami</span>
+            <span className="footer__terminal-command">who am I</span>
           </p>
-          <p className="footer__terminal-output">A passionate developer & blogger</p>
+          <p className="footer__terminal-output">NJU CS Master · Full-stack Developer</p>
           <p className="footer__terminal-line">
             <span className="footer__terminal-prompt">$</span>
             <span className="footer__terminal-command">cat contact.txt</span>
           </p>
           <div className="footer__terminal-links">
             <a
-              href="https://github.com"
+              href="https://github.com/zhulongqihan"
               target="_blank"
               rel="noopener noreferrer"
               className="footer__link"
@@ -38,16 +38,7 @@ const Footer = () => {
               <Github size={16} strokeWidth={1.5} />
               <span>GitHub</span>
             </a>
-            <a
-              href="https://twitter.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="footer__link"
-            >
-              <Twitter size={16} strokeWidth={1.5} />
-              <span>Twitter</span>
-            </a>
-            <a href="mailto:hello@myblog.com" className="footer__link">
+            <a href="mailto:2511819891@qq.com" className="footer__link">
               <Mail size={16} strokeWidth={1.5} />
               <span>Email</span>
             </a>

@@ -160,12 +160,24 @@
   padding: var(--spacing-lg);
   background-color: var(--bg-code);
   border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
 }
 
-.about-contact__email {
+.about-contact__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-family: var(--font-mono);
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: var(--accent-rust-light);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.about-contact__link:hover {
+  color: var(--accent-rust);
 }
 
 /* ===== Responsive ===== */

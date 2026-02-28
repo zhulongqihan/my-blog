@@ -8,6 +8,8 @@ import ScrollToTop from './components/ScrollToTop';
 import ReadingProgress from './components/ReadingProgress';
 import CursorGlow from './components/CursorGlow';
 import NotificationToast from './components/NotificationToast';
+import PixelCat from './components/PixelCat';
+import AiChat from './components/AiChat';
 import HomePage from './pages/HomePage';
 import ArticlePage from './pages/ArticlePage';
 import AboutPage from './pages/AboutPage';
@@ -36,6 +38,8 @@ function App() {
           </main>
           <Footer />
           <ScrollToTop />
+          <PixelCat />
+          <AiChat />
         </div>
       </Router>
       </WebSocketProvider>

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Code2, Coffee, BookOpen, Briefcase } from 'lucide-react';
+import { Code2, Coffee, BookOpen, GraduationCap, Github, Mail } from 'lucide-react';
 import AnimatedCounter from '../components/AnimatedCounter';
 import './AboutPage.css';
 
@@ -10,10 +10,12 @@ const pageVariants = {
 };
 
 const skills = [
-  { name: 'Java / Spring Boot', level: 90 },
-  { name: 'React / TypeScript', level: 85 },
-  { name: 'MySQL / PostgreSQL', level: 80 },
-  { name: 'Docker / K8s', level: 70 },
+  { name: 'Java / Spring Boot', level: 85 },
+  { name: 'React / TypeScript', level: 80 },
+  { name: 'Vue 3 / Element Plus', level: 75 },
+  { name: 'MySQL / Redis', level: 80 },
+  { name: 'Docker / Nginx', level: 70 },
+  { name: 'RabbitMQ / WebSocket', level: 65 },
 ];
 
 const AboutPage = () => {
@@ -59,12 +61,13 @@ const AboutPage = () => {
         <div className="about-intro__content">
           <p className="about-intro__greeting">Hello, World! 👋</p>
           <p className="about-intro__text">
-            我是一名热爱编程的全栈开发者，专注于 Java 后端开发和现代前端技术。
-            工作之余，我喜欢在这个博客记录学习心得、分享技术见解。
+            我是张昌宇，南京大学软件工程硕士在读，本科毕业于北京邮电大学计算机科学与技术专业。
+            目前担任班长，热爱全栈开发，专注于 Java 后端与现代前端技术。
           </p>
           <p className="about-intro__text">
-            相信代码不仅仅是工具，更是一种表达思想的艺术。
-            在追求技术深度的同时，我也注重代码的优雅与可维护性。
+            这个博客是我的技术实验场 —— 从 Spring Boot 后端到 React 前端，
+            从 Docker 容器化到 WebSocket 实时通信，每一行代码都是学习的印记。
+            相信代码不仅是工具，更是表达思想的艺术。
           </p>
         </div>
       </motion.section>
@@ -78,18 +81,18 @@ const AboutPage = () => {
       >
         <div className="about-stat">
           <Coffee size={24} strokeWidth={1.5} className="about-stat__icon" />
-          <AnimatedCounter target={1000} suffix="+" className="about-stat__value" />
+          <AnimatedCounter target={500} suffix="+" className="about-stat__value" />
           <span className="about-stat__label">杯咖啡</span>
         </div>
         <div className="about-stat">
           <BookOpen size={24} strokeWidth={1.5} className="about-stat__icon" />
-          <AnimatedCounter target={50} suffix="+" className="about-stat__value" />
+          <AnimatedCounter target={30} suffix="+" className="about-stat__value" />
           <span className="about-stat__label">篇文章</span>
         </div>
         <div className="about-stat">
-          <Briefcase size={24} strokeWidth={1.5} className="about-stat__icon" />
-          <AnimatedCounter target={5} suffix="+" duration={1500} className="about-stat__value" />
-          <span className="about-stat__label">年经验</span>
+          <GraduationCap size={24} strokeWidth={1.5} className="about-stat__icon" />
+          <AnimatedCounter target={3} suffix="+" duration={1500} className="about-stat__value" />
+          <span className="about-stat__label">个项目</span>
         </div>
       </motion.section>
 
@@ -137,7 +140,12 @@ const AboutPage = () => {
         <h2 className="about-section-title">联系方式</h2>
         <p className="about-contact__text">如果你有任何问题或想法，欢迎通过以下方式联系我：</p>
         <div className="about-contact__info">
-          <code className="about-contact__email">hello@myblog.com</code>
+          <a href="mailto:522025320209@smail.nju.edu.cn" className="about-contact__link">
+            <Mail size={16} /> 522025320209@smail.nju.edu.cn
+          </a>
+          <a href="https://github.com/zhulongqihan" target="_blank" rel="noopener noreferrer" className="about-contact__link">
+            <Github size={16} /> github.com/zhulongqihan
+          </a>
         </div>
       </motion.section>
     </motion.div>

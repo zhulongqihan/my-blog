@@ -1,0 +1,375 @@
+/* =====================================================
+   Pixel Cat Desktop Pet — CSS
+   Earth-tone palette, pixel art aesthetic
+   ===================================================== */
+
+/* --- Container --- */
+.pixel-cat {
+  position: fixed;
+  bottom: 12px;
+  z-index: 9999;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: left 0.06s linear;
+}
+
+.pixel-cat--dragging {
+  transition: none !important;
+  cursor: grabbing;
+}
+
+.pixel-cat--dropping {
+  animation: cat-drop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* --- Sprite (box-shadow pixel art) --- */
+.pixel-cat__sprite {
+  image-rendering: pixelated;
+  -ms-interpolation-mode: nearest-neighbor;
+}
+
+/* Walk bounce */
+.pixel-cat__sprite--walk {
+  animation: cat-walk-bounce 0.35s ease-in-out infinite;
+}
+
+/* Sleep breathing */
+.pixel-cat__sprite--sleep {
+  animation: cat-breathe 2.5s ease-in-out infinite;
+}
+
+/* Play excited bounce */
+.pixel-cat__sprite--play {
+  animation: cat-play-bounce 0.25s ease-in-out infinite;
+}
+
+/* Lick subtle head bob */
+.pixel-cat__sprite--lick {
+  animation: cat-lick-bob 0.6s ease-in-out infinite;
+}
+
+@keyframes cat-walk-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes cat-breathe {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.06); }
+}
+
+@keyframes cat-play-bounce {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-4px) rotate(-2deg); }
+  75% { transform: translateY(-2px) rotate(2deg); }
+}
+
+@keyframes cat-lick-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1px); }
+}
+
+@keyframes cat-drop {
+  0% { transform: translateY(0); }
+  60% { transform: translateY(0); }
+  75% { transform: translateY(-8px); }
+  85% { transform: translateY(0); }
+  92% { transform: translateY(-3px); }
+  100% { transform: translateY(0); }
+}
+
+/* --- Mood Indicator --- */
+.pixel-cat__mood {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  pointer-events: none;
+  z-index: 10000;
+  animation: mood-float 2s ease-in-out infinite;
+  filter: none;
+  line-height: 1;
+}
+
+@keyframes mood-float {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-2px); }
+}
+
+/* --- Speech Bubble --- */
+.pixel-cat__bubble {
+  position: absolute;
+  bottom: calc(100% + 20px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #FFF8E1;
+  color: #4E342E;
+  padding: 6px 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(78, 52, 46, 0.15);
+  border: 1.5px solid #D7CCC8;
+  animation: bubble-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+  z-index: 10000;
+}
+
+.pixel-cat__bubble::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #FFF8E1;
+  filter: drop-shadow(0 1px 1px rgba(78, 52, 46, 0.1));
+}
+
+@keyframes bubble-pop {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px) scale(0.7);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+/* --- Hide Button (appears on hover) --- */
+.pixel-cat__hide {
+  position: absolute;
+  top: -28px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid #D7CCC8;
+  background: #EFEBE9;
+  color: #795548;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  z-index: 10001;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.pixel-cat__hide:hover {
+  background: #D7CCC8;
+  transform: scale(1.15);
+}
+
+.pixel-cat:hover .pixel-cat__hide {
+  display: flex;
+}
+
+/* --- Toggle (show cat) Button --- */
+.pixel-cat__toggle {
+  position: fixed;
+  bottom: 14px;
+  right: 14px;
+  z-index: 9999;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid #D7CCC8;
+  background: #EFEBE9;
+  font-size: 20px;
+  line-height: 38px;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(78, 52, 46, 0.12);
+  transition: transform 0.2s, box-shadow 0.2s;
+  padding: 0;
+}
+
+.pixel-cat__toggle:hover {
+  transform: scale(1.12);
+  box-shadow: 0 3px 14px rgba(78, 52, 46, 0.2);
+}
+
+.pixel-cat__toggle--show {
+  animation: toggle-breathe 3s ease-in-out infinite;
+}
+
+@keyframes toggle-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+/* --- Super Saiyan Golden Glow --- */
+.pixel-cat--golden {
+  filter: drop-shadow(0 0 8px #FFD700) drop-shadow(0 0 18px #FFA000);
+  animation: golden-pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes golden-pulse {
+  0% { filter: drop-shadow(0 0 8px #FFD700) drop-shadow(0 0 18px #FFA000); }
+  100% { filter: drop-shadow(0 0 14px #FFD700) drop-shadow(0 0 28px #FFA000); }
+}
+
+/* --- Fish (collectible) --- */
+.pixel-cat__fish {
+  position: fixed;
+  z-index: 9998;
+  cursor: pointer;
+  animation: fish-fall linear forwards;
+  pointer-events: auto;
+  border-radius: 6px;
+  transition: background 0.15s ease, transform 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pixel-cat__fish:hover {
+  background: rgba(255, 213, 79, 0.22);
+  transform: scale(1.15);
+}
+
+.pixel-cat__fish:active {
+  transform: scale(0.9);
+}
+
+.pixel-cat__fish-sprite {
+  image-rendering: pixelated;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.pixel-cat__fish--collected {
+  animation: fish-collect 0.4s ease-out forwards !important;
+  pointer-events: none;
+}
+
+@keyframes fish-fall {
+  0% { top: -40px; opacity: 0; }
+  3% { opacity: 1; }
+  25% { transform: translateX(8px) rotate(5deg); }
+  50% { transform: translateX(-8px) rotate(-5deg); }
+  75% { transform: translateX(6px) rotate(3deg); }
+  100% { top: calc(100vh - 60px); opacity: 0.6; transform: translateX(0) rotate(0deg); }
+}
+
+@keyframes fish-collect {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.6; }
+  100% { transform: scale(0) translateY(-30px); opacity: 0; }
+}
+
+/* --- Right-click Panel --- */
+.pixel-cat__panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10002;
+}
+
+.pixel-cat__panel {
+  position: fixed;
+  z-index: 10003;
+  background: #FFF8E1;
+  border: 2px solid #D7CCC8;
+  border-radius: 8px;
+  padding: 14px 18px;
+  min-width: 180px;
+  box-shadow: 0 4px 20px rgba(78, 52, 46, 0.2);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #4E342E;
+  animation: panel-pop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes panel-pop {
+  0% { opacity: 0; transform: scale(0.85); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.pixel-cat__panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1.5px dashed #D7CCC8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pixel-cat__panel-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  gap: 16px;
+}
+
+.pixel-cat__panel-label {
+  color: #8D6E63;
+}
+
+.pixel-cat__panel-value {
+  font-weight: 600;
+  color: #4E342E;
+}
+
+.pixel-cat__panel-mood-bar {
+  width: 60px;
+  height: 8px;
+  background: #EFEBE9;
+  border-radius: 4px;
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+
+.pixel-cat__panel-mood-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s, background 0.3s;
+}
+
+.pixel-cat__panel-actions {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1.5px dashed #D7CCC8;
+  display: flex;
+  gap: 6px;
+}
+
+.pixel-cat__panel-btn {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1.5px solid #D7CCC8;
+  border-radius: 6px;
+  background: #EFEBE9;
+  color: #4E342E;
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s;
+}
+
+.pixel-cat__panel-btn:hover {
+  background: #D7CCC8;
+}
+
+/* --- Responsive: hide on small screens --- */
+@media (max-width: 600px) {
+  .pixel-cat,
+  .pixel-cat__toggle,
+  .pixel-cat__fish {
+    display: none !important;
+  }
+}
