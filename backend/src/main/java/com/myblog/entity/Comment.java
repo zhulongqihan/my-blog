@@ -1,5 +1,6 @@
 package com.myblog.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,10 +26,12 @@ public class Comment {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "article_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "content", "author", "category", "tags"})
     private Article article;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password", "sysRoles", "authorities"})
     private User user;
 
     // 游客评论
@@ -37,6 +40,7 @@ public class Comment {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "article", "user", "parent"})
     private Comment parent;
 
     @Builder.Default

@@ -7,6 +7,7 @@ import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
 import ReadingProgress from './components/ReadingProgress';
 import CursorGlow from './components/CursorGlow';
+import NotificationToast from './components/NotificationToast';
 import HomePage from './pages/HomePage';
 import ArticlePage from './pages/ArticlePage';
 import AboutPage from './pages/AboutPage';
@@ -21,6 +22,7 @@ function App() {
         <div className="app">
           <CursorGlow />
           <ReadingProgress />
+          <NotificationToast />
           <Header />
           <main className="main-content">
             <AnimatePresence mode="wait">

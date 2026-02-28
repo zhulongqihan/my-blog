@@ -1,5 +1,6 @@
 package com.myblog.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,10 +36,12 @@ public class Article {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password", "sysRoles", "authorities"})
     private User author;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Category category;
 
     @ManyToMany
