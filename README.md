@@ -2,7 +2,7 @@
 
 > 创建日期：2026年1月27日  
 > 最后更新：2026年2月28日  
-> 版本：v1.8.1  
+> 版本：v1.9.0  
 > GitHub: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)  
 > 网站：http://cyruszhang.online （备案中）
 
@@ -12,7 +12,7 @@
 
 这是一个全栈个人博客系统，前后端分离架构。后端使用 Spring Boot 3.x 提供 RESTful API，前台页面使用 React 19 + TypeScript + Vite，后台管理系统使用 Vue 3 + Element Plus + Pinia（双前端框架）。前台设计为大地色系极简风格。
 
-**项目亮点**：双前端框架（React + Vue）、Markdown 编辑器 + 图片上传、完整的后台管理系统、JWT + RBAC 权限体系、**Redis 多级缓存系统**（Cache Aside + Write-Behind + 缓存预热 + 监控面板）、**RabbitMQ 消息队列**（评论邮件通知 + 日志异步化 + 死信队列 + 监控）、**WebSocket 实时通知**（STOMP + SockJS + MQ联动 + 在线人数 + 通知中心）、ECharts 数据可视化、**API 限流与防护系统**（Redis Lua 滑动窗口 + AOP + IP 黑白名单）、**酷炫前端交互**（打字机标题 + 阅读进度条 + 鼠标光晕 + 3D卡片倾斜 + 数字滚动动画）。
+**项目亮点**：双前端框架（React + Vue）、**Docker Compose 一键部署**（5 容器编排 + 多阶段构建 + 健康检查）、Markdown 编辑器 + 图片上传、完整的后台管理系统、JWT + RBAC 权限体系、**Redis 多级缓存系统**（Cache Aside + Write-Behind + 缓存预热 + 监控面板）、**RabbitMQ 消息队列**（评论邮件通知 + 日志异步化 + 死信队列 + 监控）、**WebSocket 实时通知**（STOMP + SockJS + MQ联动 + 在线人数 + 通知中心）、ECharts 数据可视化、**API 限流与防护系统**（Redis Lua 滑动窗口 + AOP + IP 黑白名单）、**酷炫前端交互**（打字机标题 + 阅读进度条 + 鼠标光晕 + 3D卡片倾斜 + 数字滚动动画）。
 
 ### 核心特性
 
@@ -50,6 +50,7 @@
 - **在线人数统计** - WebSocket 连接/断开事件 + AtomicInteger 原子计数
 - **通知中心** - 管理后台铃铛实时红点 + 通知列表 + 系统公告广播
 - **MQ → WebSocket 联动** - 评论消息队列消费后自动推送实时通知
+- **Docker 容器化** - Docker Compose 一键编排 5 个容器，多阶段构建，healthcheck 保证启动顺序
 
 ### 项目目标
 
@@ -58,38 +59,43 @@
 - [x] 实现前后端分离架构
 - [x] 部署到公网供他人访问
 - [x] 打造完整的后台管理系统（React + Vue 双框架）
+- [x] Docker Compose 容器化一键部署（MySQL + Redis + RabbitMQ + Backend + Nginx）
 
 ---
 
 ## 技术架构
 
 ```
-┌─────────────────────────────┐   ┌─────────────────────────────┐
-│     前台 (React 19)        │   │   后台管理 (Vue 3)        │
-│  Vite 7 │ TypeScript 5.9  │   │  Vite 5 │ TypeScript 5.4  │
-│  React Router 7            │   │  Element Plus │ Pinia      │
-│  Axios │ Framer Motion    │   │  ECharts │ vue-router     │
-└─────────────────────────────┘   └─────────────────────────────┘
-              │                                │
-              └───────────────┬──────────────┘
-                              │ HTTP/REST API
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    后端 (Spring Boot 3.2.2)                    │
-│  Spring Security + JWT  │  Spring Data JPA + Hibernate   │
-│   Redis 多级缓存 + 黑名单  │  AOP 操作日志 + 异步任务       │
-│  RBAC 权限体系          │  CompletableFuture 并行查询    │
-│  API 限流（Lua滑动窗口） │  IP 黑白名单防护               │
-│  Spring Cache（多TTL）  │  定时任务（浏览量同步）         │
-│  RabbitMQ 消息队列      │  死信队列 + 邮件通知            │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                    ┌─────────┼─────────┐
-                    ▼         ▼          ▼
-┌──────────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-│   数据库 (H2/MySQL) │ │  Redis 7.x 缓存 │ │  RabbitMQ 3.13 │
-│  开发:H2 | 生产:MySQL│ │ 缓存│限流│黑名单 │ │ 评论通知│日志│DLX│
-└──────────────────────┘ └─────────────────┘ └─────────────────┘
+┌─────────────────────────── Docker Compose ───────────────────────────┐
+│                                                                       │
+│  ┌─────────────────────────────┐   ┌─────────────────────────────┐  │
+│  │     前台 (React 19)        │   │   后台管理 (Vue 3)        │  │
+│  │  Vite 7 │ TypeScript 5.9  │   │  Vite 5 │ TypeScript 5.4  │  │
+│  │  React Router 7            │   │  Element Plus │ Pinia      │  │
+│  │  Axios │ Framer Motion    │   │  ECharts │ vue-router     │  │
+│  └────────────┬───────────────┘   └──────────────┬──────────────┘  │
+│               └──────────── Nginx 容器 ──────────┘                  │
+│                              │ 反向代理                              │
+│                              ▼                                       │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │              Backend 容器 (Spring Boot 3.2.2)                │    │
+│  │  Spring Security + JWT  │  Spring Data JPA + Hibernate   │    │
+│  │   Redis 多级缓存 + 黑名单  │  AOP 操作日志 + 异步任务       │    │
+│  │  RBAC 权限体系          │  CompletableFuture 并行查询    │    │
+│  │  API 限流（Lua滑动窗口） │  IP 黑白名单防护               │    │
+│  │  Spring Cache（多TTL）  │  RabbitMQ 消息队列             │    │
+│  └──────────────────────────────────────────────────────────────┘    │
+│                              │                                       │
+│                    ┌─────────┼─────────┐                            │
+│                    ▼         ▼          ▼                            │
+│  ┌──────────────────┐ ┌──────────────┐ ┌──────────────────┐        │
+│  │  MySQL 8.0 容器  │ │ Redis 7 容器 │ │ RabbitMQ 3.13 容器│        │
+│  │  blogdb 数据库   │ │ 缓存│限流│黑名单│ │ 评论通知│日志│DLX │        │
+│  └──────────────────┘ └──────────────┘ └──────────────────┘        │
+│         │ Volume             │ Volume          │ Volume              │
+└─────────┼────────────────────┼─────────────────┼────────────────────┘
+          ▼                    ▼                  ▼
+    [持久化存储]          [持久化存储]        [持久化存储]
 ```
 
 ---
@@ -116,6 +122,8 @@
 | **Maven** | 3.x | 项目构建工具 |
 | **Spring AOP** | 6.x | 切面编程（限流、日志） |
 | **Spring Cache** | 6.x | 声明式缓存（多TTL策略） |
+| **Docker** | 26.x | 容器化部署 |
+| **Docker Compose** | 2.27 | 多容器编排 |
 
 ### 前台前端技术
 
@@ -287,6 +295,24 @@ myblog/
 │   └── vite.config.ts
 │
 └── README.md                         # 本文档
+```
+
+### Docker 部署结构
+
+```
+myblog/
+├── docker-compose.yml                # Docker Compose 编排文件
+├── .dockerignore                     # Docker 构建排除规则
+├── backend/
+│   └── Dockerfile                    # 后端多阶段构建（Maven→JRE）
+├── docker/
+│   ├── nginx/
+│   │   ├── Dockerfile                # Nginx 多阶段构建（Node→Nginx）
+│   │   └── nginx.conf                # Nginx 配置（反向代理+静态托管）
+│   ├── mysql/
+│   │   └── init.sql                  # MySQL 初始化脚本
+│   ├── .env.example                  # 环境变量模板
+│   └── .env                          # 实际环境变量（不上传Git）
 ```
 
 ---
@@ -780,6 +806,24 @@ stop.bat
 ---
 
 ## 开发日志
+
+### 2026-02-28（v1.9.0 Docker 容器化部署）
+- Docker Compose 编排 5 个容器：Nginx + Backend + MySQL 8.0 + Redis 7 + RabbitMQ 3.13
+- Backend Dockerfile 多阶段构建（Maven 编译 → JRE Alpine 运行，镜像体积 ~200MB）
+- Nginx Dockerfile 多阶段构建（Node 构建前端 → Nginx Alpine 托管）
+- React 前台 + Vue 管理后台在 Nginx 容器中统一打包托管
+- 所有服务添加 healthcheck（MySQL ping / Redis ping / RabbitMQ diagnostics）
+- depends_on + condition: service_healthy 保证启动顺序
+- Docker Volume 持久化：MySQL 数据、Redis 数据、RabbitMQ 数据、上传文件、日志
+- 环境变量注入敏感配置（docker/.env），application-prod.yml 改为 ${VAR:default} 语法
+- Nginx 反向代理 /api/ → backend:8080（Docker 内部网络，容器名自动 DNS 解析）
+- WebSocket /ws 代理配置 Upgrade 头支持
+- 上传文件目录通过共享 Volume 在 Backend 和 Nginx 间同步
+- 内存限制：MySQL 512MB + Redis 128MB + RabbitMQ 256MB + Backend 640MB + Nginx 64MB ≈ 1.6GB
+- MySQL 初始化脚本自动创建 blogdb 数据库和 bloguser 用户
+- 支持 mysqldump 数据迁移导入
+- docker/.env.example 提供配置模板（不含真实密码）
+- .gitignore 排除 docker/.env 保护敏感信息
 
 ### 2026-02-28（v1.8.1 安全加固 + 代码审计修复）
 - 修复 AuthController 登出 Bug（Token 黑名单参数传递错误，登出功能失效）

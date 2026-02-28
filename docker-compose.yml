@@ -1,0 +1,179 @@
+# =============================================================
+# MyBlog Docker Compose 编排文件
+# 一键启动：docker compose up -d
+# 架构：Nginx + Backend + MySQL + Redis + RabbitMQ
+# =============================================================
+
+services:
+
+  # ==================== MySQL 8.0 ====================
+  mysql:
+    image: mysql:8.0
+    container_name: myblog-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-RootPass2026}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-blogdb}
+      MYSQL_USER: ${MYSQL_USER:-bloguser}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-MyBlog2026}
+      TZ: Asia/Shanghai
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-RootPass2026}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - myblog-network
+
+  # ==================== Redis 7 ====================
+  redis:
+    image: redis:7-alpine
+    container_name: myblog-redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    networks:
+      - myblog-network
+
+  # ==================== RabbitMQ 3.13 ====================
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: myblog-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-admin123}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - myblog-network
+
+  # ==================== Spring Boot 后端 ====================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: myblog-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      # 数据库连接（使用 Docker 容器名）
+      SPRING_DATASOURCE_URL: jdbc:mysql://${DB_HOST:-mysql}:${DB_PORT:-3306}/${DB_NAME:-blogdb}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-bloguser}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-MyBlog2026}
+      # Redis
+      SPRING_REDIS_HOST: ${REDIS_HOST:-redis}
+      SPRING_REDIS_PORT: ${REDIS_PORT:-6379}
+      # RabbitMQ
+      SPRING_RABBITMQ_HOST: ${MQ_HOST:-rabbitmq}
+      SPRING_RABBITMQ_PORT: ${MQ_PORT:-5672}
+      SPRING_RABBITMQ_USERNAME: ${MQ_USER:-admin}
+      SPRING_RABBITMQ_PASSWORD: ${MQ_PASSWORD:-admin123}
+      # JWT
+      JWT_SECRET: ${JWT_SECRET:-0vC37MKrX3ncvfxFacfkojXfawfX8VXtOLjZKA2yU7U=}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+      # 邮件
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      # CORS
+      CORS_ALLOWED_ORIGINS: ${CORS_ORIGINS:-http://cyruszhang.online,https://cyruszhang.online,http://118.31.221.81}
+      # 文件上传
+      FILE_UPLOAD_DIR: /app/uploads
+      FILE_ACCESS_URL: /uploads
+      # JVM 参数
+      JAVA_OPTS: "-Xms256m -Xmx512m"
+      TZ: Asia/Shanghai
+    volumes:
+      - uploads_data:/app/uploads
+      - backend_logs:/app/logs
+    expose:
+      - "8080"
+    deploy:
+      resources:
+        limits:
+          memory: 640M
+    networks:
+      - myblog-network
+
+  # ==================== Nginx 前端 + 反向代理 ====================
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    container_name: myblog-nginx
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    volumes:
+      - uploads_data:/usr/share/nginx/uploads:ro
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    networks:
+      - myblog-network
+
+# ==================== 数据卷 ====================
+volumes:
+  mysql_data:
+    name: myblog-mysql-data
+  redis_data:
+    name: myblog-redis-data
+  rabbitmq_data:
+    name: myblog-rabbitmq-data
+  uploads_data:
+    name: myblog-uploads
+  backend_logs:
+    name: myblog-backend-logs
+
+# ==================== 网络 ====================
+networks:
+  myblog-network:
+    name: myblog-network
+    driver: bridge

@@ -1,0 +1,35 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+docs/
+*.md
+
+# Node.js
+**/node_modules/
+**/dist/
+
+# Maven build output
+backend/target/
+
+# Logs
+logs/
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker/.env
+
+# Temp
+*.tmp
+*.bak
+*.swp
