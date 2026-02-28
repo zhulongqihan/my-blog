@@ -36,6 +36,7 @@ public class GlobalExceptionHandler {
      * 场景：主动抛出的业务异常，如资源不存在、权限不足等
      */
     @ExceptionHandler(BusinessException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<?> handleBusinessException(BusinessException e) {
         log.warn("业务异常：{}", e.getMessage());
         return Result.error(e.getCode(), e.getMessage());
@@ -47,6 +48,7 @@ public class GlobalExceptionHandler {
      * 设计亮点：收集所有校验失败的字段，一次性返回给前端
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<?> handleValidationException(MethodArgumentNotValidException e) {
         String errorMessage = e.getBindingResult().getFieldErrors().stream()
                 .map(FieldError::getDefaultMessage)
@@ -60,6 +62,7 @@ public class GlobalExceptionHandler {
      * 场景：表单提交时参数绑定失败
      */
     @ExceptionHandler(BindException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<?> handleBindException(BindException e) {
         String errorMessage = e.getBindingResult().getFieldErrors().stream()
                 .map(FieldError::getDefaultMessage)
@@ -108,6 +111,7 @@ public class GlobalExceptionHandler {
      * 设计意图：避免空指针异常信息泄露给前端，统一返回友好提示
      */
     @ExceptionHandler(NullPointerException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<?> handleNullPointerException(NullPointerException e) {
         log.error("空指针异常", e);
         return Result.error("系统异常，请联系管理员");
@@ -129,6 +133,7 @@ public class GlobalExceptionHandler {
      * 设计意图：兜底处理，避免异常信息泄露，记录完整日志便于排查
      */
     @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<?> handleException(Exception e) {
         log.error("系统异常", e);
         // 生产环境不返回具体异常信息，避免信息泄露

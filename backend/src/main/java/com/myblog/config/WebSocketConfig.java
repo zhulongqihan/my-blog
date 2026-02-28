@@ -1,5 +1,6 @@
 package com.myblog.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
@@ -27,6 +28,9 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
+    @Value("${cors.allowed-origins}")
+    private String allowedOrigins;
+
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
         // 启用简单内存消息代理
@@ -45,7 +49,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // 注册 STOMP 端点，启用 SockJS 降级
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*")  // 允许跨域
+                .setAllowedOriginPatterns(allowedOrigins.split(","))  // 复用 CORS 配置
                 .withSockJS();                  // SockJS 降级支持
     }
 }

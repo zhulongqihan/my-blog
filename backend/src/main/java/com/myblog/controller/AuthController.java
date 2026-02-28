@@ -109,12 +109,10 @@ public class AuthController {
                 userId = ((User) authentication.getPrincipal()).getId();
             }
             
-            // 获取Token剩余有效期并加入黑名单
+            // 获取Token过期时间戳并加入黑名单
             Long expirationTime = jwtUtils.getExpirationTime(token);
-            // 计算剩余秒数
-            Long remainingSeconds = (expirationTime - System.currentTimeMillis()) / 1000;
-            if (remainingSeconds > 0) {
-                jwtBlacklistService.addToBlacklist(token, userId, remainingSeconds);
+            if (expirationTime != null && expirationTime > System.currentTimeMillis()) {
+                jwtBlacklistService.addToBlacklist(token, userId, expirationTime);
             }
         }
         

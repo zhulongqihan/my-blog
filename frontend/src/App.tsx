@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { AuthProvider } from './contexts/AuthContext';
+import { WebSocketProvider } from './contexts/WebSocketContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
@@ -15,6 +16,7 @@ import './App.css';
 function App() {
   return (
     <AuthProvider>
+      <WebSocketProvider>
       <Router>
         <div className="app">
           <CursorGlow />
@@ -34,6 +36,7 @@ function App() {
           <ScrollToTop />
         </div>
       </Router>
+      </WebSocketProvider>
     </AuthProvider>
   );
 }

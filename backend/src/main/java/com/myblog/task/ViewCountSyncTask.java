@@ -8,7 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
 
@@ -43,7 +42,6 @@ public class ViewCountSyncTask {
      * fixedRate = 5分钟，从任务开始计时
      */
     @Scheduled(fixedRate = 5 * 60 * 1000, initialDelay = 60 * 1000)
-    @Transactional
     public void syncViewCounts() {
         String pattern = RedisKeyPrefix.ARTICLE_VIEW_COUNT + "*";
         Set<String> keys = redisTemplate.keys(pattern);
@@ -56,12 +54,11 @@ public class ViewCountSyncTask {
         for (String key : keys) {
             try {
                 // 从 key 中提取文章 ID
-                // Key格式: article:view:count:{articleId}
                 String idStr = key.replace(RedisKeyPrefix.ARTICLE_VIEW_COUNT, "");
                 Long articleId = Long.parseLong(idStr);
                 
-                // 原子读取并删除（获取增量后清零）
-                Object value = redisTemplate.opsForValue().getAndDelete(key);
+                // 先读取增量值（不删除）
+                Object value = redisTemplate.opsForValue().get(key);
                 if (value == null) continue;
                 
                 int increment = ((Number) value).intValue();
@@ -72,6 +69,9 @@ public class ViewCountSyncTask {
                     article.setViewCount(article.getViewCount() + increment);
                     articleRepository.save(article);
                 });
+                
+                // DB 写入成功后再删除 Redis 中的计数器
+                redisTemplate.delete(key);
                 
                 syncCount++;
             } catch (Exception e) {

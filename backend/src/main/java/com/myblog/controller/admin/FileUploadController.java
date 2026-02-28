@@ -42,6 +42,7 @@ public class FileUploadController {
 
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     private static final String[] ALLOWED_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"};
+    private static final String[] ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"};
 
     /**
      * 上传图片
@@ -74,7 +75,11 @@ public class FileUploadController {
             String originalName = file.getOriginalFilename();
             String extension = "";
             if (originalName != null && originalName.contains(".")) {
-                extension = originalName.substring(originalName.lastIndexOf("."));
+                extension = originalName.substring(originalName.lastIndexOf(".")).toLowerCase();
+            }
+            // 校验文件扩展名白名单（防止伪造 Content-Type 上传恶意文件）
+            if (!isAllowedExtension(extension)) {
+                return Result.error(400, "只允许上传 jpg/png/gif/webp 格式的图片");
             }
             String newFileName = UUID.randomUUID().toString().replace("-", "") + extension;
 
@@ -97,6 +102,14 @@ public class FileUploadController {
         if (contentType == null) return false;
         for (String type : ALLOWED_TYPES) {
             if (type.equals(contentType)) return true;
+        }
+        return false;
+    }
+
+    private boolean isAllowedExtension(String extension) {
+        if (extension == null || extension.isEmpty()) return false;
+        for (String ext : ALLOWED_EXTENSIONS) {
+            if (ext.equals(extension)) return true;
         }
         return false;
     }

@@ -26,9 +26,9 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Query("SELECT n FROM Notification n WHERE n.recipientId = :adminId OR n.recipientId IS NULL ORDER BY n.createdAt DESC")
     Page<Notification> findAdminNotifications(@Param("adminId") Long adminId, Pageable pageable);
 
-    /** 批量标记为已读 */
+    /** 批量标记为已读（包含定向通知和广播通知） */
     @Modifying
-    @Query("UPDATE Notification n SET n.isRead = true WHERE n.recipientId = :userId AND n.isRead = false")
+    @Query("UPDATE Notification n SET n.isRead = true WHERE (n.recipientId = :userId OR n.recipientId IS NULL) AND n.isRead = false")
     int markAllAsRead(@Param("userId") Long userId);
 
     /** 查询最近的全站广播通知 */

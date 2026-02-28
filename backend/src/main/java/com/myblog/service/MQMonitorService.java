@@ -100,8 +100,11 @@ public class MQMonitorService {
             var connectionFactory = rabbitTemplate.getConnectionFactory();
             if (connectionFactory != null) {
                 var connection = connectionFactory.createConnection();
-                boolean open = connection.isOpen();
-                return open;
+                try {
+                    return connection.isOpen();
+                } finally {
+                    connection.close();
+                }
             }
             return false;
         } catch (Exception e) {

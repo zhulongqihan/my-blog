@@ -100,6 +100,7 @@ public class JwtBlacklistService {
      */
     public Long getBlacklistCount() {
         String pattern = RedisKeyPrefix.JWT_BLACKLIST + "*";
-        return Long.valueOf(redisTemplate.keys(pattern).size());
+        Set<String> keys = redisTemplate.keys(pattern);
+        return keys != null ? (long) keys.size() : 0L;
     }
 }

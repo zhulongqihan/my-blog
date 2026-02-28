@@ -26,7 +26,7 @@ export const useNotificationStore = defineStore('notification', () => {
     if (client.value?.active) return
 
     const token = localStorage.getItem('admin_token')
-    const wsUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace('/api', '') + '/ws'
+    const wsUrl = import.meta.env.VITE_WS_URL || new URL('/ws', window.location.origin).href
 
     const stompClient = new Client({
       webSocketFactory: () => new SockJS(wsUrl),

@@ -122,7 +122,7 @@ public class RabbitMQConfig {
         return QueueBuilder.durable(COMMENT_NOTIFICATION_QUEUE)
                 .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
                 .withArgument("x-dead-letter-routing-key", "dlx.comment")
-                .withArgument("x-message-ttl", 30000) // 30秒 TTL
+                .withArgument("x-message-ttl", 300000) // 5分钟 TTL（避免滚动更新期间消息丢失）
                 .build();
     }
 

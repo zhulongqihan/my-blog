@@ -32,7 +32,8 @@ interface UseWebSocketReturn {
   clearNotifications: () => void;
 }
 
-const WS_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace('/api', '') + '/ws';
+// 构建 WebSocket URL：优先使用独立环境变量，否则基于当前页面 origin
+const WS_URL = import.meta.env.VITE_WS_URL || new URL('/ws', window.location.origin).href;
 
 export function useWebSocket(): UseWebSocketReturn {
   const [connected, setConnected] = useState(false);
@@ -67,7 +68,7 @@ export function useWebSocket(): UseWebSocketReturn {
           const data = JSON.parse(message.body);
           setOnlineCount(data.onlineCount);
         } catch (e) {
-          // ignore
+          if (import.meta.env.DEV) console.warn('[WS] online-count parse failed:', e);
         }
       });
 
@@ -77,7 +78,7 @@ export function useWebSocket(): UseWebSocketReturn {
           const notification: Notification = JSON.parse(message.body);
           setNotifications((prev) => [notification, ...prev].slice(0, 50));
         } catch (e) {
-          // ignore
+          if (import.meta.env.DEV) console.warn('[WS] notification parse failed:', e);
         }
       });
     };

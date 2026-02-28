@@ -1,10 +1,7 @@
 package com.myblog.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -16,10 +13,13 @@ import java.util.Set;
  * 系统角色实体
  * 用于RBAC权限控制
  */
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = {"menus", "users"})
+@EqualsAndHashCode(of = "id")
 @Entity
 @Table(name = "sys_role")
 public class SysRole {

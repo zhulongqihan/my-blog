@@ -1,10 +1,7 @@
 package com.myblog.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -16,10 +13,13 @@ import java.util.Set;
  * 系统菜单/权限实体
  * 用于RBAC权限控制，支持树形结构
  */
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = "roles")
+@EqualsAndHashCode(of = "id")
 @Entity
 @Table(name = "sys_menu")
 public class SysMenu {

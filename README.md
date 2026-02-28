@@ -2,7 +2,7 @@
 
 > 创建日期：2026年1月27日  
 > 最后更新：2026年2月27日  
-> 版本：v1.8.0  
+> 版本：v1.8.1  
 > GitHub: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)  
 > 网站：http://cyruszhang.online （备案中）
 
@@ -780,6 +780,27 @@ stop.bat
 ---
 
 ## 开发日志
+
+### 2026-02-27（v1.8.1 安全加固 + 代码审计修复）
+- 修复 AuthController 登出 Bug（Token 黑名单参数传递错误，登出功能失效）
+- 修复 Redis 反序列化漏洞（LaissezFaireSubTypeValidator → BasicPolymorphicTypeValidator 白名单）
+- 修复用户密码哈希通过 API 泄漏（User.password 添加 @JsonIgnore）
+- 修复 JPA 实体 @Data 导致 toString/hashCode 无限递归（User/SysRole/SysMenu）
+- 修复 WebSocket SecurityContextHolder 线程泄漏（改为仅用 accessor.setUser）
+- 修复 WebSocket CORS 过于宽松（从 * 改为复用 cors.allowed-origins）
+- 修复浏览量同步定时任务数据丢失竞态条件（先读后删，移除外层 @Transactional）
+- 修复文件上传缺少扩展名白名单（防止伪造 Content-Type 上传恶意文件）
+- 修复 GlobalExceptionHandler 未返回正确 HTTP 状态码（添加 @ResponseStatus）
+- 修复 MQ 监控连接泄漏（createConnection 后 finally close）
+- 修复 JwtBlacklistService.getBlacklistCount() NPE 风险
+- 修复 RabbitMQ 评论队列 TTL 过短（30s → 5min）
+- 修复 Notification 广播消息永远显示未读（markAllAsRead 覆盖广播通知）
+- 修复 WebSocketAuthConfig 移除重复 @EnableWebSocketMessageBroker
+- 修复 Notification @Index 列名使用物理 snake_case 列名
+- React 前端：WebSocket Context 单例化（避免多组件重复创建连接）
+- React 前端：修复 WS URL 构建逻辑（使用 window.location.origin 回退）
+- Vue 管理前端：同步修复 WS URL 构建
+- 更新所有 docs 文档（docs/README.md 索引重写 + MQ 日期修正 + WEBSOCKET_GUIDE 同步修复）
 
 ### 2026-02-27（v1.8.0 WebSocket 实时通知系统）
 - 新增 WebSocket 实时通知系统（STOMP + SockJS）
