@@ -100,18 +100,21 @@ services:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
-      # 数据库连接（使用 Docker 容器名）
-      SPRING_DATASOURCE_URL: jdbc:mysql://${DB_HOST:-mysql}:${DB_PORT:-3306}/${DB_NAME:-blogdb}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_USERNAME: ${DB_USER:-bloguser}
-      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-MyBlog2026}
+      # 数据库（与 application-prod.yml 中 ${DB_HOST} 等变量名一致）
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: ${MYSQL_DATABASE:-blogdb}
+      DB_USER: ${MYSQL_USER:-bloguser}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-MyBlog2026}
       # Redis
-      SPRING_REDIS_HOST: ${REDIS_HOST:-redis}
-      SPRING_REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ""
       # RabbitMQ
-      SPRING_RABBITMQ_HOST: ${MQ_HOST:-rabbitmq}
-      SPRING_RABBITMQ_PORT: ${MQ_PORT:-5672}
-      SPRING_RABBITMQ_USERNAME: ${MQ_USER:-admin}
-      SPRING_RABBITMQ_PASSWORD: ${MQ_PASSWORD:-admin123}
+      MQ_HOST: rabbitmq
+      MQ_PORT: "5672"
+      MQ_USER: ${RABBITMQ_DEFAULT_USER:-admin}
+      MQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-admin123}
       # JWT
       JWT_SECRET: ${JWT_SECRET:-0vC37MKrX3ncvfxFacfkojXfawfX8VXtOLjZKA2yU7U=}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
