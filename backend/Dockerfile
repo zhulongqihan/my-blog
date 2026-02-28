@@ -31,8 +31,8 @@ EXPOSE 8080
 # JVM 参数通过环境变量控制
 ENV JAVA_OPTS="-Xms256m -Xmx512m"
 
-# 健康检查：每30秒检查一次，超时5秒，失败3次标记不健康
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+# 健康检查：启动后等60秒再开始检查，每30秒检查一次，失败5次才标记不健康
+HEALTHCHECK --interval=30s --timeout=5s --retries=5 --start-period=60s \
   CMD wget -qO- http://localhost:8080/api/articles?page=0\&size=1 || exit 1
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

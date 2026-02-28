@@ -1,0 +1,16 @@
+# Maven 构建产物
+target/
+
+# IDE 文件
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# Git
+.git
+.gitignore
+
+# 日志
+logs/
+*.log
