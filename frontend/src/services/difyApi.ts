@@ -81,7 +81,8 @@ export function getUserId(): string {
   const STORAGE_KEY = 'dify-user-id';
   let userId = localStorage.getItem(STORAGE_KEY);
   if (!userId) {
-    userId = `blog-visitor-${crypto.randomUUID()}`;
+    const uuid = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    userId = `blog-visitor-${uuid}`;
     localStorage.setItem(STORAGE_KEY, userId);
   }
   return userId;
@@ -133,21 +134,27 @@ export function sendChatMessage(
   callbacks: StreamCallbacks
 ): AbortController {
   const controller = new AbortController();
+  const isProxyMode = DIFY_API_URL.startsWith('/');
 
   // 检查 API Key 配置
-  if (!DIFY_API_KEY || DIFY_API_KEY === 'app-你的Dify应用API密钥') {
+  if (!isProxyMode && (!DIFY_API_KEY || DIFY_API_KEY === 'app-你的Dify应用API密钥')) {
     callbacks.onError('AI 助手尚未配置，请先设置 Dify API Key');
     return controller;
   }
 
   const fetchStream = async () => {
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (DIFY_API_KEY && DIFY_API_KEY !== 'app-你的Dify应用API密钥') {
+        headers.Authorization = `Bearer ${DIFY_API_KEY}`;
+      }
+
       const response = await fetch(`${DIFY_API_URL}/chat-messages`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${DIFY_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           inputs: request.inputs || {},
           query: request.query,

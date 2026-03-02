@@ -14,6 +14,31 @@
   color: var(--accent-rust);
 }
 
+.article-page__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--spacing-lg);
+}
+
+.article-page__reading-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.article-page__reading-toggle:hover {
+  border-color: var(--accent-rust-light);
+  color: var(--accent-rust);
+}
+
 /* ===== Loading & Error States ===== */
 .loading-state,
 .error-state {
@@ -175,8 +200,71 @@
   border: 1px solid #3a3a3a;
 }
 
+.article-content__code-wrap {
+  margin: var(--spacing-xl) 0;
+}
+
+.article-content__code-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border: 1px solid #3a3a3a;
+  border-bottom: none;
+  background: #252525;
+  border-radius: 6px 6px 0 0;
+}
+
+.article-content__code-lang {
+  color: #b9b9b9;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: var(--font-mono);
+}
+
+.article-content__code-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #4b4b4b;
+  background: #333;
+  color: #eee;
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.article-content__code-copy:hover {
+  background: #3e3e3e;
+}
+
+.article-content__code-wrap pre {
+  margin: 0 !important;
+  border-radius: 0 0 6px 6px !important;
+}
+
 .article-content pre code {
   font-family: var(--font-mono) !important;
+}
+
+.article-page--reading {
+  max-width: 860px;
+}
+
+.article-page--reading .article-header__meta,
+.article-page--reading .article-header__tags,
+.article-page--reading .article-footer,
+.article-page--reading .article-divider,
+.article-page--reading .article-page__back {
+  opacity: 0.55;
+}
+
+.article-page--reading .article-content {
+  font-size: 1.125rem;
+  line-height: 2;
+  color: var(--text-primary);
 }
 
 /* ===== Article Footer ===== */

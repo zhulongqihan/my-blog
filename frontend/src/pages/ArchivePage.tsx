@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Calendar, FileText, Loader2 } from 'lucide-react';
+import { Calendar, FileText } from 'lucide-react';
 import { articleApi } from '../services';
 import type { ArchiveResponse } from '../types';
 import './ArchivePage.css';
@@ -70,9 +70,14 @@ const ArchivePage = () => {
 
       {/* Content */}
       {isLoading ? (
-        <div className="loading-state">
-          <Loader2 className="loading-spinner" size={24} />
-          <span>加载中...</span>
+        <div className="archive-skeleton">
+          {Array.from({ length: 3 }).map((_, idx) => (
+            <div key={idx} className="archive-skeleton__group">
+              <div className="archive-skeleton__year" />
+              <div className="archive-skeleton__line" />
+              <div className="archive-skeleton__line archive-skeleton__line--short" />
+            </div>
+          ))}
         </div>
       ) : error ? (
         <div className="error-state">

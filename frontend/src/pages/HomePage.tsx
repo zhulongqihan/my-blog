@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import ArticleCard from '../components/ArticleCard';
 import Typewriter from '../components/Typewriter';
@@ -28,9 +29,27 @@ const estimateReadTime = (content: string) => {
 const HomePage = () => {
   const { articles: featuredArticles, isLoading: featuredLoading } = useFeaturedArticles();
   const { articles, isLoading, error, hasMore, loadMore } = useArticles({ size: 10 });
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const featuredArticle = featuredArticles[0];
   const regularArticles = articles.filter(a => !a.featured);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && hasMore && !isLoading) {
+          loadMore();
+        }
+      },
+      { rootMargin: '120px 0px' }
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [hasMore, isLoading, loadMore]);
 
   return (
     <motion.div
@@ -97,9 +116,14 @@ const HomePage = () => {
         </h2>
 
         {isLoading && articles.length === 0 ? (
-          <div className="loading-state">
-            <Loader2 className="loading-spinner" size={24} />
-            <span>加载中...</span>
+          <div className="home-skeleton">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <div key={idx} className="home-skeleton__item">
+                <div className="home-skeleton__title" />
+                <div className="home-skeleton__line" />
+                <div className="home-skeleton__line home-skeleton__line--short" />
+              </div>
+            ))}
           </div>
         ) : error ? (
           <div className="error-state">
@@ -129,15 +153,15 @@ const HomePage = () => {
             </div>
 
             {hasMore && (
-              <div className="load-more">
+              <div className="load-more" ref={loadMoreRef}>
                 <button onClick={loadMore} disabled={isLoading} className="load-more__btn">
                   {isLoading ? (
                     <>
                       <Loader2 className="loading-spinner" size={16} />
-                      加载中...
+                      正在加载更多...
                     </>
                   ) : (
-                    '加载更多'
+                    '向下滚动自动加载 / 点击加载更多'
                   )}
                 </button>
               </div>

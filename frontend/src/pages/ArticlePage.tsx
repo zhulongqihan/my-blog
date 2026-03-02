@@ -1,6 +1,7 @@
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, ArrowLeft, Tag, Loader2 } from 'lucide-react';
+import { Calendar, Clock, ArrowLeft, Tag, Loader2, BookOpen, Minimize2, Copy, Check } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useArticle } from '../hooks/useArticles';
@@ -46,7 +47,11 @@ const estimateReadTime = (content: string) => {
 };
 
 // Parse markdown-like content to JSX
-const parseContent = (content: string) => {
+const parseContent = (
+  content: string,
+  onCopyCode: (code: string, key: string) => void,
+  copiedCodeKey: string | null
+) => {
   if (!content) return null;
 
   const parts = content.split(/(```[\s\S]*?```)/g);
@@ -57,16 +62,35 @@ const parseContent = (content: string) => {
       const match = part.match(/```(\w+)?\n([\s\S]*?)```/);
       if (match) {
         const [, language = 'text', code] = match;
+        const codeKey = `code-${index}`;
         return (
-          <SyntaxHighlighter
-            key={index}
-            language={language}
-            style={codeStyle}
-            showLineNumbers={true}
-            lineNumberStyle={{ color: '#666', paddingRight: '1rem' }}
-          >
-            {code.trim()}
-          </SyntaxHighlighter>
+          <div key={index} className="article-content__code-wrap">
+            <div className="article-content__code-toolbar">
+              <span className="article-content__code-lang">{language}</span>
+              <button
+                className="article-content__code-copy"
+                onClick={() => onCopyCode(code.trim(), codeKey)}
+              >
+                {copiedCodeKey === codeKey ? (
+                  <>
+                    <Check size={13} /> 已复制
+                  </>
+                ) : (
+                  <>
+                    <Copy size={13} /> 复制
+                  </>
+                )}
+              </button>
+            </div>
+            <SyntaxHighlighter
+              language={language}
+              style={codeStyle}
+              showLineNumbers={true}
+              lineNumberStyle={{ color: '#666', paddingRight: '1rem' }}
+            >
+              {code.trim()}
+            </SyntaxHighlighter>
+          </div>
         );
       }
     }
@@ -141,6 +165,24 @@ const parseContent = (content: string) => {
 const ArticlePage = () => {
   const { id } = useParams();
   const { article, isLoading, error } = useArticle(Number(id));
+  const [isReadingMode, setIsReadingMode] = useState(() => {
+    return localStorage.getItem('article-reading-mode') === 'true';
+  });
+  const [copiedCodeKey, setCopiedCodeKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem('article-reading-mode', String(isReadingMode));
+  }, [isReadingMode]);
+
+  const handleCopyCode = async (code: string, key: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedCodeKey(key);
+      window.setTimeout(() => setCopiedCodeKey(null), 1400);
+    } catch {
+      setCopiedCodeKey(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -185,7 +227,7 @@ const ArticlePage = () => {
 
   return (
     <motion.div
-      className="page-wrapper article-page"
+      className={`page-wrapper article-page ${isReadingMode ? 'article-page--reading' : ''}`}
       variants={pageVariants}
       initial="initial"
       animate="animate"
@@ -197,6 +239,16 @@ const ArticlePage = () => {
         <ArrowLeft size={16} strokeWidth={1.5} />
         返回首页
       </Link>
+
+      <div className="article-page__toolbar">
+        <button
+          className="article-page__reading-toggle"
+          onClick={() => setIsReadingMode(prev => !prev)}
+        >
+          {isReadingMode ? <Minimize2 size={14} /> : <BookOpen size={14} />}
+          {isReadingMode ? '退出阅读模式' : '阅读模式'}
+        </button>
+      </div>
 
       {/* Article Header */}
       <header className="article-header">
@@ -268,7 +320,7 @@ const ArticlePage = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
       >
-        {parseContent(article.content)}
+        {parseContent(article.content, handleCopyCode, copiedCodeKey)}
       </motion.article>
 
       {/* Article Footer */}

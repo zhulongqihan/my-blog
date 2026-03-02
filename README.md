@@ -4,7 +4,7 @@
 > 最后更新：2026年3月1日  
 > 版本：v1.9.2  
 > GitHub: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)  
-> 网站：http://cyruszhang.online （备案中）
+> 网站：http://cyruszhang.online 
 
 ---
 

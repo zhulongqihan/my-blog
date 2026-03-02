@@ -1,13 +1,21 @@
-import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useState, useEffect, useRef, type FormEvent } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Feather } from 'lucide-react';
+import { Menu, X, Feather, Search, Loader2 } from 'lucide-react';
+import { articleApi } from '../services';
+import type { Article } from '../types';
 import './Header.css';
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [keyword, setKeyword] = useState('');
+  const [suggestions, setSuggestions] = useState<Article[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -22,8 +30,52 @@ const Header = () => {
     if (isMobileMenuOpen) {
       setIsMobileMenuOpen(false);
     }
+    setShowSuggestions(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
+
+  useEffect(() => {
+    const onClickOutside = (event: MouseEvent) => {
+      if (!searchRef.current?.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    window.addEventListener('click', onClickOutside);
+    return () => window.removeEventListener('click', onClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const query = keyword.trim();
+    if (query.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setIsSearching(true);
+        const response = await articleApi.search(query, 0, 5);
+        setSuggestions(response.data.content || []);
+        setShowSuggestions(true);
+      } catch {
+        setSuggestions([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [keyword]);
+
+  const handleSearchSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const first = suggestions[0];
+    if (first) {
+      navigate(`/article/${first.id}`);
+      setKeyword('');
+      setShowSuggestions(false);
+    }
+  };
 
   const navLinks = [
     { path: '/', label: '首页' },
@@ -57,6 +109,44 @@ const Header = () => {
             </Link>
           ))}
         </nav>
+
+        <div className="header__search" ref={searchRef}>
+          <form onSubmit={handleSearchSubmit} className="header__search-form">
+            <Search size={14} className="header__search-icon" />
+            <input
+              type="text"
+              className="header__search-input"
+              placeholder="搜索文章..."
+              value={keyword}
+              onChange={e => setKeyword(e.target.value)}
+              onFocus={() => keyword.trim().length >= 2 && setShowSuggestions(true)}
+            />
+            {isSearching && <Loader2 size={14} className="header__search-loading" />}
+          </form>
+
+          {showSuggestions && (
+            <div className="header__suggestions">
+              {suggestions.length === 0 ? (
+                <div className="header__suggestion-empty">未找到匹配文章</div>
+              ) : (
+                suggestions.map(item => (
+                  <button
+                    key={item.id}
+                    className="header__suggestion-item"
+                    onClick={() => {
+                      navigate(`/article/${item.id}`);
+                      setKeyword('');
+                      setShowSuggestions(false);
+                    }}
+                  >
+                    <span className="header__suggestion-title">{item.title}</span>
+                    <span className="header__suggestion-meta">{item.category?.name || '未分类'}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
 
         <button
           className="header__mobile-toggle"
