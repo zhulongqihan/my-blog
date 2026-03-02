@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Calendar, Clock, ArrowLeft, Tag, Loader2, BookOpen, Minimize2, Copy, Check } from 'lucide-react';
@@ -46,11 +46,40 @@ const estimateReadTime = (content: string) => {
   return `${minutes} 分钟`;
 };
 
+const slugifyHeading = (text: string, index: number) => {
+  const normalized = text
+    .toLowerCase()
+    .trim()
+    .replace(/[\s\W]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return `h-${normalized || 'section'}-${index}`;
+};
+
+const extractHeadings = (content: string) => {
+  if (!content) return [] as Array<{ level: 2 | 3; text: string; id: string }>;
+  const lines = content.split('\n');
+  const headings: Array<{ level: 2 | 3; text: string; id: string }> = [];
+
+  lines.forEach((line, index) => {
+    if (line.startsWith('## ')) {
+      const text = line.slice(3).trim();
+      headings.push({ level: 2, text, id: slugifyHeading(text, index) });
+    }
+    if (line.startsWith('### ')) {
+      const text = line.slice(4).trim();
+      headings.push({ level: 3, text, id: slugifyHeading(text, index) });
+    }
+  });
+
+  return headings;
+};
+
 // Parse markdown-like content to JSX
 const parseContent = (
   content: string,
   onCopyCode: (code: string, key: string) => void,
-  copiedCodeKey: string | null
+  copiedCodeKey: string | null,
+  headingIdMap: Map<string, string>
 ) => {
   if (!content) return null;
 
@@ -102,16 +131,18 @@ const parseContent = (
 
       // Headings
       if (line.startsWith('## ')) {
+        const text = line.slice(3);
         return (
-          <h2 key={key} className="article-content__h2">
-            {line.slice(3)}
+          <h2 key={key} id={headingIdMap.get(`## ${text}`) || undefined} className="article-content__h2">
+            {text}
           </h2>
         );
       }
       if (line.startsWith('### ')) {
+        const text = line.slice(4);
         return (
-          <h3 key={key} className="article-content__h3">
-            {line.slice(4)}
+          <h3 key={key} id={headingIdMap.get(`### ${text}`) || undefined} className="article-content__h3">
+            {text}
           </h3>
         );
       }
@@ -169,10 +200,49 @@ const ArticlePage = () => {
     return localStorage.getItem('article-reading-mode') === 'true';
   });
   const [copiedCodeKey, setCopiedCodeKey] = useState<string | null>(null);
+  const [activeHeadingId, setActiveHeadingId] = useState<string>('');
+
+  const headings = useMemo(() => extractHeadings(article?.content || ''), [article?.content]);
+  const headingIdMap = useMemo(() => {
+    const map = new Map<string, string>();
+    headings.forEach(item => {
+      const key = `${item.level === 2 ? '##' : '###'} ${item.text}`;
+      map.set(key, item.id);
+    });
+    return map;
+  }, [headings]);
 
   useEffect(() => {
     localStorage.setItem('article-reading-mode', String(isReadingMode));
   }, [isReadingMode]);
+
+  useEffect(() => {
+    if (headings.length === 0) return;
+    const observer = new IntersectionObserver(
+      entries => {
+        const visible = entries
+          .filter(entry => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) {
+          setActiveHeadingId(visible[0].target.id);
+        }
+      },
+      { rootMargin: '-120px 0px -70% 0px', threshold: [0, 1] }
+    );
+
+    headings.forEach(item => {
+      const el = document.getElementById(item.id);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [headings, article?.content]);
+
+  const scrollToHeading = (id: string) => {
+    const element = document.getElementById(id);
+    if (!element) return;
+    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const handleCopyCode = async (code: string, key: string) => {
     try {
@@ -320,8 +390,25 @@ const ArticlePage = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
       >
-        {parseContent(article.content, handleCopyCode, copiedCodeKey)}
+        {parseContent(article.content, handleCopyCode, copiedCodeKey, headingIdMap)}
       </motion.article>
+
+      {headings.length > 0 && (
+        <aside className="article-toc">
+          <div className="article-toc__title">目录</div>
+          <div className="article-toc__list">
+            {headings.map(item => (
+              <button
+                key={item.id}
+                className={`article-toc__item article-toc__item--h${item.level} ${activeHeadingId === item.id ? 'article-toc__item--active' : ''}`}
+                onClick={() => scrollToHeading(item.id)}
+              >
+                {item.text}
+              </button>
+            ))}
+          </div>
+        </aside>
+      )}
 
       {/* Article Footer */}
       <footer className="article-footer">

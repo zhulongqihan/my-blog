@@ -100,6 +100,7 @@ const HomePage = () => {
             summary={featuredArticle.summary || ''}
             date={formatDate(featuredArticle.createdAt)}
             readTime={estimateReadTime(featuredArticle.content)}
+            coverImage={featuredArticle.coverImage}
             category={featuredArticle.category?.name}
             tags={featuredArticle.tags?.map(t => t.name)}
             featured={true}
@@ -145,6 +146,7 @@ const HomePage = () => {
                   summary={article.summary || ''}
                   date={formatDate(article.createdAt)}
                   readTime={estimateReadTime(article.content)}
+                  coverImage={article.coverImage}
                   category={article.category?.name}
                   tags={article.tags?.map(t => t.name)}
                   index={index + 1}

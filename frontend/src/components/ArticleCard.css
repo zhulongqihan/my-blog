@@ -22,6 +22,10 @@
   position: relative;
 }
 
+.article-card__cover {
+  margin-bottom: var(--spacing-md);
+}
+
 /* Category */
 .article-card__category {
   display: inline-block;

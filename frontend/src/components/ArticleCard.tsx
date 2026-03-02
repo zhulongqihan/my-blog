@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { Calendar, Clock, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import LazyImage from './LazyImage';
 import './ArticleCard.css';
 
 interface ArticleCardProps {
@@ -10,6 +11,7 @@ interface ArticleCardProps {
   summary: string;
   date: string;
   readTime: string;
+  coverImage?: string;
   category?: string;
   tags?: string[];
   featured?: boolean;
@@ -22,6 +24,7 @@ const ArticleCard = ({
   summary,
   date,
   readTime,
+  coverImage,
   category,
   tags,
   featured = false,
@@ -60,6 +63,14 @@ const ArticleCard = ({
     >
       <Link to={`/article/${id}`} className="article-card__link">
         <div className="article-card__content">
+          {coverImage && (
+            <LazyImage
+              src={coverImage}
+              alt={title}
+              className="article-card__cover"
+            />
+          )}
+
           {category && <span className="article-card__category">{category}</span>}
 
           <h2 className="article-card__title">{title}</h2>

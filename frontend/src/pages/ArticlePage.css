@@ -267,6 +267,64 @@
   color: var(--text-primary);
 }
 
+.article-toc {
+  position: fixed;
+  right: max(18px, calc((100vw - var(--max-width)) / 2 - 220px));
+  top: 130px;
+  width: 190px;
+  max-height: calc(100vh - 160px);
+  overflow: auto;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  background: rgba(248, 248, 248, 0.94);
+  backdrop-filter: blur(6px);
+  padding: 10px;
+  z-index: 30;
+}
+
+.article-toc__title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.article-toc__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.article-toc__item {
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.article-toc__item:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.article-toc__item--h3 {
+  padding-left: 16px;
+  font-size: 0.78rem;
+}
+
+.article-toc__item--active {
+  color: var(--accent-rust);
+  background: var(--bg-secondary);
+  font-weight: 600;
+}
+
 /* ===== Article Footer ===== */
 .article-footer {
   margin-top: var(--spacing-3xl);
@@ -318,5 +376,9 @@
     border-radius: 0 !important;
     border-left: none !important;
     border-right: none !important;
+  }
+
+  .article-toc {
+    display: none;
   }
 }
