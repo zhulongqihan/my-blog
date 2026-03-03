@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { AuthProvider } from './contexts/AuthContext';
@@ -9,7 +10,6 @@ import ReadingProgress from './components/ReadingProgress';
 import CursorGlow from './components/CursorGlow';
 import NotificationToast from './components/NotificationToast';
 import PixelCat from './components/PixelCat';
-import AiChat from './components/AiChat';
 import HomePage from './pages/HomePage';
 import ArticlePage from './pages/ArticlePage';
 import AboutPage from './pages/AboutPage';
@@ -17,6 +17,20 @@ import ArchivePage from './pages/ArchivePage';
 import './App.css';
 
 function App() {
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const savedTheme = localStorage.getItem('theme-mode');
+    return savedTheme === 'dark' ? 'dark' : 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme-mode', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
   return (
     <AuthProvider>
       <WebSocketProvider>
@@ -25,7 +39,7 @@ function App() {
           <CursorGlow />
           <ReadingProgress />
           <NotificationToast />
-          <Header />
+          <Header theme={theme} onToggleTheme={toggleTheme} />
           <main className="main-content">
             <AnimatePresence mode="wait">
               <Routes>
@@ -39,7 +53,6 @@ function App() {
           <Footer />
           <ScrollToTop />
           <PixelCat />
-          <AiChat />
         </div>
       </Router>
       </WebSocketProvider>

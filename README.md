@@ -1,8 +1,8 @@
 # 个人博客系统
 
 > 创建日期：2026年1月27日  
-> 最后更新：2026年3月1日  
-> 版本：v1.9.2  
+> 最后更新：2026年3月3日  
+> 版本：v1.9.3  
 > GitHub: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)  
 > 网站：http://cyruszhang.online 
 
@@ -12,7 +12,7 @@
 
 这是一个全栈个人博客系统，前后端分离架构。后端使用 Spring Boot 3.x 提供 RESTful API，前台页面使用 React 19 + TypeScript + Vite，后台管理系统使用 Vue 3 + Element Plus + Pinia（双前端框架）。前台设计为大地色系极简风格。
 
-**项目亮点**：双前端框架（React + Vue）、**Docker Compose 一键部署**（5 容器编排 + 多阶段构建 + 健康检查）、Markdown 编辑器 + 图片上传、完整的后台管理系统、JWT + RBAC 权限体系、**Redis 多级缓存系统**（Cache Aside + Write-Behind + 缓存预热 + 监控面板）、**RabbitMQ 消息队列**（评论邮件通知 + 日志异步化 + 死信队列 + 监控）、**WebSocket 实时通知**（STOMP + SockJS + MQ联动 + 在线人数 + 通知中心）、ECharts 数据可视化、**API 限流与防护系统**（Redis Lua 滑动窗口 + AOP + IP 黑白名单）、**酷炫前端交互**（打字机标题 + 阅读进度条 + 鼠标光晕 + 3D卡片倾斜 + 数字滚动动画）、**像素猫桌宠系统**（CSS 像素画 + 心情/拖拽/鱼干收集/右键面板）、**AI 智能助手**（Dify Agent + DeepSeek + RAG 知识库 + SSE 流式输出）。
+**项目亮点**：双前端框架（React + Vue）、**Docker Compose 一键部署**（5 容器编排 + 多阶段构建 + 健康检查）、Markdown 编辑器 + 图片上传、完整的后台管理系统、JWT + RBAC 权限体系、**Redis 多级缓存系统**（Cache Aside + Write-Behind + 缓存预热 + 监控面板）、**RabbitMQ 消息队列**（评论邮件通知 + 日志异步化 + 死信队列 + 监控）、**WebSocket 实时通知**（STOMP + SockJS + MQ联动 + 在线人数 + 通知中心）、ECharts 数据可视化、**API 限流与防护系统**（Redis Lua 滑动窗口 + AOP + IP 黑白名单）、**酷炫前端交互**（打字机标题 + 阅读进度条 + 鼠标光晕 + 3D卡片倾斜 + 数字滚动动画 + 主题切换 + 粒子背景 + 图片灯箱 + 分享卡片）、**像素猫桌宠系统**（CSS 像素画 + 心情/拖拽/鱼干收集/右键面板）、**AI 创意工坊**（Dify + SSE 流式结构化方案生成）。
 
 ### 核心特性
 
@@ -51,7 +51,7 @@
 - **通知中心** - 管理后台铃铛实时红点 + 通知列表 + 系统公告广播
 - **MQ → WebSocket 联动** - 评论消息队列消费后自动推送实时通知
 - **像素猫桌宠系统** - CSS box-shadow 像素画 + 心情系统 + 拖拽交互 + 鱼干收集小游戏 + 右键状态面板
-- **AI 智能助手** - Dify Agent + DeepSeek LLM + RAG 知识库检索 + SSE 流式打字机输出
+- **AI 创意工坊** - Dify + SSE 流式输出，生成结构化前端方案（摘要/步骤/代码要点/验收清单）
 - **Docker 容器化** - Docker Compose 一键编排 5 个容器，多阶段构建，healthcheck 保证启动顺序
 
 ### 项目目标
@@ -798,9 +798,9 @@ stop.bat
 - [ ] SEO 优化
 
 **扩展功能：**
-- [ ] 暗色模式
+- [x] 暗色模式（全站主题切换 + 本地持久化）
 - [ ] RSS 订阅
-- [ ] 社交分享
+- [x] 文章分享卡片（Canvas 导出图片）
 - [ ] 文章统计
 - [ ] Docker 容器化
 - [ ] CI/CD 自动化部署
@@ -822,6 +822,17 @@ stop.bat
 - 鱼干掉落增加摇晃动画 + hover 高亮反馈，提升交互体验
 - 修复白屏 Bug（sockjs-client 全局变量兼容，index.html 注入 window.global）
 - 更新 Footer/AboutPage 个人信息（南京大学软工硕士、北邮计科本科）
+
+### 2026-03-03（v1.9.3 AI 创意工坊 + 交互组件增强）
+- 下线旧版右下角 AI 聊天助手（删除 AiChat 组件与样式）
+- 新增 AI 创意工坊（输入需求后生成结构化方案：方案摘要 / 执行步骤 / 代码要点 / 验收清单）
+- AI 创意工坊增强：支持 Ctrl/Cmd + Enter 快速生成、分段一键复制、整单复制
+- 首页新增粒子背景动画 + 视差层效果，提升视觉层次
+- 首页新增“每日一言”卡片（可一键切换）
+- 全站新增主题切换（亮色/暗色）并持久化存储
+- 文章页新增图片灯箱预览（ESC 关闭、左右切换）
+- 文章页新增封面视差展示（滚动联动）
+- 文章页新增分享卡片导出（Canvas 生成 PNG + 二维码）
 
 ### 2026-02-28（v1.9.1 部署修复 + Bug 修复 + 前端增强）
 - 修复 Backend Dockerfile healthcheck 缺少 start-period（容器启动期间误判为 unhealthy）

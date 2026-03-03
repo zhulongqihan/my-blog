@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, ArrowLeft, Tag, Loader2, BookOpen, Minimize2, Copy, Check } from 'lucide-react';
+import { Calendar, Clock, ArrowLeft, Tag, Loader2, BookOpen, Minimize2, Copy, Check, Image as ImageIcon, X, ChevronLeft, ChevronRight, Share2 } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import QRCode from 'qrcode';
 import { useArticle } from '../hooks/useArticles';
 import './ArticlePage.css';
 
@@ -74,12 +75,18 @@ const extractHeadings = (content: string) => {
   return headings;
 };
 
+const extractImageSources = (content: string) => {
+  const matches = Array.from(content.matchAll(/!\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g));
+  return matches.map(match => match[1]);
+};
+
 // Parse markdown-like content to JSX
 const parseContent = (
   content: string,
   onCopyCode: (code: string, key: string) => void,
   copiedCodeKey: string | null,
-  headingIdMap: Map<string, string>
+  headingIdMap: Map<string, string>,
+  onOpenImage: (src: string) => void
 ) => {
   if (!content) return null;
 
@@ -136,6 +143,20 @@ const parseContent = (
           <h2 key={key} id={headingIdMap.get(`## ${text}`) || undefined} className="article-content__h2">
             {text}
           </h2>
+        );
+      }
+
+      // Markdown image: ![alt](url)
+      const imageMatch = line.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)$/);
+      if (imageMatch) {
+        const [, altText, src] = imageMatch;
+        return (
+          <figure key={key} className="article-content__image-wrap">
+            <button className="article-content__image-btn" onClick={() => onOpenImage(src)}>
+              <img src={src} alt={altText || '文章配图'} className="article-content__image" loading="lazy" />
+              <span className="article-content__image-hint"><ImageIcon size={14} /> 点击查看大图</span>
+            </button>
+          </figure>
         );
       }
       if (line.startsWith('### ')) {
@@ -201,8 +222,12 @@ const ArticlePage = () => {
   });
   const [copiedCodeKey, setCopiedCodeKey] = useState<string | null>(null);
   const [activeHeadingId, setActiveHeadingId] = useState<string>('');
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
 
   const headings = useMemo(() => extractHeadings(article?.content || ''), [article?.content]);
+  const imageSources = useMemo(() => extractImageSources(article?.content || ''), [article?.content]);
   const headingIdMap = useMemo(() => {
     const map = new Map<string, string>();
     headings.forEach(item => {
@@ -215,6 +240,12 @@ const ArticlePage = () => {
   useEffect(() => {
     localStorage.setItem('article-reading-mode', String(isReadingMode));
   }, [isReadingMode]);
+
+  useEffect(() => {
+    const onScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     if (headings.length === 0) return;
@@ -253,6 +284,141 @@ const ArticlePage = () => {
       setCopiedCodeKey(null);
     }
   };
+
+  const openImage = (src: string) => {
+    const index = imageSources.indexOf(src);
+    if (index >= 0) setLightboxIndex(index);
+  };
+
+  const closeLightbox = () => setLightboxIndex(null);
+
+  const switchImage = (direction: 'prev' | 'next') => {
+    if (lightboxIndex === null || imageSources.length === 0) return;
+    const delta = direction === 'prev' ? -1 : 1;
+    const nextIndex = (lightboxIndex + delta + imageSources.length) % imageSources.length;
+    setLightboxIndex(nextIndex);
+  };
+
+  const drawWrappedText = (
+    context: CanvasRenderingContext2D,
+    text: string,
+    x: number,
+    y: number,
+    maxWidth: number,
+    lineHeight: number,
+    maxLines: number
+  ) => {
+    const words = text.split('');
+    let line = '';
+    let drawY = y;
+    let lines = 0;
+
+    for (const word of words) {
+      const testLine = line + word;
+      if (context.measureText(testLine).width > maxWidth && line) {
+        context.fillText(line, x, drawY);
+        line = word;
+        drawY += lineHeight;
+        lines += 1;
+        if (lines >= maxLines) {
+          context.fillText('...', x, drawY);
+          return drawY;
+        }
+      } else {
+        line = testLine;
+      }
+    }
+
+    if (line) context.fillText(line, x, drawY);
+    return drawY;
+  };
+
+  const exportShareCard = async () => {
+    if (!article || isExporting) return;
+    setIsExporting(true);
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1080;
+      canvas.height = 1350;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const style = getComputedStyle(document.documentElement);
+      const bg = style.getPropertyValue('--bg-secondary') || '#f0ede8';
+      const accent = style.getPropertyValue('--accent-rust') || '#8b7355';
+      const textPrimary = style.getPropertyValue('--text-primary') || '#2d2d2d';
+      const textSecondary = style.getPropertyValue('--text-secondary') || '#5c5c5c';
+
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      gradient.addColorStop(0, `${accent.trim()}22`);
+      gradient.addColorStop(1, `${accent.trim()}00`);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = accent;
+      ctx.fillRect(90, 120, 8, 130);
+
+      const qrDataUrl = await QRCode.toDataURL(window.location.href, {
+        margin: 1,
+        width: 220,
+        color: {
+          dark: '#2D2D2D',
+          light: '#FFFFFF',
+        },
+      });
+
+      ctx.fillStyle = textPrimary;
+      ctx.font = '700 62px Inter';
+      drawWrappedText(ctx, article.title, 120, 180, 840, 88, 3);
+
+      ctx.fillStyle = textSecondary;
+      ctx.font = '400 36px Inter';
+      drawWrappedText(ctx, article.summary || '来自我的技术博客分享', 120, 450, 840, 54, 6);
+
+      ctx.fillStyle = textSecondary;
+      ctx.font = '500 32px Inter';
+      ctx.fillText(`作者：${article.author?.nickname || article.author?.username || '博主'}`, 120, 960);
+      ctx.fillText(`日期：${formatDate(article.createdAt)}`, 120, 1015);
+
+      ctx.font = '500 30px Inter';
+      ctx.fillText(`阅读原文：${window.location.href}`, 120, 1120);
+
+      ctx.fillStyle = accent;
+      ctx.font = '600 34px Inter';
+      ctx.fillText('My Blog · 分享卡片', 120, 1230);
+
+      const qrImage = new Image();
+      qrImage.src = qrDataUrl;
+      await new Promise(resolve => {
+        qrImage.onload = resolve;
+      });
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(820, 1040, 180, 180);
+      ctx.drawImage(qrImage, 830, 1050, 160, 160);
+
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png');
+      link.download = `article-${article.id}-share-card.png`;
+      link.click();
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (lightboxIndex === null) return;
+      if (event.key === 'Escape') closeLightbox();
+      if (event.key === 'ArrowLeft') switchImage('prev');
+      if (event.key === 'ArrowRight') switchImage('next');
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [lightboxIndex, imageSources.length]);
 
   if (isLoading) {
     return (
@@ -310,6 +476,12 @@ const ArticlePage = () => {
         返回首页
       </Link>
 
+      {article.coverImage && (
+        <div className="article-cover" style={{ transform: `translateY(${scrollY * 0.12}px)` }}>
+          <img src={article.coverImage} alt={article.title} className="article-cover__image" />
+        </div>
+      )}
+
       <div className="article-page__toolbar">
         <button
           className="article-page__reading-toggle"
@@ -317,6 +489,10 @@ const ArticlePage = () => {
         >
           {isReadingMode ? <Minimize2 size={14} /> : <BookOpen size={14} />}
           {isReadingMode ? '退出阅读模式' : '阅读模式'}
+        </button>
+        <button className="article-page__reading-toggle" onClick={exportShareCard} disabled={isExporting}>
+          <Share2 size={14} />
+          {isExporting ? '导出中...' : '分享卡片'}
         </button>
       </div>
 
@@ -390,7 +566,7 @@ const ArticlePage = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
       >
-        {parseContent(article.content, handleCopyCode, copiedCodeKey, headingIdMap)}
+        {parseContent(article.content, handleCopyCode, copiedCodeKey, headingIdMap, openImage)}
       </motion.article>
 
       {headings.length > 0 && (
@@ -415,6 +591,29 @@ const ArticlePage = () => {
         <div className="article-footer__divider"></div>
         <p className="article-footer__thanks">感谢阅读 ✦</p>
       </footer>
+
+      {lightboxIndex !== null && imageSources[lightboxIndex] && (
+        <div className="article-lightbox" role="dialog" aria-modal="true">
+          <button className="article-lightbox__mask" onClick={closeLightbox} aria-label="关闭图片预览" />
+          <div className="article-lightbox__content">
+            <img src={imageSources[lightboxIndex]} alt="预览大图" className="article-lightbox__image" />
+            {imageSources.length > 1 && (
+              <>
+                <button className="article-lightbox__nav article-lightbox__nav--prev" onClick={() => switchImage('prev')}>
+                  <ChevronLeft size={20} />
+                </button>
+                <button className="article-lightbox__nav article-lightbox__nav--next" onClick={() => switchImage('next')}>
+                  <ChevronRight size={20} />
+                </button>
+              </>
+            )}
+            <button className="article-lightbox__close" onClick={closeLightbox}>
+              <X size={18} />
+            </button>
+            <div className="article-lightbox__index">{lightboxIndex + 1} / {imageSources.length}</div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 };

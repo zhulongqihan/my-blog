@@ -1,9 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import ArticleCard from '../components/ArticleCard';
 import Typewriter from '../components/Typewriter';
+import AiIdeaLab from '../components/AiIdeaLab';
+import ParticleBackground from '../components/ParticleBackground';
 import { useArticles, useFeaturedArticles } from '../hooks/useArticles';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 import './HomePage.css';
 
 const pageVariants = {
@@ -26,10 +28,20 @@ const estimateReadTime = (content: string) => {
   return `${minutes} 分钟`;
 };
 
+const QUOTES = [
+  '代码会过时，但思考方式会复利。',
+  '先做能跑的，再做优雅的，最后做可维护的。',
+  '复杂问题从拆分开始，优秀体验从细节开始。',
+  '把重复的事情自动化，把时间留给创造。',
+  '写给未来的你，也写给陌生的读者。',
+];
+
 const HomePage = () => {
   const { articles: featuredArticles, isLoading: featuredLoading } = useFeaturedArticles();
   const { articles, isLoading, error, hasMore, loadMore } = useArticles({ size: 10 });
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const [scrollY, setScrollY] = useState(0);
+  const [quoteIndex, setQuoteIndex] = useState(() => Math.floor(Math.random() * QUOTES.length));
 
   const featuredArticle = featuredArticles[0];
   const regularArticles = articles.filter(a => !a.featured);
@@ -51,6 +63,14 @@ const HomePage = () => {
     return () => observer.disconnect();
   }, [hasMore, isLoading, loadMore]);
 
+  useEffect(() => {
+    const onScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const quote = useMemo(() => QUOTES[quoteIndex], [quoteIndex]);
+
   return (
     <motion.div
       className="page-wrapper home-page"
@@ -62,6 +82,10 @@ const HomePage = () => {
     >
       {/* Hero Section */}
       <section className="home-hero">
+        <ParticleBackground />
+        <div className="home-hero__parallax home-hero__parallax--back" style={{ transform: `translateY(${scrollY * 0.12}px)` }} />
+        <div className="home-hero__parallax home-hero__parallax--front" style={{ transform: `translateY(${scrollY * 0.2}px)` }} />
+
         <motion.div
           className="home-hero__content"
           initial={{ opacity: 0, y: 30 }}
@@ -77,6 +101,14 @@ const HomePage = () => {
           <p className="home-hero__subtitle">
             关于编程、技术与生活的个人博客。在这里，我记录学习的点滴，分享技术的思考。
           </p>
+
+          <div className="home-quote">
+            <p className="home-quote__text">“{quote}”</p>
+            <button className="home-quote__refresh" onClick={() => setQuoteIndex(prev => (prev + 1) % QUOTES.length)}>
+              <RefreshCw size={14} />
+              换一句
+            </button>
+          </div>
         </motion.div>
 
         <motion.div
@@ -86,6 +118,8 @@ const HomePage = () => {
           transition={{ duration: 0.8, delay: 0.6 }}
         />
       </section>
+
+      <AiIdeaLab />
 
       {/* Featured Article */}
       {!featuredLoading && featuredArticle && (

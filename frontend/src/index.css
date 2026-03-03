@@ -46,6 +46,26 @@
   --transition-slow: 500ms ease;
 }
 
+:root[data-theme='dark'] {
+  --bg-primary: #151617;
+  --bg-secondary: #1f2124;
+  --bg-tertiary: #2a2d31;
+  --bg-code: #0f1011;
+
+  --text-primary: #ece7df;
+  --text-secondary: #d1c8bc;
+  --text-muted: #a89e92;
+  --text-light: #887f75;
+
+  --accent-rust: #b29572;
+  --accent-rust-light: #c4ab8d;
+  --accent-olive: #8c9c77;
+  --accent-olive-light: #a8b996;
+
+  --border-color: #34383d;
+  --border-light: #2a2d31;
+}
+
 /* ===== Reset & Base Styles ===== */
 *,
 *::before,
@@ -70,6 +90,7 @@ body {
   color: var(--text-primary);
   background-color: var(--bg-primary);
   min-height: 100vh;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
 }
 
 #root {

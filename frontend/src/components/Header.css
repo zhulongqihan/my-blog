@@ -60,6 +60,27 @@
   margin-left: var(--spacing-lg);
 }
 
+.header__theme-toggle {
+  margin-left: var(--spacing-sm);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.header__theme-toggle:hover {
+  border-color: var(--accent-rust-light);
+  color: var(--accent-rust);
+  transform: rotate(-12deg);
+}
+
 .header__search-form {
   display: flex;
   align-items: center;
@@ -220,6 +241,11 @@
 
   .header__search {
     display: none;
+  }
+
+  .header__theme-toggle {
+    margin-left: auto;
+    margin-right: var(--spacing-sm);
   }
 
   .header__mobile-toggle {

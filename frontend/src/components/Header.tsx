@@ -1,12 +1,17 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Feather, Search, Loader2 } from 'lucide-react';
+import { Menu, X, Feather, Search, Loader2, Sun, Moon } from 'lucide-react';
 import { articleApi } from '../services';
 import type { Article } from '../types';
 import './Header.css';
 
-const Header = () => {
+interface HeaderProps {
+  theme: 'light' | 'dark';
+  onToggleTheme: () => void;
+}
+
+const Header = ({ theme, onToggleTheme }: HeaderProps) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [keyword, setKeyword] = useState('');
@@ -147,6 +152,10 @@ const Header = () => {
             </div>
           )}
         </div>
+
+        <button className="header__theme-toggle" onClick={onToggleTheme} aria-label="切换主题">
+          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
 
         <button
           className="header__mobile-toggle"

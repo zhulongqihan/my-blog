@@ -138,7 +138,7 @@ export function sendChatMessage(
 
   // 检查 API Key 配置
   if (!isProxyMode && (!DIFY_API_KEY || DIFY_API_KEY === 'app-你的Dify应用API密钥')) {
-    callbacks.onError('AI 助手尚未配置，请先设置 Dify API Key');
+    callbacks.onError('AI 创意工坊尚未配置，请先设置 Dify API Key');
     return controller;
   }
 
