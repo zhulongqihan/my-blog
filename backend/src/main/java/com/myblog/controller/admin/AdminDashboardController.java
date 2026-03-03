@@ -8,7 +8,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 /**
  * 管理后台 - 仪表盘控制器
@@ -51,5 +54,15 @@ public class AdminDashboardController {
                 .todayComments(stats.getTodayComments())
                 .todayUsers(stats.getTodayUsers())
                 .build());
+    }
+
+    /**
+     * 获取UV/PV趋势数据
+     * @param days 天数（默认7天）
+     */
+    @GetMapping("/uv-trend")
+    @Log(module = "仪表盘", operationType = "QUERY", description = "查看UV趋势")
+    public Result<Map<String, Object>> getUvTrend(@RequestParam(defaultValue = "7") int days) {
+        return Result.success(dashboardService.getUvTrend(days));
     }
 }

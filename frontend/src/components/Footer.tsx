@@ -1,5 +1,7 @@
 import { Github, Mail, Terminal } from 'lucide-react';
 import OnlineCount from './OnlineCount';
+import OnlineAvatarStack from './OnlineAvatarStack';
+import AchievementHub from './AchievementHub';
 import './Footer.css';
 
 const Footer = () => {
@@ -52,7 +54,11 @@ const Footer = () => {
 
       <div className="footer__bottom">
         <p className="footer__copyright">© {currentYear} My Blog. Crafted with care.</p>
-        <p className="footer__built">Built with React + Spring Boot · <OnlineCount /></p>
+        <p className="footer__built">
+          Built with React + Spring Boot · <OnlineCount />
+          <OnlineAvatarStack />
+          <AchievementHub />
+        </p>
       </div>
     </footer>
   );

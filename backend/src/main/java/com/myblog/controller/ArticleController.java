@@ -5,8 +5,10 @@ import com.myblog.dto.ApiResponse;
 import com.myblog.dto.ArchiveResponse;
 import com.myblog.dto.ArticleRequest;
 import com.myblog.dto.ArticleResponse;
+import com.myblog.dto.LikeResponseDTO;
 import com.myblog.entity.User;
 import com.myblog.service.ArticleService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -33,10 +35,15 @@ public class ArticleController {
         return ResponseEntity.ok(ApiResponse.success(articleService.getPublishedArticles(pageable)));
     }
 
+    /**
+     * 获取文章详情 + PV/UV 统计
+     * 改造：传入 HttpServletRequest 用于 UV 指纹生成
+     */
     @RateLimit(maxRequests = 60, timeWindow = 60, limitType = RateLimit.LimitType.IP_AND_API)
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<ArticleResponse>> getArticle(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success(articleService.getArticleAndIncrementView(id)));
+    public ResponseEntity<ApiResponse<ArticleResponse>> getArticle(
+            @PathVariable Long id, HttpServletRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(articleService.getArticleAndIncrementView(id, request)));
     }
 
     @GetMapping("/featured")
@@ -48,6 +55,15 @@ public class ArticleController {
     public ResponseEntity<ApiResponse<List<ArticleResponse>>> getPopularArticles(
             @RequestParam(defaultValue = "5") int limit) {
         return ResponseEntity.ok(ApiResponse.success(articleService.getPopularArticles(limit)));
+    }
+
+    /**
+     * 本周热门文章（基于 UV 排行）
+     */
+    @GetMapping("/hot/weekly")
+    public ResponseEntity<ApiResponse<List<ArticleResponse>>> getWeeklyHot(
+            @RequestParam(defaultValue = "10") int limit) {
+        return ResponseEntity.ok(ApiResponse.success(articleService.getWeeklyHotArticles(limit)));
     }
 
     @GetMapping("/category/{categoryId}")
@@ -76,6 +92,35 @@ public class ArticleController {
     public ResponseEntity<ApiResponse<ArchiveResponse>> getArchive() {
         return ResponseEntity.ok(ApiResponse.success(articleService.getArchive()));
     }
+
+    // ========== 一人一赞 API ==========
+
+    /**
+     * Toggle 点赞/取消
+     */
+    @RateLimit(maxRequests = 10, timeWindow = 60, limitType = RateLimit.LimitType.IP_AND_API, prefix = "like")
+    @PostMapping("/{id}/like")
+    public ResponseEntity<ApiResponse<LikeResponseDTO>> toggleLike(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+        LikeResponseDTO result = articleService.toggleLike(id, user.getId());
+        return ResponseEntity.ok(ApiResponse.success(result.getLiked() ? "点赞成功" : "已取消点赞", result));
+    }
+
+    /**
+     * 查询点赞状态
+     */
+    @GetMapping("/{id}/like/status")
+    public ResponseEntity<ApiResponse<LikeResponseDTO>> getLikeStatus(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+        LikeResponseDTO dto = new LikeResponseDTO();
+        dto.setLikeCount(articleService.getLikeCount(id));
+        dto.setLiked(user != null && articleService.isLiked(id, user.getId()));
+        return ResponseEntity.ok(ApiResponse.success(dto));
+    }
+
+    // ========== CRUD ==========
 
     @PostMapping
     public ResponseEntity<ApiResponse<ArticleResponse>> createArticle(

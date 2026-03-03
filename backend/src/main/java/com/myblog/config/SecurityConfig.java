@@ -61,6 +61,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/comments/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/comments/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/notifications/online-count").permitAll()
+                // 标签关注状态可匿名查看
+                .requestMatchers(HttpMethod.GET, "/api/tags/*/follow/status").permitAll()
                 // 需要认证的接口
                 .anyRequest().authenticated()
             )

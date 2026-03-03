@@ -1,0 +1,34 @@
+.offline-notice {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 150;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.offline-notice--offline {
+  border-color: #d7a8a8;
+  color: #a74e4e;
+}
+
+.offline-notice--online {
+  border-color: #a8d7b7;
+  color: #3f7f5a;
+}
+
+@media (max-width: 768px) {
+  .offline-notice {
+    top: 10px;
+    max-width: calc(100vw - 20px);
+  }
+}

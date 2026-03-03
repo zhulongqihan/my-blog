@@ -29,6 +29,30 @@
   transform-origin: center;
 }
 
+.archive-filter {
+  margin-top: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.archive-filter__chip {
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+
+.archive-filter__chip.is-active {
+  color: var(--accent-rust);
+  border-color: var(--accent-rust-light);
+}
+
 /* ===== Timeline ===== */
 .archive-timeline {
   position: relative;

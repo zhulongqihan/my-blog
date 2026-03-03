@@ -103,4 +103,53 @@ public class RedisKeyPrefix {
      * Value：未命中次数
      */
     public static final String CACHE_MISSES = "cache:misses:";
+
+    // ========== 缓存三重防御 ==========
+
+    /** 布隆过滤器：所有已发布文章ID集合 */
+    public static final String BLOOM_ARTICLE_ID = "bloom:article:id";
+
+    /** 互斥锁：缓存重建 */
+    public static final String LOCK_CACHE_REBUILD = "lock:cache:rebuild:";
+
+    /** 逻辑过期缓存前缀（热门/精选文章） */
+    public static final String ARTICLE_DETAIL_LOGIC = "article:detail:logic:";
+
+    // ========== 读者签到系统 ==========
+
+    /** 签到 BitMap — Key格式：sign:{userId}:{yyyyMM} */
+    public static final String SIGN = "sign:";
+
+    // ========== 一人一赞系统 ==========
+
+    /** 文章点赞用户集合 — SET */
+    public static final String ARTICLE_LIKED = "article:liked:";
+
+    /** 文章点赞计数器 — String */
+    public static final String ARTICLE_LIKE_COUNT = "article:like:count:";
+
+    /** 分布式锁：点赞（用户级） */
+    public static final String LOCK_LIKE = "lock:like:";
+
+    // ========== 标签订阅Feed流 ==========
+
+    /** 用户关注的标签集合 — SET */
+    public static final String FOLLOW_TAGS = "follow:tags:";
+
+    /** 标签的关注者集合（反向索引）— SET */
+    public static final String TAG_FOLLOWERS = "tag:followers:";
+
+    /** 用户 Feed 收件箱 — ZSet (score=时间戳, member=articleId) */
+    public static final String FEED = "feed:";
+
+    // ========== UV统计与热门榜 ==========
+
+    /** 文章 UV — HyperLogLog */
+    public static final String ARTICLE_UV = "article:uv:";
+
+    /** 全站日 UV — HyperLogLog */
+    public static final String STATS_UV_DAILY = "stats:uv:daily:";
+
+    /** 本周热门榜 — ZSet (score=UV数, member=articleId) */
+    public static final String ARTICLE_HOT_WEEKLY = "article:hot:weekly";
 }

@@ -6,6 +6,8 @@ import { articleApi } from '../services';
 import type { Article } from '../types';
 import './Header.css';
 
+const SEARCH_HISTORY_KEY = 'search-history';
+
 interface HeaderProps {
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
@@ -18,9 +20,36 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
   const [suggestions, setSuggestions] = useState<Article[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const location = useLocation();
   const navigate = useNavigate();
   const searchRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const saveSearchHistory = (query: string) => {
+    const normalized = query.trim();
+    if (!normalized) return;
+    setSearchHistory(prev => {
+      const next = [normalized, ...prev.filter(item => item.toLowerCase() !== normalized.toLowerCase())].slice(0, 8);
+      localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const clearSearchHistory = () => {
+    setSearchHistory([]);
+    localStorage.removeItem(SEARCH_HISTORY_KEY);
+  };
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || '[]') as string[];
+      setSearchHistory(Array.isArray(saved) ? saved : []);
+    } catch {
+      setSearchHistory([]);
+    }
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -50,9 +79,25 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
   }, []);
 
   useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+        if (keyword.trim().length >= 2) {
+          setShowSuggestions(true);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [keyword]);
+
+  useEffect(() => {
     const query = keyword.trim();
     if (query.length < 2) {
       setSuggestions([]);
+      setActiveSuggestionIndex(-1);
       return;
     }
 
@@ -62,8 +107,10 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
         const response = await articleApi.search(query, 0, 5);
         setSuggestions(response.data.content || []);
         setShowSuggestions(true);
+        setActiveSuggestionIndex(-1);
       } catch {
         setSuggestions([]);
+        setActiveSuggestionIndex(-1);
       } finally {
         setIsSearching(false);
       }
@@ -72,12 +119,37 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
     return () => clearTimeout(timer);
   }, [keyword]);
 
-  const handleSearchSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSearchSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const first = suggestions[0];
-    if (first) {
-      navigate(`/article/${first.id}`);
+    const selected =
+      activeSuggestionIndex >= 0 ? suggestions[activeSuggestionIndex] : suggestions[0];
+
+    if (selected) {
+      navigate(`/article/${selected.id}`);
       setKeyword('');
+      setShowSuggestions(false);
+      setActiveSuggestionIndex(-1);
+      return;
+    }
+
+    const query = keyword.trim();
+    if (!query) return;
+    saveSearchHistory(query);
+
+    try {
+      const response = await articleApi.search(query, 0, 1);
+      const hit = response.data.content?.[0];
+      if (hit) {
+        navigate(`/search?q=${encodeURIComponent(query)}`);
+        setKeyword('');
+        setShowSuggestions(false);
+        setActiveSuggestionIndex(-1);
+      } else {
+        navigate(`/search?q=${encodeURIComponent(query)}`);
+        setShowSuggestions(false);
+      }
+    } catch {
+      navigate(`/search?q=${encodeURIComponent(query)}`);
       setShowSuggestions(false);
     }
   };
@@ -119,29 +191,82 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
           <form onSubmit={handleSearchSubmit} className="header__search-form">
             <Search size={14} className="header__search-icon" />
             <input
+              ref={searchInputRef}
               type="text"
               className="header__search-input"
-              placeholder="搜索文章..."
+              placeholder="搜索文章... (Ctrl/Cmd + K)"
               value={keyword}
-              onChange={e => setKeyword(e.target.value)}
-              onFocus={() => keyword.trim().length >= 2 && setShowSuggestions(true)}
+              onChange={e => {
+                setKeyword(e.target.value);
+                setActiveSuggestionIndex(-1);
+              }}
+              onFocus={() => {
+                if (keyword.trim().length >= 2 || searchHistory.length > 0) {
+                  setShowSuggestions(true);
+                }
+              }}
+              onKeyDown={e => {
+                if (!showSuggestions || suggestions.length === 0) {
+                  if (e.key === 'Escape') setShowSuggestions(false);
+                  return;
+                }
+
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  setActiveSuggestionIndex(prev => (prev + 1) % suggestions.length);
+                }
+
+                if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setActiveSuggestionIndex(prev => (prev <= 0 ? suggestions.length - 1 : prev - 1));
+                }
+
+                if (e.key === 'Escape') {
+                  setShowSuggestions(false);
+                  setActiveSuggestionIndex(-1);
+                }
+              }}
             />
             {isSearching && <Loader2 size={14} className="header__search-loading" />}
           </form>
 
           {showSuggestions && (
             <div className="header__suggestions">
-              {suggestions.length === 0 ? (
+              {keyword.trim().length < 2 && searchHistory.length > 0 ? (
+                <>
+                  <div className="header__history-head">
+                    <span>最近搜索</span>
+                    <button className="header__history-clear" onClick={clearSearchHistory}>清空</button>
+                  </div>
+                  {searchHistory.map(item => (
+                    <button
+                      key={item}
+                      className="header__suggestion-item"
+                      onClick={() => {
+                        setKeyword(item);
+                        navigate(`/search?q=${encodeURIComponent(item)}`);
+                        setShowSuggestions(false);
+                      }}
+                    >
+                      <span className="header__suggestion-title">{item}</span>
+                      <span className="header__suggestion-meta">历史记录</span>
+                    </button>
+                  ))}
+                </>
+              ) : suggestions.length === 0 ? (
                 <div className="header__suggestion-empty">未找到匹配文章</div>
               ) : (
                 suggestions.map(item => (
                   <button
                     key={item.id}
-                    className="header__suggestion-item"
+                    className={`header__suggestion-item ${
+                      suggestions[activeSuggestionIndex]?.id === item.id ? 'header__suggestion-item--active' : ''
+                    }`}
                     onClick={() => {
                       navigate(`/article/${item.id}`);
                       setKeyword('');
                       setShowSuggestions(false);
+                      setActiveSuggestionIndex(-1);
                     }}
                   >
                     <span className="header__suggestion-title">{item.title}</span>

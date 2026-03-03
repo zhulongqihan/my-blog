@@ -93,6 +93,111 @@
   border-color: var(--accent-rust-light);
 }
 
+.home-random-pick {
+  margin-top: var(--spacing-md);
+  padding: 10px;
+  border: 1px dashed var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-primary);
+}
+
+.home-random-pick__text {
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  min-height: 20px;
+}
+
+.home-random-pick__btn {
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.home-random-pick__btn:hover:not(:disabled) {
+  border-color: var(--accent-rust-light);
+  color: var(--accent-rust);
+}
+
+.home-random-pick__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.home-resume {
+  margin-bottom: var(--spacing-xl);
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.home-resume__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  color: var(--accent-rust);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  flex-shrink: 0;
+}
+
+.home-resume__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.home-resume__label,
+.home-resume__title,
+.home-resume__meta {
+  margin: 0;
+}
+
+.home-resume__label {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+}
+
+.home-resume__title {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-resume__meta {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+}
+
+.home-resume__btn {
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
 /* ===== Section Title ===== */
 .section-title {
   display: flex;
@@ -263,6 +368,15 @@
 
   .home-quote {
     padding: var(--spacing-sm);
+  }
+
+  .home-resume {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .home-resume__btn {
+    align-self: flex-end;
   }
 
   .section-title {

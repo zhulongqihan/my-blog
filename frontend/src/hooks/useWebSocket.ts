@@ -41,6 +41,21 @@ export function useWebSocket(): UseWebSocketReturn {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const clientRef = useRef<Client | null>(null);
 
+  const refreshOnlineCount = useCallback(async () => {
+    try {
+      const response = await fetch('/api/notifications/online-count');
+      if (!response.ok) return;
+      const result = (await response.json()) as {
+        data?: { onlineCount?: number };
+      };
+      if (typeof result?.data?.onlineCount === 'number') {
+        setOnlineCount(result.data.onlineCount);
+      }
+    } catch {
+      // 静默失败，避免影响 websocket 主流程
+    }
+  }, []);
+
   const clearNotifications = useCallback(() => {
     setNotifications([]);
   }, []);
@@ -61,6 +76,9 @@ export function useWebSocket(): UseWebSocketReturn {
     // 连接成功回调
     client.onConnect = () => {
       setConnected(true);
+
+      // 连接后主动拉取一次在线人数，避免错过首次广播导致显示 0
+      refreshOnlineCount();
 
       // 订阅在线人数广播
       client.subscribe('/topic/online-count', (message) => {
@@ -102,7 +120,7 @@ export function useWebSocket(): UseWebSocketReturn {
         client.deactivate();
       }
     };
-  }, []);
+  }, [refreshOnlineCount]);
 
   return { connected, onlineCount, notifications, clearNotifications };
 }

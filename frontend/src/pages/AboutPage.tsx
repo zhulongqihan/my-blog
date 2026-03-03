@@ -1,6 +1,10 @@
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Code2, Coffee, BookOpen, GraduationCap, Github, Mail } from 'lucide-react';
 import AnimatedCounter from '../components/AnimatedCounter';
+import { articleApi } from '../services';
+import { PROFILE_SKILLS, PROFILE_STATS } from '../config/profile';
+import { useTags } from '../hooks/useCategories';
 import './AboutPage.css';
 
 const pageVariants = {
@@ -9,16 +13,23 @@ const pageVariants = {
   exit: { opacity: 0, y: -20 },
 };
 
-const skills = [
-  { name: 'Java / Spring Boot', level: 85 },
-  { name: 'React / TypeScript', level: 80 },
-  { name: 'Vue 3 / Element Plus', level: 75 },
-  { name: 'MySQL / Redis', level: 80 },
-  { name: 'Docker / Nginx', level: 70 },
-  { name: 'RabbitMQ / WebSocket', level: 65 },
-];
-
 const AboutPage = () => {
+  const [articleCount, setArticleCount] = useState(0);
+  const { tags } = useTags();
+
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const archive = await articleApi.getArchive();
+        setArticleCount(archive.data.totalCount || 0);
+      } catch {
+        setArticleCount(0);
+      }
+    };
+
+    loadStats();
+  }, []);
+
   return (
     <motion.div
       className="page-wrapper about-page"
@@ -81,17 +92,17 @@ const AboutPage = () => {
       >
         <div className="about-stat">
           <Coffee size={24} strokeWidth={1.5} className="about-stat__icon" />
-          <AnimatedCounter target={500} suffix="+" className="about-stat__value" />
+          <AnimatedCounter target={PROFILE_STATS.coffeeCount} suffix="+" className="about-stat__value" />
           <span className="about-stat__label">杯咖啡</span>
         </div>
         <div className="about-stat">
           <BookOpen size={24} strokeWidth={1.5} className="about-stat__icon" />
-          <AnimatedCounter target={30} suffix="+" className="about-stat__value" />
+          <AnimatedCounter target={articleCount} suffix="+" className="about-stat__value" />
           <span className="about-stat__label">篇文章</span>
         </div>
         <div className="about-stat">
           <GraduationCap size={24} strokeWidth={1.5} className="about-stat__icon" />
-          <AnimatedCounter target={3} suffix="+" duration={1500} className="about-stat__value" />
+          <AnimatedCounter target={PROFILE_STATS.projectCount} suffix="+" duration={1500} className="about-stat__value" />
           <span className="about-stat__label">个项目</span>
         </div>
       </motion.section>
@@ -105,7 +116,7 @@ const AboutPage = () => {
       >
         <h2 className="about-section-title">技术栈</h2>
         <div className="about-skills__list">
-          {skills.map((skill, index) => (
+          {PROFILE_SKILLS.map((skill, index) => (
             <motion.div
               key={skill.name}
               className="about-skill"
@@ -127,6 +138,35 @@ const AboutPage = () => {
               </div>
             </motion.div>
           ))}
+        </div>
+      </motion.section>
+
+      <motion.section
+        className="about-tags"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.9 }}
+      >
+        <h2 className="about-section-title">标签云</h2>
+        <div className="about-tags__cloud">
+          {tags.slice(0, 32).map((tag, index) => {
+            const level = 0.8 + ((index % 6) * 0.08);
+            return (
+              <motion.span
+                key={tag.id}
+                className="about-tags__item"
+                style={{
+                  fontSize: `${level}rem`,
+                  color: index % 2 === 0 ? 'var(--accent-rust)' : 'var(--accent-olive)',
+                }}
+                initial={{ opacity: 0, y: 8, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ delay: 1 + index * 0.03 }}
+              >
+                #{tag.name}
+              </motion.span>
+            );
+          })}
         </div>
       </motion.section>
 

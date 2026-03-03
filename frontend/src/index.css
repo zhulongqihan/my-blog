@@ -254,6 +254,16 @@ a:hover {
   animation: fadeInUp var(--transition-slow) ease forwards;
 }
 
+.liquid-btn {
+  transition: transform var(--transition-fast), border-radius 260ms ease, box-shadow var(--transition-fast);
+}
+
+.liquid-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-radius: 12px 20px 14px 22px;
+  box-shadow: 0 6px 14px rgba(139, 115, 85, 0.12);
+}
+
 /* ===== Media Queries ===== */
 @media (max-width: 768px) {
   html {

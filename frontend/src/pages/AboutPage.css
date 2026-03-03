@@ -150,6 +150,36 @@
   border-radius: 2px;
 }
 
+.about-tags {
+  margin-bottom: var(--spacing-3xl);
+}
+
+.about-tags__cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  border: 1px dashed var(--border-color);
+  border-radius: 10px;
+  padding: var(--spacing-md);
+  background: var(--bg-secondary);
+}
+
+.about-tags__item {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  border-radius: 999px;
+  padding: 4px 10px;
+  line-height: 1.3;
+  transition: all var(--transition-fast);
+}
+
+.about-tags__item:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent-rust-light);
+}
+
 /* ===== Contact Section ===== */
 .about-contact__text {
   color: var(--text-secondary);

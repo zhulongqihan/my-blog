@@ -1,26 +1,41 @@
 package com.myblog.service;
 
 import com.myblog.common.constant.RedisKeyPrefix;
+import com.myblog.common.exception.BusinessException;
+import com.myblog.common.redis.CacheClient;
 import com.myblog.dto.ArchiveResponse;
 import com.myblog.dto.ArticleRequest;
 import com.myblog.dto.ArticleResponse;
+import com.myblog.dto.LikeResponseDTO;
 import com.myblog.entity.*;
 import com.myblog.repository.*;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RBloomFilter;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.DigestUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -33,14 +48,26 @@ public class ArticleService {
     private final TagRepository tagRepository;
     private final CommentRepository commentRepository;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final CacheClient cacheClient;
+    private final RedissonClient redissonClient;
 
-    /**
-     * 注入自身代理，解决 @Cacheable 同类调用（self-invocation）导致 AOP 失效的问题
-     * Spring AOP 只拦截通过代理对象的方法调用，this.getArticle() 不走代理
-     */
     @org.springframework.beans.factory.annotation.Autowired
     @org.springframework.context.annotation.Lazy
     private ArticleService self;
+
+    /** FeedService 延迟注入，避免循环依赖 */
+    @org.springframework.beans.factory.annotation.Autowired
+    @org.springframework.context.annotation.Lazy
+    private FeedService feedService;
+
+    // ========== Lua 脚本：点赞 Toggle ==========
+    private static final DefaultRedisScript<List> LIKE_TOGGLE_SCRIPT;
+    static {
+        LIKE_TOGGLE_SCRIPT = new DefaultRedisScript<>();
+        LIKE_TOGGLE_SCRIPT.setLocation(new ClassPathResource("scripts/like_toggle.lua"));
+        LIKE_TOGGLE_SCRIPT.setResultType(List.class);
+    }
 
     public Page<ArticleResponse> getPublishedArticles(Pageable pageable) {
         return articleRepository.findByPublishedTrue(pageable)
@@ -88,35 +115,85 @@ public class ArticleService {
     }
 
     /**
-     * 获取文章详情（缓存30分钟）
-     * Cache Aside 模式：先查缓存，未命中再查DB并回填缓存
+     * 获取文章详情 — 缓存三重防御
+     *
+     * 改造：移除 @Cacheable，改用 CacheClient 手动查询
+     * ① 精选文章 → 逻辑过期方案（高可用，零延迟）
+     * ② 普通文章 → 布隆过滤器 + 互斥锁方案（强一致性）
      */
-    @Cacheable(value = "articleDetail", key = "#id")
     public ArticleResponse getArticle(Long id) {
-        log.info("[Cache MISS] 文章详情(id={}) - 从数据库加载", id);
-        Article article = articleRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("文章不存在"));
-        return toResponse(article);
+        // 先尝试逻辑过期方案（精选/热门文章已预热）
+        ArticleResponse result = cacheClient.queryWithLogicalExpire(
+                RedisKeyPrefix.ARTICLE_DETAIL_LOGIC, id, ArticleResponse.class,
+                this::getArticleFromDb, 30L, TimeUnit.MINUTES
+        );
+        if (result != null) return result;
+
+        // 普通文章走布隆过滤器 + 互斥锁方案
+        result = cacheClient.queryWithBloomFilter(
+                RedisKeyPrefix.ARTICLE_DETAIL, id, ArticleResponse.class,
+                this::getArticleFromDb, 30L, TimeUnit.MINUTES
+        );
+
+        if (result == null) {
+            throw new RuntimeException("文章不存在: " + id);
+        }
+        return result;
+    }
+
+    /** 从 DB 加载文章详情（供 CacheClient 回调使用） */
+    private ArticleResponse getArticleFromDb(Long id) {
+        return articleRepository.findById(id)
+                .map(this::toResponse)
+                .orElse(null);
     }
 
     /**
-     * 获取文章详情并增加浏览量
-     * 改造前：每次访问直接写DB（性能差）
-     * 改造后：浏览量用Redis INCR累加（高性能），定时任务同步回DB
-     * 
-     * 同时记录每日访问量，解决 DashboardService 的 todayViews TODO
+     * 获取文章详情 + 递增浏览量 + 记录 UV
+     *
+     * PV：Redis INCR（原子计数器）
+     * UV：HyperLogLog PFADD（概率去重，12KB/文章）
      */
-    public ArticleResponse getArticleAndIncrementView(Long id) {
-        // 1. 浏览量在Redis中累加（原子操作，不写DB）
+    public ArticleResponse getArticleAndIncrementView(Long id, HttpServletRequest request) {
+        // ① PV: 浏览量在Redis中累加
         String viewKey = RedisKeyPrefix.ARTICLE_VIEW_COUNT + id;
         redisTemplate.opsForValue().increment(viewKey);
-        
-        // 2. 记录今日访问量（用于仪表盘统计）
-        String todayKey = RedisKeyPrefix.DAILY_VIEW_COUNT 
+
+        String todayKey = RedisKeyPrefix.DAILY_VIEW_COUNT
                 + LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
         redisTemplate.opsForValue().increment(todayKey);
-        
-        // 3. 从缓存获取文章详情（通过 self 代理调用，确保 @Cacheable 生效）
+
+        // ② UV: HyperLogLog PFADD（文章级）
+        String fingerprint = generateFingerprint(request, getCurrentUser());
+        stringRedisTemplate.opsForHyperLogLog().add(
+                RedisKeyPrefix.ARTICLE_UV + id, fingerprint
+        );
+
+        // ③ UV: HyperLogLog PFADD（全站日级）
+        stringRedisTemplate.opsForHyperLogLog().add(
+                RedisKeyPrefix.STATS_UV_DAILY + LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE),
+                fingerprint
+        );
+
+        // ④ 获取文章详情
+        ArticleResponse response = self.getArticle(id);
+
+        // ⑤ 附加 UV 数
+        Long uvCount = stringRedisTemplate.opsForHyperLogLog().size(
+                RedisKeyPrefix.ARTICLE_UV + id
+        );
+        response.setUvCount(uvCount != null ? uvCount : 0L);
+
+        return response;
+    }
+
+    /** 向下兼容：无 request 参数的 getArticleAndIncrementView */
+    public ArticleResponse getArticleAndIncrementView(Long id) {
+        String viewKey = RedisKeyPrefix.ARTICLE_VIEW_COUNT + id;
+        redisTemplate.opsForValue().increment(viewKey);
+        String todayKey = RedisKeyPrefix.DAILY_VIEW_COUNT
+                + LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
+        redisTemplate.opsForValue().increment(todayKey);
         return self.getArticle(id);
     }
 
@@ -155,7 +232,26 @@ public class ArticleService {
             article.setPublishedAt(LocalDateTime.now());
         }
 
-        return toResponse(articleRepository.save(article));
+        Article savedArticle = articleRepository.save(article);
+
+        // 同步布隆过滤器
+        if (Boolean.TRUE.equals(savedArticle.getPublished())) {
+            try {
+                RBloomFilter<Long> bloomFilter = redissonClient.getBloomFilter(RedisKeyPrefix.BLOOM_ARTICLE_ID);
+                bloomFilter.add(savedArticle.getId());
+            } catch (Exception e) {
+                log.warn("布隆过滤器同步失败: {}", e.getMessage());
+            }
+
+            // 推送到关注者 Feed
+            try {
+                feedService.pushToFollowers(savedArticle);
+            } catch (Exception e) {
+                log.warn("Feed 推送失败: {}", e.getMessage());
+            }
+        }
+
+        return toResponse(savedArticle);
     }
 
     /**
@@ -223,9 +319,29 @@ public class ArticleService {
         }
 
         articleRepository.delete(article);
+
+        // 清理 Redis 相关 Key
+        stringRedisTemplate.delete(RedisKeyPrefix.ARTICLE_LIKED + id);
+        stringRedisTemplate.delete(RedisKeyPrefix.ARTICLE_LIKE_COUNT + id);
+        stringRedisTemplate.delete(RedisKeyPrefix.ARTICLE_UV + id);
+        stringRedisTemplate.delete(RedisKeyPrefix.ARTICLE_DETAIL + id);
+        stringRedisTemplate.delete(RedisKeyPrefix.ARTICLE_DETAIL_LOGIC + id);
     }
 
-    private ArticleResponse toResponse(Article article) {
+    public ArticleResponse toResponse(Article article) {
+        // 点赞数优先从 Redis 读取
+        int likeCount = article.getLikeCount();
+        try {
+            String redisCount = stringRedisTemplate.opsForValue().get(
+                    RedisKeyPrefix.ARTICLE_LIKE_COUNT + article.getId()
+            );
+            if (redisCount != null) {
+                likeCount = Integer.parseInt(redisCount);
+            }
+        } catch (Exception e) {
+            // fallback to DB value
+        }
+
         return ArticleResponse.builder()
                 .id(article.getId())
                 .title(article.getTitle())
@@ -251,7 +367,7 @@ public class ArticleService {
                                 .build())
                         .collect(Collectors.toList()))
                 .viewCount(article.getViewCount())
-                .likeCount(article.getLikeCount())
+                .likeCount(likeCount)
                 .commentCount(commentRepository.countByArticle(article))
                 .published(article.getPublished())
                 .featured(article.getFeatured())
@@ -323,5 +439,136 @@ public class ArticleService {
                 .totalCount(articles.size())
                 .years(yearArchives)
                 .build();
+    }
+
+    // ========== 一人一赞系统 ==========
+
+    /**
+     * Toggle 点赞/取消（Redisson 分布式锁 + Lua 原子操作）
+     */
+    @SuppressWarnings("unchecked")
+    public LikeResponseDTO toggleLike(Long articleId, Long userId) {
+        RLock lock = redissonClient.getLock(RedisKeyPrefix.LOCK_LIKE + userId);
+        boolean isLocked = false;
+        try {
+            isLocked = lock.tryLock(1, 5, TimeUnit.SECONDS);
+            if (!isLocked) {
+                throw new BusinessException("操作太频繁，请稍后重试");
+            }
+
+            List<Long> result = stringRedisTemplate.execute(
+                    LIKE_TOGGLE_SCRIPT,
+                    Arrays.asList(
+                            RedisKeyPrefix.ARTICLE_LIKED + articleId,
+                            RedisKeyPrefix.ARTICLE_LIKE_COUNT + articleId
+                    ),
+                    userId.toString()
+            );
+
+            LikeResponseDTO dto = new LikeResponseDTO();
+            dto.setLiked(result != null && result.get(0) == 1L);
+            dto.setLikeCount(result != null ? result.get(1).intValue() : 0);
+            return dto;
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BusinessException("点赞操作被中断");
+        } finally {
+            if (isLocked && lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+        }
+    }
+
+    /**
+     * 查询当前用户是否已赞
+     */
+    public boolean isLiked(Long articleId, Long userId) {
+        return Boolean.TRUE.equals(
+                stringRedisTemplate.opsForSet().isMember(
+                        RedisKeyPrefix.ARTICLE_LIKED + articleId,
+                        userId.toString()
+                )
+        );
+    }
+
+    /**
+     * 获取文章点赞数（优先 Redis，fallback DB）
+     */
+    public int getLikeCount(Long articleId) {
+        String count = stringRedisTemplate.opsForValue().get(
+                RedisKeyPrefix.ARTICLE_LIKE_COUNT + articleId
+        );
+        if (count != null) {
+            return Integer.parseInt(count);
+        }
+        return articleRepository.findById(articleId)
+                .map(Article::getLikeCount)
+                .orElse(0);
+    }
+
+    // ========== UV统计与热门榜 ==========
+
+    /**
+     * 获取本周热门文章（基于 UV 排行）
+     */
+    public List<ArticleResponse> getWeeklyHotArticles(int limit) {
+        Set<ZSetOperations.TypedTuple<String>> tuples = stringRedisTemplate.opsForZSet()
+                .reverseRangeWithScores(RedisKeyPrefix.ARTICLE_HOT_WEEKLY, 0, limit - 1);
+
+        if (tuples == null || tuples.isEmpty()) {
+            // fallback: 降级到按 viewCount 排序
+            return self.getPopularArticles(limit);
+        }
+
+        List<ArticleResponse> result = new ArrayList<>();
+        for (ZSetOperations.TypedTuple<String> tuple : tuples) {
+            Long articleId = Long.parseLong(Objects.requireNonNull(tuple.getValue()));
+            try {
+                ArticleResponse response = self.getArticle(articleId);
+                response.setUvCount(tuple.getScore() != null ? tuple.getScore().longValue() : 0L);
+                result.add(response);
+            } catch (Exception e) {
+                // 文章可能已删除，跳过
+            }
+        }
+        return result;
+    }
+
+    // ========== UV 指纹辅助方法 ==========
+
+    /** 获取当前登录用户（可能为 null） */
+    private User getCurrentUser() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getPrincipal() instanceof User) {
+                return (User) auth.getPrincipal();
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    /** 生成访客指纹（登录用户用 userId，匿名用户用 IP+UA 的 MD5） */
+    private String generateFingerprint(HttpServletRequest request, User user) {
+        if (user != null) {
+            return "u:" + user.getId();
+        }
+        String ip = getClientIp(request);
+        String ua = Optional.ofNullable(request.getHeader("User-Agent")).orElse("unknown");
+        return "a:" + DigestUtils.md5DigestAsHex((ip + ":" + ua).getBytes());
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("X-Real-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        return ip;
     }
 }

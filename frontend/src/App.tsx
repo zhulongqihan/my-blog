@@ -9,11 +9,13 @@ import ScrollToTop from './components/ScrollToTop';
 import ReadingProgress from './components/ReadingProgress';
 import CursorGlow from './components/CursorGlow';
 import NotificationToast from './components/NotificationToast';
+import OfflineNotice from './components/OfflineNotice';
 import PixelCat from './components/PixelCat';
 import HomePage from './pages/HomePage';
 import ArticlePage from './pages/ArticlePage';
 import AboutPage from './pages/AboutPage';
 import ArchivePage from './pages/ArchivePage';
+import SearchPage from './pages/SearchPage';
 import './App.css';
 
 function App() {
@@ -38,6 +40,7 @@ function App() {
         <div className="app">
           <CursorGlow />
           <ReadingProgress />
+          <OfflineNotice />
           <NotificationToast />
           <Header theme={theme} onToggleTheme={toggleTheme} />
           <main className="main-content">
@@ -47,6 +50,7 @@ function App() {
                 <Route path="/article/:id" element={<ArticlePage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/archive" element={<ArchivePage />} />
+                <Route path="/search" element={<SearchPage />} />
               </Routes>
             </AnimatePresence>
           </main>

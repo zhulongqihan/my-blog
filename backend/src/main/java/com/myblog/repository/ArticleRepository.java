@@ -24,9 +24,15 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     
     List<Article> findByFeaturedTrueAndPublishedTrue();
     
-    @Query("SELECT a FROM Article a WHERE a.published = true AND " +
-           "(LOWER(a.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-           "LOWER(a.content) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+        @Query("SELECT DISTINCT a FROM Article a " +
+            "LEFT JOIN a.category c " +
+            "LEFT JOIN a.tags t " +
+            "WHERE a.published = true AND (" +
+            "LOWER(a.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(COALESCE(a.summary, '')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(a.content) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(COALESCE(c.name, '')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(COALESCE(t.name, '')) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     Page<Article> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
     
     @Query("SELECT a FROM Article a WHERE a.published = true ORDER BY a.viewCount DESC")
@@ -64,4 +70,12 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
      * 获取所有已发布文章（按创建时间倒序），用于归档页
      */
     List<Article> findByPublishedTrueOrderByCreatedAtDesc();
+
+    // ========== v2.0 新增：Redis 高并发特性 ==========
+
+    /**
+     * 查询所有已发布文章ID（布隆过滤器初始化用）
+     */
+    @Query("SELECT a.id FROM Article a WHERE a.published = true")
+    List<Long> findAllPublishedArticleIds();
 }

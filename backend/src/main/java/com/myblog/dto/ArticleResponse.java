@@ -26,6 +26,10 @@ public class ArticleResponse {
     private Long commentCount;
     private Boolean published;
     private Boolean featured;
+    /** 独立访客数（UV） */
+    private Long uvCount;
+    /** 当前用户是否已赞（未登录为 null） */
+    private Boolean liked;
     private LocalDateTime publishedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

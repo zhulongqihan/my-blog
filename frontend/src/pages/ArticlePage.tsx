@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, ArrowLeft, Tag, Loader2, BookOpen, Minimize2, Copy, Check, Image as ImageIcon, X, ChevronLeft, ChevronRight, Share2 } from 'lucide-react';
+import { Calendar, Clock, ArrowLeft, Tag, Loader2, BookOpen, Minimize2, Copy, Check, Image as ImageIcon, X, ChevronLeft, ChevronRight, Share2, Heart, Type, RotateCcw, Timer, Play, Pause, RefreshCw, ChevronDown, ChevronRight as ChevronRightSmall } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import QRCode from 'qrcode';
@@ -80,13 +80,23 @@ const extractImageSources = (content: string) => {
   return matches.map(match => match[1]);
 };
 
+interface ReadingProgressEntry {
+  articleId: number;
+  title: string;
+  percent: number;
+  updatedAt: number;
+  path: string;
+}
+
 // Parse markdown-like content to JSX
 const parseContent = (
   content: string,
   onCopyCode: (code: string, key: string) => void,
   copiedCodeKey: string | null,
   headingIdMap: Map<string, string>,
-  onOpenImage: (src: string) => void
+  onOpenImage: (src: string) => void,
+  isCodeCollapsed: (key: string) => boolean,
+  onToggleCodeCollapse: (key: string) => void
 ) => {
   if (!content) return null;
 
@@ -99,10 +109,20 @@ const parseContent = (
       if (match) {
         const [, language = 'text', code] = match;
         const codeKey = `code-${index}`;
+        const collapsed = isCodeCollapsed(codeKey);
         return (
           <div key={index} className="article-content__code-wrap">
             <div className="article-content__code-toolbar">
-              <span className="article-content__code-lang">{language}</span>
+              <div className="article-content__code-actions">
+                <span className="article-content__code-lang">{language}</span>
+                <button
+                  className="article-content__code-collapse"
+                  onClick={() => onToggleCodeCollapse(codeKey)}
+                >
+                  {collapsed ? <ChevronRightSmall size={13} /> : <ChevronDown size={13} />}
+                  {collapsed ? '展开' : '折叠'}
+                </button>
+              </div>
               <button
                 className="article-content__code-copy"
                 onClick={() => onCopyCode(code.trim(), codeKey)}
@@ -118,14 +138,16 @@ const parseContent = (
                 )}
               </button>
             </div>
-            <SyntaxHighlighter
-              language={language}
-              style={codeStyle}
-              showLineNumbers={true}
-              lineNumberStyle={{ color: '#666', paddingRight: '1rem' }}
-            >
-              {code.trim()}
-            </SyntaxHighlighter>
+            {!collapsed && (
+              <SyntaxHighlighter
+                language={language}
+                style={codeStyle}
+                showLineNumbers={true}
+                lineNumberStyle={{ color: '#666', paddingRight: '1rem' }}
+              >
+                {code.trim()}
+              </SyntaxHighlighter>
+            )}
           </div>
         );
       }
@@ -225,6 +247,18 @@ const ArticlePage = () => {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+  const [fontScale, setFontScale] = useState(1);
+  const [likedCount, setLikedCount] = useState(0);
+  const [likeBursts, setLikeBursts] = useState<Array<{ id: number; x: number; y: number }>>([]);
+  const [achievementToast, setAchievementToast] = useState('');
+  const [readingProgress, setReadingProgress] = useState(0);
+  const [unlockedAchievements, setUnlockedAchievements] = useState<string[]>([]);
+  const [resumePosition, setResumePosition] = useState<number | null>(null);
+  const [collapsedCodeBlocks, setCollapsedCodeBlocks] = useState<Record<string, boolean>>({});
+  const [isFocusRunning, setIsFocusRunning] = useState(false);
+  const [focusSeconds, setFocusSeconds] = useState(25 * 60);
+  const [focusPreset, setFocusPreset] = useState(25);
+  const [focusToast, setFocusToast] = useState('');
 
   const headings = useMemo(() => extractHeadings(article?.content || ''), [article?.content]);
   const imageSources = useMemo(() => extractImageSources(article?.content || ''), [article?.content]);
@@ -242,10 +276,90 @@ const ArticlePage = () => {
   }, [isReadingMode]);
 
   useEffect(() => {
-    const onScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    const savedScale = Number(localStorage.getItem('article-font-scale') || '1');
+    setFontScale([0, 1, 2].includes(savedScale) ? savedScale : 1);
   }, []);
+
+  useEffect(() => {
+    if (!article?.id) return;
+    const key = `article-achievements-${article.id}`;
+    try {
+      const saved = JSON.parse(localStorage.getItem(key) || '[]') as string[];
+      setUnlockedAchievements(Array.isArray(saved) ? saved : []);
+    } catch {
+      setUnlockedAchievements([]);
+    }
+  }, [article?.id]);
+
+  useEffect(() => {
+    if (!article?.id) return;
+    localStorage.setItem(`article-achievements-${article.id}`, JSON.stringify(unlockedAchievements));
+  }, [article?.id, unlockedAchievements]);
+
+  useEffect(() => {
+    localStorage.setItem('article-font-scale', String(fontScale));
+  }, [fontScale]);
+
+  useEffect(() => {
+    if (!article?.id) return;
+    const saved = Number(localStorage.getItem(`article-last-position-${article.id}`) || '0');
+    setResumePosition(saved > 220 ? saved : null);
+  }, [article?.id]);
+
+  useEffect(() => {
+    const onScroll = () => {
+      setScrollY(window.scrollY);
+
+      if (article?.id) {
+        localStorage.setItem(`article-last-position-${article.id}`, String(window.scrollY));
+      }
+
+      const content = document.querySelector('.article-content') as HTMLElement | null;
+      if (!content) return;
+
+      const viewportHeight = window.innerHeight;
+      const rect = content.getBoundingClientRect();
+      const total = Math.max(content.scrollHeight - viewportHeight * 0.55, 1);
+      const viewed = Math.min(Math.max(-rect.top + viewportHeight * 0.25, 0), total);
+      const percent = Math.round((viewed / total) * 100);
+      setReadingProgress(percent);
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [article?.id]);
+
+  useEffect(() => {
+    if (!article?.id) return;
+    const progressMap = JSON.parse(localStorage.getItem('article-reading-progress-map') || '{}') as Record<string, ReadingProgressEntry>;
+    progressMap[String(article.id)] = {
+      articleId: article.id,
+      title: article.title,
+      percent: Math.min(Math.max(readingProgress, 0), 100),
+      updatedAt: Date.now(),
+      path: `/article/${article.id}`,
+    };
+    localStorage.setItem('article-reading-progress-map', JSON.stringify(progressMap));
+  }, [article?.id, article?.title, readingProgress]);
+
+  useEffect(() => {
+    if (!article?.id) return;
+
+    const milestones = [
+      { key: 'starter', threshold: 25, title: '📖 阅读入门：已阅读 25%' },
+      { key: 'focus', threshold: 60, title: '🎯 专注阅读：已阅读 60%' },
+      { key: 'finisher', threshold: 100, title: '🏆 阅读完成：已完整读完' },
+    ];
+
+    milestones.forEach(milestone => {
+      if (readingProgress >= milestone.threshold && !unlockedAchievements.includes(milestone.key)) {
+        setUnlockedAchievements(prev => [...prev, milestone.key]);
+        setAchievementToast(milestone.title);
+        window.setTimeout(() => setAchievementToast(''), 2200);
+      }
+    });
+  }, [readingProgress, unlockedAchievements, article?.id]);
 
   useEffect(() => {
     if (headings.length === 0) return;
@@ -291,6 +405,34 @@ const ArticlePage = () => {
   };
 
   const closeLightbox = () => setLightboxIndex(null);
+
+  const toggleCodeCollapse = (key: string) => {
+    setCollapsedCodeBlocks(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const isCodeCollapsed = (key: string) => Boolean(collapsedCodeBlocks[key]);
+
+  const handleResumeReading = () => {
+    if (!resumePosition) return;
+    window.scrollTo({ top: resumePosition, behavior: 'smooth' });
+  };
+
+  const handleLikeClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setLikedCount(prev => prev + 1);
+    const rect = event.currentTarget.getBoundingClientRect();
+    const burstId = Date.now();
+    setLikeBursts(prev => [
+      ...prev,
+      {
+        id: burstId,
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      },
+    ]);
+    window.setTimeout(() => {
+      setLikeBursts(prev => prev.filter(item => item.id !== burstId));
+    }, 720);
+  };
 
   const switchImage = (direction: 'prev' | 'next') => {
     if (lightboxIndex === null || imageSources.length === 0) return;
@@ -420,6 +562,36 @@ const ArticlePage = () => {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [lightboxIndex, imageSources.length]);
 
+  useEffect(() => {
+    if (!isFocusRunning) return;
+    const timer = window.setInterval(() => {
+      setFocusSeconds(prev => {
+        if (prev <= 1) {
+          window.clearInterval(timer);
+          setIsFocusRunning(false);
+          setFocusToast('⏰ 专注计时完成，休息一下再继续！');
+          window.setTimeout(() => setFocusToast(''), 2400);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [isFocusRunning]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!event.shiftKey || event.key.toLowerCase() !== 'r') return;
+      if (!resumePosition) return;
+      event.preventDefault();
+      window.scrollTo({ top: resumePosition, behavior: 'smooth' });
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [resumePosition]);
+
   if (isLoading) {
     return (
       <motion.div
@@ -463,7 +635,7 @@ const ArticlePage = () => {
 
   return (
     <motion.div
-      className={`page-wrapper article-page ${isReadingMode ? 'article-page--reading' : ''}`}
+      className={`page-wrapper article-page ${isReadingMode ? 'article-page--reading' : ''} article-page--font-${fontScale}`}
       variants={pageVariants}
       initial="initial"
       animate="animate"
@@ -483,14 +655,70 @@ const ArticlePage = () => {
       )}
 
       <div className="article-page__toolbar">
+        <span className="article-page__progress">阅读进度 {readingProgress}%</span>
+        <div className="article-page__focus-box">
+          <span className="article-page__focus-time">
+            <Timer size={14} />
+            {String(Math.floor(focusSeconds / 60)).padStart(2, '0')}:{String(focusSeconds % 60).padStart(2, '0')}
+          </span>
+          <div className="article-page__focus-presets">
+            {[15, 25, 45].map(item => (
+              <button
+                key={item}
+                className={`article-page__focus-preset ${focusPreset === item ? 'is-active' : ''}`}
+                onClick={() => {
+                  if (isFocusRunning) return;
+                  setFocusPreset(item);
+                  setFocusSeconds(item * 60);
+                }}
+              >
+                {item}m
+              </button>
+            ))}
+          </div>
+          <button className="article-page__reading-toggle liquid-btn" onClick={() => setIsFocusRunning(prev => !prev)}>
+            {isFocusRunning ? <Pause size={14} /> : <Play size={14} />}
+            {isFocusRunning ? '暂停' : '专注'}
+          </button>
+          <button
+            className="article-page__reading-toggle liquid-btn"
+            onClick={() => {
+              setIsFocusRunning(false);
+              setFocusSeconds(focusPreset * 60);
+            }}
+          >
+            <RefreshCw size={14} /> 重置
+          </button>
+        </div>
+        {resumePosition && (
+          <button className="article-page__reading-toggle liquid-btn" onClick={handleResumeReading}>
+            <RotateCcw size={14} />
+            恢复上次位置
+          </button>
+        )}
+        <button className="article-page__reading-toggle liquid-btn" onClick={handleLikeClick}>
+          <Heart size={14} />
+          点赞 +{likedCount}
+        </button>
+        <div className="article-page__font-group">
+          <button className="article-page__reading-toggle liquid-btn" onClick={() => setFontScale(0)} disabled={fontScale === 0}>
+            <Type size={14} /> A-
+          </button>
+          <button className="article-page__reading-toggle liquid-btn" onClick={() => setFontScale(1)} disabled={fontScale === 1}>
+            <Type size={14} /> A
+          </button>
+          <button className="article-page__reading-toggle liquid-btn" onClick={() => setFontScale(2)} disabled={fontScale === 2}>
+            <Type size={14} /> A+
+          </button>
+        </div>
         <button
-          className="article-page__reading-toggle"
+          className="article-page__reading-toggle liquid-btn"
           onClick={() => setIsReadingMode(prev => !prev)}
         >
           {isReadingMode ? <Minimize2 size={14} /> : <BookOpen size={14} />}
           {isReadingMode ? '退出阅读模式' : '阅读模式'}
         </button>
-        <button className="article-page__reading-toggle" onClick={exportShareCard} disabled={isExporting}>
+        <button className="article-page__reading-toggle liquid-btn" onClick={exportShareCard} disabled={isExporting}>
           <Share2 size={14} />
           {isExporting ? '导出中...' : '分享卡片'}
         </button>
@@ -566,7 +794,15 @@ const ArticlePage = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
       >
-        {parseContent(article.content, handleCopyCode, copiedCodeKey, headingIdMap, openImage)}
+        {parseContent(
+          article.content,
+          handleCopyCode,
+          copiedCodeKey,
+          headingIdMap,
+          openImage,
+          isCodeCollapsed,
+          toggleCodeCollapse
+        )}
       </motion.article>
 
       {headings.length > 0 && (
@@ -614,6 +850,18 @@ const ArticlePage = () => {
           </div>
         </div>
       )}
+
+      {likeBursts.map(burst => (
+        <div key={burst.id} className="article-like-burst" style={{ left: burst.x, top: burst.y }}>
+          {Array.from({ length: 8 }).map((_, index) => (
+            <span key={index} className="article-like-burst__dot" style={{ '--i': index } as CSSProperties} />
+          ))}
+          <span className="article-like-burst__plus">+1</span>
+        </div>
+      ))}
+
+      {achievementToast && <div className="article-achievement-toast">{achievementToast}</div>}
+      {focusToast && <div className="article-focus-toast">{focusToast}</div>}
     </motion.div>
   );
 };

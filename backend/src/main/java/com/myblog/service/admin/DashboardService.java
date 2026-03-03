@@ -11,14 +11,14 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -40,6 +40,7 @@ public class DashboardService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
 
     /**
      * 获取仪表盘统计数据（缓存5分钟）
@@ -214,6 +215,42 @@ public class DashboardService {
                             .build();
                 })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 获取UV趋势（基于 HyperLogLog 日UV + Redis 日PV）
+     *
+     * @param days 天数
+     * @return Map 包含 dates、uvCounts、pvCounts 三个列表
+     */
+    public Map<String, Object> getUvTrend(int days) {
+        List<String> dates = new ArrayList<>();
+        List<Long> uvCounts = new ArrayList<>();
+        List<Long> pvCounts = new ArrayList<>();
+
+        DateTimeFormatter display = DateTimeFormatter.ofPattern("MM-dd");
+        DateTimeFormatter iso = DateTimeFormatter.ISO_LOCAL_DATE;
+
+        for (int i = days - 1; i >= 0; i--) {
+            LocalDate date = LocalDate.now().minusDays(i);
+            dates.add(date.format(display));
+
+            // UV — HyperLogLog PFCOUNT
+            String uvKey = RedisKeyPrefix.STATS_UV_DAILY + date.format(iso);
+            Long uv = stringRedisTemplate.opsForHyperLogLog().size(uvKey);
+            uvCounts.add(uv != null ? uv : 0L);
+
+            // PV — String INCR 计数
+            String pvKey = RedisKeyPrefix.DAILY_VIEW_COUNT + date.format(iso);
+            Object pvVal = redisTemplate.opsForValue().get(pvKey);
+            pvCounts.add(pvVal != null ? ((Number) pvVal).longValue() : 0L);
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("dates", dates);
+        result.put("uvCounts", uvCounts);
+        result.put("pvCounts", pvCounts);
+        return result;
     }
 
     /**

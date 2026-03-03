@@ -156,12 +156,12 @@ const AiIdeaLab = () => {
           rows={3}
         />
         <div className="ai-idea-lab__actions">
-          <button className="ai-idea-lab__btn" onClick={() => runIdea()} disabled={isGenerating || !goal.trim()}>
+          <button className="ai-idea-lab__btn liquid-btn" onClick={() => runIdea()} disabled={isGenerating || !goal.trim()}>
             {isGenerating ? <Loader2 size={15} className="ai-idea-lab__loading" /> : <Sparkles size={15} />}
             生成方案
           </button>
           {isGenerating && (
-            <button className="ai-idea-lab__btn ai-idea-lab__btn--ghost" onClick={stop}>
+            <button className="ai-idea-lab__btn ai-idea-lab__btn--ghost liquid-btn" onClick={stop}>
               停止
             </button>
           )}

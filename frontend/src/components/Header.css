@@ -40,6 +40,23 @@
   color: var(--accent-rust);
 }
 
+.header__logo-icon * {
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: logo-path-draw 1.1s ease forwards;
+}
+
+.header__logo:hover .header__logo-icon {
+  transform: rotate(-8deg) scale(1.04);
+  transition: transform var(--transition-fast);
+}
+
+@keyframes logo-path-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
 .header__logo-text {
   font-family: var(--font-serif);
   font-size: 1.25rem;
@@ -145,6 +162,10 @@
   background: var(--bg-secondary);
 }
 
+.header__suggestion-item--active {
+  background: var(--bg-secondary);
+}
+
 .header__suggestion-title {
   display: block;
   color: var(--text-primary);
@@ -164,6 +185,28 @@
   padding: 12px;
   color: var(--text-muted);
   font-size: 0.8125rem;
+}
+
+.header__history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.header__history-clear {
+  border: none;
+  background: transparent;
+  color: var(--accent-rust);
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.header__history-clear:hover {
+  color: var(--accent-rust-light);
 }
 
 .header__nav-link {

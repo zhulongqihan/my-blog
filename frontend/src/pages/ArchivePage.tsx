@@ -16,6 +16,7 @@ const ArchivePage = () => {
   const [archive, setArchive] = useState<ArchiveResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedYear, setSelectedYear] = useState<number | 'all'>('all');
 
   useEffect(() => {
     const fetchArchive = async () => {
@@ -32,6 +33,10 @@ const ArchivePage = () => {
     };
     fetchArchive();
   }, []);
+
+  const visibleYears = selectedYear === 'all'
+    ? (archive?.years || [])
+    : (archive?.years || []).filter(item => item.year === selectedYear);
 
   return (
     <motion.div
@@ -66,6 +71,26 @@ const ArchivePage = () => {
           animate={{ scaleX: 1 }}
           transition={{ duration: 0.8, delay: 0.5 }}
         />
+
+        {archive && archive.years.length > 0 && (
+          <div className="archive-filter">
+            <button
+              className={`archive-filter__chip ${selectedYear === 'all' ? 'is-active' : ''}`}
+              onClick={() => setSelectedYear('all')}
+            >
+              全部
+            </button>
+            {archive.years.map(item => (
+              <button
+                key={item.year}
+                className={`archive-filter__chip ${selectedYear === item.year ? 'is-active' : ''}`}
+                onClick={() => setSelectedYear(item.year)}
+              >
+                {item.year}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
 
       {/* Content */}
@@ -91,7 +116,7 @@ const ArchivePage = () => {
       ) : (
         /* Timeline */
         <div className="archive-timeline">
-          {archive.years.map((yearData, yearIndex) => (
+          {visibleYears.map((yearData, yearIndex) => (
             <motion.div
               key={yearData.year}
               className="archive-year"

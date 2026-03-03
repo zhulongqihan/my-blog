@@ -1,8 +1,8 @@
 # 个人博客系统
 
 > 创建日期：2026年1月27日  
-> 最后更新：2026年3月3日  
-> 版本：v1.9.3  
+> 最后更新：2026年3月4日  
+> 版本：v2.0.0  
 > GitHub: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)  
 > 网站：http://cyruszhang.online 
 
@@ -12,7 +12,7 @@
 
 这是一个全栈个人博客系统，前后端分离架构。后端使用 Spring Boot 3.x 提供 RESTful API，前台页面使用 React 19 + TypeScript + Vite，后台管理系统使用 Vue 3 + Element Plus + Pinia（双前端框架）。前台设计为大地色系极简风格。
 
-**项目亮点**：双前端框架（React + Vue）、**Docker Compose 一键部署**（5 容器编排 + 多阶段构建 + 健康检查）、Markdown 编辑器 + 图片上传、完整的后台管理系统、JWT + RBAC 权限体系、**Redis 多级缓存系统**（Cache Aside + Write-Behind + 缓存预热 + 监控面板）、**RabbitMQ 消息队列**（评论邮件通知 + 日志异步化 + 死信队列 + 监控）、**WebSocket 实时通知**（STOMP + SockJS + MQ联动 + 在线人数 + 通知中心）、ECharts 数据可视化、**API 限流与防护系统**（Redis Lua 滑动窗口 + AOP + IP 黑白名单）、**酷炫前端交互**（打字机标题 + 阅读进度条 + 鼠标光晕 + 3D卡片倾斜 + 数字滚动动画 + 主题切换 + 粒子背景 + 图片灯箱 + 分享卡片）、**像素猫桌宠系统**（CSS 像素画 + 心情/拖拽/鱼干收集/右键面板）、**AI 创意工坊**（Dify + SSE 流式结构化方案生成）。
+**项目亮点**：双前端框架（React + Vue）、**Docker Compose 一键部署**（5 容器编排 + 多阶段构建 + 健康检查）、Markdown 编辑器 + 图片上传、完整的后台管理系统、JWT + RBAC 权限体系、**Redis 多级缓存系统**（Cache Aside + Write-Behind + 缓存预热 + 监控面板）、**Redis 高并发五大特性**（缓存三重防御 + BitMap签到 + 一人一赞 + ZSet Feed流 + HyperLogLog UV统计）、**RabbitMQ 消息队列**（评论邮件通知 + 日志异步化 + 死信队列 + 监控）、**WebSocket 实时通知**（STOMP + SockJS + MQ联动 + 在线人数 + 通知中心）、ECharts 数据可视化、**API 限流与防护系统**（Redis Lua 滑动窗口 + AOP + IP 黑白名单）、**酷炫前端交互**（打字机标题 + 阅读进度条 + 鼠标光晕 + 3D卡片倾斜 + 数字滚动动画 + 主题切换 + 粒子背景 + 图片灯箱 + 分享卡片）、**像素猫桌宠系统**（CSS 像素画 + 心情/拖拽/鱼干收集/右键面板）、**AI 创意工坊**（Dify + SSE 流式结构化方案生成）。
 
 ### 核心特性
 
@@ -53,6 +53,11 @@
 - **像素猫桌宠系统** - CSS box-shadow 像素画 + 心情系统 + 拖拽交互 + 鱼干收集小游戏 + 右键状态面板
 - **AI 创意工坊** - Dify + SSE 流式输出，生成结构化前端方案（摘要/步骤/代码要点/验收清单）
 - **Docker 容器化** - Docker Compose 一键编排 5 个容器，多阶段构建，healthcheck 保证启动顺序
+- **缓存三重防御** - 布隆过滤器防穿透 + 互斥锁防击穿 + 逻辑过期防雪崩
+- **BitMap 签到系统** - Redis SETBIT/BITCOUNT/BITFIELD，连续签到 + 日历回显 + 成就徽章
+- **一人一赞系统** - Redisson 分布式锁 + Lua 脚本原子操作 + Write-Behind 异步同步
+- **ZSet Feed 流** - 标签订阅 + 推模式Fan-Out + 滚动分页（ZREVRANGEBYSCORE）
+- **HyperLogLog UV 统计** - 文章 UV + 全站日 UV + 热门榜定时刷新
 
 ### 项目目标
 
@@ -115,6 +120,7 @@
 | **Hibernate** | 6.4.1 | ORM 框架 |
 | **JWT (jjwt)** | 0.12.3 | Token 认证 |
 | **Redis** | 7.x | 多级缓存 + JWT黑名单 + 限流 |
+| **Redisson** | 3.25.2 | 分布式锁 + 布隆过滤器 |
 | **RabbitMQ** | 3.13 | 消息队列（评论通知 + 日志异步） |
 | **MapStruct** | 1.5.5 | 对象转换 |
 | **Hutool** | 5.8.24 | 工具库 |
@@ -227,7 +233,10 @@ myblog/
 │   │   │   └── WebSocketEventListener.java # 连接事件+在线计数
 │   │   ├── task/                      # 定时/启动任务
 │   │   │   ├── ViewCountSyncTask.java  # 浏览量同步（5分钟）
-│   │   │   └── CacheWarmupTask.java    # 缓存预热
+│   │   │   ├── CacheWarmupTask.java    # 缓存预热 + 布隆过滤器初始化
+│   │   │   ├── LikeCountSyncTask.java  # 点赞数Write-Behind同步
+│   │   │   ├── HotRankTask.java        # 热门榜每小时刷新
+│   │   │   └── FeedCleanupTask.java    # Feed收件箱定期裁剪
 │   │   └── aspect/                   # AOP 切面（操作日志）
 │   ├── src/main/resources/
 │   │   ├── application.yml           # 通用配置
@@ -437,6 +446,26 @@ stop.bat
 | PUT | `/api/articles/{id}` | 更新文章 | 需认证 |
 | DELETE | `/api/articles/{id}` | 删除文章 | 需认证 |
 | POST | `/api/articles/{id}/like` | 点赞文章 | 公开 |
+| GET | `/api/articles/{id}/like/status` | 查询点赞状态 | 公开 |
+| GET | `/api/articles/hot/weekly` | 本周热门文章排行 | 公开 |
+
+### 签到接口
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| POST | `/api/checkin` | 今日签到 | 需认证 |
+| GET | `/api/checkin/stats` | 签到统计（连续天数、总签到） | 需认证 |
+| GET | `/api/checkin/calendar` | 签到日历（BitMap回显） | 需认证 |
+
+### Feed 流与标签订阅接口
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| POST | `/api/tags/{tagId}/follow` | 关注标签 | 需认证 |
+| DELETE | `/api/tags/{tagId}/follow` | 取消关注标签 | 需认证 |
+| GET | `/api/tags/{tagId}/follow/status` | 查询关注状态 | 公开 |
+| GET | `/api/tags/followed` | 我关注的标签列表 | 需认证 |
+| GET | `/api/feed` | 获取个人 Feed 流（滚动分页） | 需认证 |
 
 ### 分类和标签接口
 
@@ -457,6 +486,7 @@ stop.bat
 | 方法 | 路径 | 说明 | 权限 |
 |------|------|------|------|
 | GET | `/api/admin/dashboard/stats` | 仪表盘统计数据 | ADMIN |
+| GET | `/api/admin/dashboard/uv-trend` | UV/PV 趋势数据 | ADMIN |
 | GET | `/api/admin/articles` | 文章列表（分页/搜索/筛选） | ADMIN |
 | GET | `/api/admin/articles/{id}` | 获取文章详情（编辑回显） | ADMIN |
 | POST | `/api/admin/articles` | 创建文章 | ADMIN |
@@ -595,6 +625,16 @@ stop.bat
 - createdAt: LocalDateTime
 ```
 
+### 标签关注 (UserTagFollow)
+
+```java
+- id: Long (主键)
+- userId: Long (关注用户ID)
+- tagId: Long (标签ID)
+- createdAt: LocalDateTime
+- UNIQUE(userId, tagId) 唯一约束
+```
+
 ---
 
 ## 已完成功能
@@ -617,6 +657,11 @@ stop.bat
 - [x] CORS 跨域配置
 - [x] 数据初始化 (管理员账号、默认分类和标签)
 - [x] 配置管理（开发/生产环境分离）
+- [x] **缓存三重防御**（布隆过滤器防穿透 + 互斥锁防击穿 + 逻辑过期防雪崩）
+- [x] **BitMap 签到系统**（SETBIT/BITCOUNT/BITFIELD，连续签到 + 日历回显 + 成就徽章）
+- [x] **一人一赞系统**（Redisson 分布式锁 + Lua 脚本原子操作 + Write-Behind 同步）
+- [x] **ZSet Feed 流**（标签订阅 + 推模式 Fan-Out + ZREVRANGEBYSCORE 滚动分页）
+- [x] **HyperLogLog UV 统计**（文章级 UV + 全站日 UV + 热门榜定时刷新）
 
 ### 后台管理 API
 - [x] 管理员登录/登出接口
@@ -784,6 +829,7 @@ stop.bat
 - [x] 文章归档 API（按年月自动分组 + 缓存）
 - [x] 前端酷炫交互（打字机 + 进度条 + 光晕 + 3D 卡片 + 滚动计数 + 回到顶部）
 - [x] WebSocket 实时通知系统（STOMP + SockJS + JWT 认证 + 在线人数 + 通知中心）
+- [x] Redis 高并发五大特性（缓存三重防御 + BitMap签到 + 一人一赞 + Feed流 + UV统计）
 
 **核心功能：**
 - [ ] 数据导出功能
@@ -808,6 +854,27 @@ stop.bat
 ---
 
 ## 开发日志
+
+### 2026-03-04（v2.0.0 Redis 高并发五大特性）
+- **缓存三重防御**：新增 CacheClient 工具类封装三大策略 — 布隆过滤器防穿透（Redisson RBloomFilter，预期10000/误判率0.01）、互斥锁防击穿（SETNX + DoubleCheck + sleep 重试）、逻辑过期防雪崩（异步线程池重建 + RedisData 逻辑过期包装）
+- 新增 RedissonConfig（SingleServer 模式，读取 spring.data.redis.* 配置）
+- 文章详情缓存策略升级：精选文章走逻辑过期、普通文章走布隆+互斥，移除原 @Cacheable
+- CacheWarmupTask 增强：启动时初始化布隆过滤器 + 预热精选文章逻辑过期缓存 + 重建标签关注关系
+- **BitMap 签到系统**：新增 CheckInService + CheckInController，SETBIT 打卡 + BITCOUNT 总签到 + BITFIELD GET 连续天数算法 + 日历回显 + 成就徽章（7天/30天）
+- **一人一赞系统**：新增 like_toggle.lua 原子脚本（SISMEMBER → SADD/SREM + INCR/DECR，负数保护），Redisson RLock 用户级分布式锁（tryLock 1s/5s），LikeCountSyncTask 每5分钟 Write-Behind 同步到 DB
+- ArticleService 大幅重构：toggleLike/isLiked/getLikeCount，toResponse 读取 Redis 点赞数（DB 降级），createArticle 同步布隆过滤器 + 推送 Feed，deleteArticle 清理5个Redis Key
+- ArticleController 新增：POST /{id}/like（@RateLimit 10/60）、GET /{id}/like/status、GET /hot/weekly
+- ArticleResponse 新增 uvCount/liked 字段
+- **ZSet Feed 流**：新增 UserTagFollow 实体 + Repository，FollowService 双写 Redis+DB，FeedService 推模式 Fan-Out（ZADD timestamp），queryFeed ZREVRANGEBYSCORE 滚动分页（ScrollResult DTO）
+- FeedController：POST/DELETE /tags/{tagId}/follow、GET /tags/{tagId}/follow/status、GET /tags/followed、GET /feed
+- FeedCleanupTask：每日凌晨3点裁剪 Feed ZSet 至500条
+- **HyperLogLog UV 统计**：getArticleAndIncrementView 增加 PFADD（文章级 + 全站日级），IP + User-Agent 指纹去重
+- HotRankTask：每小时整点 PFCOUNT → ZADD 刷新热门榜
+- DashboardService 新增 getUvTrend()：基于 HyperLogLog 日 UV + Redis 日 PV 趋势
+- AdminDashboardController 新增 GET /api/admin/dashboard/uv-trend 接口
+- SecurityConfig 新增标签关注状态匿名访问放行规则
+- RedisKeyPrefix 扩展 12 个新常量（5大功能模块）
+- 新增 Redisson 3.25.2 依赖（分布式锁 + 布隆过滤器）
 
 ### 2026-03-01（v1.9.2 AI 智能助手 + 像素猫增强）
 - 新增 AI 智能助手组件（Dify Agent + DeepSeek + RAG 知识库检索）
