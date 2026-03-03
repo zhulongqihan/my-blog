@@ -1,243 +1,243 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import './PixelCat.css';
+import './PixelSheep.css';
 
 // ─── Pixel Art Config ────────────────────────────
 const PX = 3;
 
 const PALETTE: Record<string, string> = {
-  B: '#4E342E', // dark brown — outline
-  b: '#6D4C41', // medium brown — tail
-  C: '#F5E6D3', // cream — body
-  E: '#42A5F5', // blue — eyes
+  O: '#3E2723', // dark brown — outline & legs
+  W: '#FAFAFA', // white — wool
+  C: '#E0E0E0', // light grey — wool curl detail
+  G: '#78909C', // blue-grey — face
+  E: '#263238', // very dark — eyes
   N: '#EC407A', // pink — nose
-  A: '#F48FB1', // pink — inner ear
-  W: '#FFFDE7', // off-white — belly
+  P: '#F48FB1', // pink — inner ear
 };
 
-type CatState = 'idle' | 'walk' | 'sleep' | 'play' | 'lick';
+type SheepState = 'idle' | 'walk' | 'sleep' | 'play' | 'graze';
 
 // ─── Sprite Frames (17 wide × 14 tall) ──────────
-const FRAMES: Record<CatState, string[][]> = {
+const FRAMES: Record<SheepState, string[][]> = {
   idle: [
     [
-      '....B.......B....',
-      '...BAB.....BAB...',
-      '...BCBBBBBBBCB...',
-      '..BCCCCCCCCCCCB..',
-      '..BCCECCCCCECCB..',
-      '..BCCCCCNCCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '..BCCCCWWWCCCCB..',
-      '..BCCCCWWWCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '...BCCCCCCCCCB...',
-      '...BB.......BB...',
-      '..............bBb',
+      '....O.......O....',
+      '...OPO.....OPO...',
+      '...OGGGGGGGGGO...',
+      '..OGGEGGGGGEGGO..',
+      '..OGGGGGNGGGGGO..',
+      '..OGGGGGGGGGGGO..',
+      '.OWWWWWWWWWWWWWO.',
+      'OWWWWWWWWWWWWWWWO',
+      'OWWWCWWWWWWCWWWWO',
+      'OWWWWWWWWWWWWWWWO',
+      '.OWWWWWWWWWWWWWO.',
+      '..OWWWWWWWWWWO...',
+      '...OO.......OO...',
+      '...OO.......OO...',
     ],
     [
-      '....B.......B....',
-      '...BAB.....BAB...',
-      '...BCBBBBBBBCB...',
-      '..BCCCCCCCCCCCB..',
-      '..BCCECCCCCECCB..',
-      '..BCCCCCNCCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '..BCCCCWWWCCCCB..',
-      '..BCCCCWWWCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '...BCCCCCCCCCB...',
-      '...BB.......BB...',
-      '.............bBb.',
+      '....O.......O....',
+      '...OPO.....OPO...',
+      '...OGGGGGGGGGO...',
+      '..OGGEGGGGGEGGO..',
+      '..OGGGGGNGGGGGO..',
+      '..OGGGGGGGGGGGO..',
+      '.OWWWWWWWWWWWWWO.',
+      'OWWWWWWWWWWWWWWWO',
+      'OWWWWCWWWWCWWWWWO',
+      'OWWWWWWWWWWWWWWWO',
+      '.OWWWWWWWWWWWWWO.',
+      '..OWWWWWWWWWWO...',
+      '...OO.......OO...',
+      '...OO.......OO...',
     ],
   ],
   walk: [
     [
-      '....B.......B....',
-      '...BAB.....BAB...',
-      '...BCBBBBBBBCB...',
-      '..BCCCCCCCCCCCB..',
-      '..BCCECCCCCECCB..',
-      '..BCCCCCNCCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '..BCCCCWWWCCCCB..',
-      '..BCCCCWWWCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '...BCCCCCCCCCB...',
-      '..B...........B..',
-      '..B...........B..',
+      '....O.......O....',
+      '...OPO.....OPO...',
+      '...OGGGGGGGGGO...',
+      '..OGGEGGGGGEGGO..',
+      '..OGGGGGNGGGGGO..',
+      '..OGGGGGGGGGGGO..',
+      '.OWWWWWWWWWWWWWO.',
+      'OWWWWWWWWWWWWWWWO',
+      'OWWWCWWWWWWCWWWWO',
+      'OWWWWWWWWWWWWWWWO',
+      '.OWWWWWWWWWWWWWO.',
+      '..OWWWWWWWWWWO...',
+      '..OO..........OO.',
+      '..OO..........OO.',
     ],
     [
-      '....B.......B....',
-      '...BAB.....BAB...',
-      '...BCBBBBBBBCB...',
-      '..BCCCCCCCCCCCB..',
-      '..BCCECCCCCECCB..',
-      '..BCCCCCNCCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '..BCCCCWWWCCCCB..',
-      '..BCCCCWWWCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '...BCCCCCCCCCB...',
-      '....B.......B....',
-      '....B.......B....',
+      '....O.......O....',
+      '...OPO.....OPO...',
+      '...OGGGGGGGGGO...',
+      '..OGGEGGGGGEGGO..',
+      '..OGGGGGNGGGGGO..',
+      '..OGGGGGGGGGGGO..',
+      '.OWWWWWWWWWWWWWO.',
+      'OWWWWWWWWWWWWWWWO',
+      'OWWWCWWWWWWCWWWWO',
+      'OWWWWWWWWWWWWWWWO',
+      '.OWWWWWWWWWWWWWO.',
+      '..OWWWWWWWWWWO...',
+      '....OO.....OO....',
+      '....OO.....OO....',
     ],
   ],
   sleep: [
     [
-      '....B.......B....',
-      '...BAB.....BAB...',
-      '...BCBBBBBBBCB...',
-      '..BCCCCCCCCCCCB..',
-      '..BCCbBCCCbBCCB..',
-      '..BCCCCCNCCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '..BCCCCWWWCCCCB..',
-      '..BCCCCWWWCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '...BCCCCCCCCCB...',
-      '...BB.......BB...',
-      '..............bBb',
+      '....O.......O....',
+      '...OPO.....OPO...',
+      '...OGGGGGGGGGO...',
+      '..OGGOGGGGGOGGO..',
+      '..OGGGGGNGGGGGO..',
+      '..OGGGGGGGGGGGO..',
+      '.OWWWWWWWWWWWWWO.',
+      'OWWWWWWWWWWWWWWWO',
+      'OWWWCWWWWWWCWWWWO',
+      'OWWWWWWWWWWWWWWWO',
+      '.OWWWWWWWWWWWWWO.',
+      '..OWWWWWWWWWWO...',
+      '...OO.......OO...',
+      '...OO.......OO...',
     ],
     [
-      '....B.......B....',
-      '...BAB.....BAB...',
-      '...BCBBBBBBBCB...',
-      '..BCCCCCCCCCCCB..',
-      '..BCCbBCCCbBCCB..',
-      '..BCCCCCNCCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '..BCCCWWWWWCCCB..',
-      '..BCCCWWWWWCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '...BCCCCCCCCCB...',
-      '...BB.......BB...',
-      '..............bBb',
+      '....O.......O....',
+      '...OPO.....OPO...',
+      '...OGGGGGGGGGO...',
+      '..OGGOGGGGGOGGO..',
+      '..OGGGGGNGGGGGO..',
+      '..OGGGGGGGGGGGO..',
+      '.OWWWWWWWWWWWWWO.',
+      'OWWWWWWWWWWWWWWWO',
+      'OWWWWCWWWWCWWWWWO',
+      'OWWWWWWWWWWWWWWWO',
+      '.OWWWCWWWWWCWWWO.',
+      '..OWWWWWWWWWWO...',
+      '...OO.......OO...',
+      '...OO.......OO...',
     ],
   ],
   play: [
     [
-      '....B.......B....',
-      '...BAB.....BAB...',
-      '...BCBBBBBBBCB...',
-      '..BCCCCCCCCCCCB..',
-      '..BCEECCCCCEECB..',
-      '..BCCCCCNCCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '..BCCCCWWWCCCCB..',
-      '..BCCCCWWWCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '...BCCCCCCCCCB...',
-      '...BB.......BB...',
-      '..............Bb.',
+      '....O.......O....',
+      '...OPO.....OPO...',
+      '...OGGGGGGGGGO...',
+      '..OGEEGGGGGEEGO..',
+      '..OGGGGGNGGGGGO..',
+      '..OGGGGGGGGGGGO..',
+      '.OWWWWWWWWWWWWWO.',
+      'OWWWWWWWWWWWWWWWO',
+      'OWWWCWWWWWWCWWWWO',
+      'OWWWWWWWWWWWWWWWO',
+      '.OWWWWWWWWWWWWWO.',
+      '..OWWWWWWWWWWO...',
+      '...OO.......OO...',
+      '..............OW.',
     ],
     [
-      '....B.......B....',
-      '...BAB.....BAB...',
-      '...BCBBBBBBBCB...',
-      '..BCCCCCCCCCCCB..',
-      '..BCEECCCCCEECB..',
-      '..BCCCCCNCCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '..BCCCCWWWCCCCB..',
-      '..BCCCCWWWCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '...BCCCCCCCCCB...',
-      '...BB.......BB...',
-      '.............Bb..',
+      '....O.......O....',
+      '...OPO.....OPO...',
+      '...OGGGGGGGGGO...',
+      '..OGEEGGGGGEEGO..',
+      '..OGGGGGNGGGGGO..',
+      '..OGGGGGGGGGGGO..',
+      '.OWWWWWWWWWWWWWO.',
+      'OWWWWWWWWWWWWWWWO',
+      'OWWWCWWWWWWCWWWWO',
+      'OWWWWWWWWWWWWWWWO',
+      '.OWWWWWWWWWWWWWO.',
+      '..OWWWWWWWWWWO...',
+      '...OO.......OO...',
+      '.............OW..',
     ],
   ],
-  lick: [
+  graze: [
     [
-      '....B.......B....',
-      '...BAB.....BAB...',
-      '...BCBBBBBBBCB...',
-      '..BCCCCCCCCCCCB..',
-      '..BCCbBCCCCECCB..',
-      '..BCCCCCNCCCCCB..',
-      '..BCCCCCNCCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '..BCCCCWWWCCCCB..',
-      '..BCCCCWWWCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '...BCCCCCCCCCB...',
-      '...BB.......BB...',
-      '..............bBb',
+      '....O.......O....',
+      '...OPO.....OPO...',
+      '...OGGGGGGGGGO...',
+      '..OGGOGGGGGEGGO..',
+      '..OGGGGGNGGGGGO..',
+      '..OGGGGGNGGGGGO..',
+      '.OWWWWWWWWWWWWWO.',
+      'OWWWWWWWWWWWWWWWO',
+      'OWWWCWWWWWWCWWWWO',
+      'OWWWWWWWWWWWWWWWO',
+      '.OWWWWWWWWWWWWWO.',
+      '..OWWWWWWWWWWO...',
+      '...OO.......OO...',
+      '...OO.......OO...',
     ],
     [
-      '....B.......B....',
-      '...BAB.....BAB...',
-      '...BCBBBBBBBCB...',
-      '..BCCCCCCCCCCCB..',
-      '..BCCbBCCCCECCB..',
-      '..BCCCCCNCCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '..BCCCCWWWCCCCB..',
-      '..BCCCCWWWCCCCB..',
-      '..BCCCCCCCCCCCB..',
-      '...BCCCCCCCCCB...',
-      '...BB.......BB...',
-      '..............bBb',
+      '....O.......O....',
+      '...OPO.....OPO...',
+      '...OGGGGGGGGGO...',
+      '..OGGOGGGGGEGGO..',
+      '..OGGGGGNGGGGGO..',
+      '..OGGGGGGGGGGGO..',
+      '.OWWWWWWWWWWWWWO.',
+      'OWWWWWWWWWWWWWWWO',
+      'OWWWWCWWWWCWWWWWO',
+      'OWWWWWWWWWWWWWWWO',
+      '.OWWWWWWWWWWWWWO.',
+      '..OWWWWWWWWWWO...',
+      '...OO.......OO...',
+      '...OO.......OO...',
     ],
   ],
 };
 
-// ─── Fish Pixel Art (7×5) ────────────────────────
-const FISH_FRAME = [
+// ─── Clover Pixel Art (7×5) ─────────────────────
+const CLOVER_FRAME = [
   '..BBB..',
   '.BCCCB.',
   'BCCECCB',
   '.BCCCB.',
   '..BBB..',
 ];
-const FISH_PALETTE: Record<string, string> = {
-  B: '#8D6E63',
-  C: '#FFD54F',
-  E: '#4E342E',
+const CLOVER_PALETTE: Record<string, string> = {
+  B: '#2E7D32',
+  C: '#81C784',
+  E: '#1B5E20',
 };
 
-function fishToBoxShadow(): string {
+function cloverToBoxShadow(): string {
   const shadows: string[] = [];
-  for (let y = 0; y < FISH_FRAME.length; y++) {
-    for (let x = 0; x < FISH_FRAME[y].length; x++) {
-      const ch = FISH_FRAME[y][x];
-      if (ch !== '.' && FISH_PALETTE[ch]) {
-        shadows.push(`${x * PX}px ${y * PX}px 0 ${FISH_PALETTE[ch]}`);
+  for (let y = 0; y < CLOVER_FRAME.length; y++) {
+    for (let x = 0; x < CLOVER_FRAME[y].length; x++) {
+      const ch = CLOVER_FRAME[y][x];
+      if (ch !== '.' && CLOVER_PALETTE[ch]) {
+        shadows.push(`${x * PX}px ${y * PX}px 0 ${CLOVER_PALETTE[ch]}`);
       }
     }
   }
   return shadows.join(',');
 }
 
-const FISH_SHADOW = fishToBoxShadow();
+const CLOVER_SHADOW = cloverToBoxShadow();
 
 // ─── Easter Egg Messages ─────────────────────────
 const CLICK_MESSAGES: Record<number, string> = {
-  1: '喵~',
-  3: '又戳我！',
-  5: '好痒...',
-  7: '朕准了 🐱',
-  10: '十连抽猫猫！✨',
-  15: '要把我戳穿吗 💢',
-  20: '🏆 解锁成就：猫奴',
-  30: '🌟 超级赛亚猫变身！',
+  1: '咩~',
+  3: '别薅羊毛！',
+  5: '痒痒的...',
+  7: '咩咩咩~ 🐑',
+  10: '十连薅！✨',
+  15: '真的要秃了 💢',
+  20: '🏆 解锁成就：牧羊人',
+  30: '🌟 黄金小羊变身！',
 };
 
 // ─── State Machine Config ────────────────────────
-const STATE_DURATIONS: Record<CatState, [number, number]> = {
+const STATE_DURATIONS: Record<SheepState, [number, number]> = {
   idle: [5000, 10000],
   walk: [3000, 6000],
   sleep: [8000, 15000],
   play: [2000, 4000],
-  lick: [3000, 5000],
+  graze: [3000, 5000],
 };
 
 function randomBetween(min: number, max: number): number {
@@ -245,31 +245,31 @@ function randomBetween(min: number, max: number): number {
 }
 
 // ─── Mood-aware transitions ──────────────────────
-function getTransitions(mood: number): Record<CatState, CatState[]> {
+function getTransitions(mood: number): Record<SheepState, SheepState[]> {
   if (mood > 70) {
     return {
-      idle: ['walk', 'play', 'lick', 'idle'],
-      walk: ['idle', 'play', 'lick'],
+      idle: ['walk', 'play', 'graze', 'idle'],
+      walk: ['idle', 'play', 'graze'],
       sleep: ['idle', 'idle', 'play'],
-      play: ['idle', 'walk', 'lick'],
-      lick: ['idle', 'walk', 'play'],
+      play: ['idle', 'walk', 'graze'],
+      graze: ['idle', 'walk', 'play'],
     };
   }
   if (mood < 30) {
     return {
-      idle: ['sleep', 'idle', 'idle', 'lick'],
+      idle: ['sleep', 'idle', 'idle', 'graze'],
       walk: ['idle', 'idle', 'sleep'],
-      sleep: ['sleep', 'idle', 'lick'],
+      sleep: ['sleep', 'idle', 'graze'],
       play: ['idle', 'idle'],
-      lick: ['idle', 'sleep'],
+      graze: ['idle', 'sleep'],
     };
   }
   return {
-    idle: ['walk', 'lick', 'idle', 'idle'],
-    walk: ['idle', 'idle', 'lick'],
-    sleep: ['idle', 'idle', 'lick'],
-    play: ['idle', 'lick'],
-    lick: ['idle', 'idle', 'walk'],
+    idle: ['walk', 'graze', 'idle', 'idle'],
+    walk: ['idle', 'idle', 'graze'],
+    sleep: ['idle', 'idle', 'graze'],
+    play: ['idle', 'graze'],
+    graze: ['idle', 'idle', 'walk'],
   };
 }
 
@@ -293,10 +293,10 @@ function frameToBoxShadow(frame: string[], dir: 1 | -1): string {
 }
 
 function getMoodEmoji(mood: number): string {
-  if (mood > 80) return '😸';
+  if (mood > 80) return '🐑';
   if (mood > 60) return '😊';
   if (mood > 40) return '😐';
-  if (mood > 20) return '😿';
+  if (mood > 20) return '🥺';
   return '😢';
 }
 
@@ -306,51 +306,63 @@ function getMoodColor(mood: number): string {
   return '#EF5350';
 }
 
-// ─── Fish Type ───────────────────────────────────
-interface Fish {
+// ─── Clover Type ─────────────────────────────────
+interface Clover {
   id: number;
   x: number;
   duration: number;
   collected: boolean;
 }
 
+// ─── Wool Particle Type ──────────────────────────
+interface WoolParticle {
+  id: number;
+  x: number;
+  y: number;
+  size: number;
+  opacity: number;
+}
+
 // ─── Component ───────────────────────────────────
-const PixelCat: React.FC = () => {
+const PixelSheep: React.FC = () => {
   // ── Position ──
   const [posX, setPosX] = useState(() => {
-    const saved = localStorage.getItem('pixelcat-posX');
+    const saved = localStorage.getItem('pixelsheep-posX');
     return saved ? parseInt(saved, 10) : Math.floor(window.innerWidth / 2);
   });
-  const [posY, setPosY] = useState(12); // bottom offset (used during drag)
+  const [posY, setPosY] = useState(12);
 
   // ── State machine ──
-  const [catState, setCatState] = useState<CatState>('idle');
+  const [sheepState, setSheepState] = useState<SheepState>('idle');
   const [frameIdx, setFrameIdx] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
 
   // ── Click counter ──
   const [clickCount, setClickCount] = useState(() => {
-    const saved = localStorage.getItem('pixelcat-clicks');
+    const saved = localStorage.getItem('pixelsheep-clicks');
     return saved ? parseInt(saved, 10) : 0;
   });
 
   // ── Mood (0-100) ──
   const [mood, setMood] = useState(() => {
-    const saved = localStorage.getItem('pixelcat-mood');
+    const saved = localStorage.getItem('pixelsheep-mood');
     return saved ? Math.min(100, Math.max(0, parseInt(saved, 10))) : 70;
   });
 
-  // ── Fish collection ──
-  const [fishCount, setFishCount] = useState(() => {
-    const saved = localStorage.getItem('pixelcat-fish');
+  // ── Grass collection ──
+  const [grassCount, setGrassCount] = useState(() => {
+    const saved = localStorage.getItem('pixelsheep-grass');
     return saved ? parseInt(saved, 10) : 0;
   });
-  const [fishes, setFishes] = useState<Fish[]>([]);
+  const [clovers, setClovers] = useState<Clover[]>([]);
+
+  // ── Wool particles ──
+  const [woolParticles, setWoolParticles] = useState<WoolParticle[]>([]);
 
   // ── UI ──
   const [message, setMessage] = useState<string | null>(null);
   const [isHidden, setIsHidden] = useState(() => {
-    return localStorage.getItem('pixelcat-hidden') === 'true';
+    return localStorage.getItem('pixelsheep-hidden') === 'true';
   });
   const [isSuperSaiyan, setIsSuperSaiyan] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -363,14 +375,15 @@ const PixelCat: React.FC = () => {
   const lastActivityRef = useRef(Date.now());
   const posXRef = useRef(posX);
   const dragRef = useRef({ startX: 0, startY: 0, origX: 0, active: false, timer: 0 as number });
-  const fishIdRef = useRef(0);
+  const cloverIdRef = useRef(0);
+  const woolIdRef = useRef(0);
   const moodRef = useRef(mood);
 
   useEffect(() => { posXRef.current = posX; }, [posX]);
   useEffect(() => { moodRef.current = mood; }, [mood]);
 
   // ── Sprite metrics ──
-  const currentFrames = FRAMES[catState];
+  const currentFrames = FRAMES[sheepState];
   const spriteWidth = currentFrames[0][0].length * PX;
   const spriteHeight = currentFrames[0].length * PX;
 
@@ -384,24 +397,48 @@ const PixelCat: React.FC = () => {
   // ─────────────────────────────────────────────────
   useEffect(() => {
     const interval = setInterval(() => {
-      setMood(prev => Math.max(0, prev - 1)); // -1 every 12s = ~5/min
+      setMood(prev => Math.max(0, prev - 1));
     }, 12_000);
     return () => clearInterval(interval);
   }, []);
 
   // ─────────────────────────────────────────────────
-  // FISH SPAWN SYSTEM
+  // WOOL PARTICLE SYSTEM (walk state)
+  // ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (sheepState !== 'walk' || isHidden || isDragging) return;
+    const interval = setInterval(() => {
+      const id = ++woolIdRef.current;
+      const offsetX = direction === 1 ? -randomBetween(2, 8) : spriteWidth + randomBetween(2, 8);
+      setWoolParticles(prev => [
+        ...prev,
+        {
+          id,
+          x: posXRef.current + offsetX,
+          y: window.innerHeight - 20 - randomBetween(5, spriteHeight - 10),
+          size: randomBetween(2, 5),
+          opacity: 0.6 + Math.random() * 0.4,
+        },
+      ]);
+      setTimeout(() => {
+        setWoolParticles(prev => prev.filter(p => p.id !== id));
+      }, 1200);
+    }, 350);
+    return () => clearInterval(interval);
+  }, [sheepState, isHidden, isDragging, direction, spriteWidth, spriteHeight]);
+
+  // ─────────────────────────────────────────────────
+  // CLOVER SPAWN SYSTEM
   // ─────────────────────────────────────────────────
   useEffect(() => {
     if (isHidden) return;
     const spawn = () => {
-      const id = ++fishIdRef.current;
+      const id = ++cloverIdRef.current;
       const x = randomBetween(30, window.innerWidth - 60);
       const duration = randomBetween(14, 22);
-      setFishes(prev => [...prev, { id, x, duration, collected: false }]);
-      // Auto-remove after fall
+      setClovers(prev => [...prev, { id, x, duration, collected: false }]);
       setTimeout(() => {
-        setFishes(prev => prev.filter(f => f.id !== id));
+        setClovers(prev => prev.filter(c => c.id !== id));
       }, duration * 1000 + 500);
     };
     const scheduleNext = () => {
@@ -411,7 +448,6 @@ const PixelCat: React.FC = () => {
         timerRef = scheduleNext();
       }, delay);
     };
-    // First fish after short delay
     let timerRef = setTimeout(() => {
       spawn();
       timerRef = scheduleNext();
@@ -419,14 +455,14 @@ const PixelCat: React.FC = () => {
     return () => clearTimeout(timerRef);
   }, [isHidden]);
 
-  // ── Collect fish ──
-  const collectFish = useCallback((fishId: number) => {
-    setFishes(prev => prev.map(f => f.id === fishId ? { ...f, collected: true } : f));
-    setFishCount(prev => prev + 1);
+  // ── Collect clover ──
+  const collectClover = useCallback((cloverId: number) => {
+    setClovers(prev => prev.map(c => c.id === cloverId ? { ...c, collected: true } : c));
+    setGrassCount(prev => prev + 1);
     setMood(prev => Math.min(100, prev + 8));
-    showMessage('🐟 鱼干 +1！', 2000);
+    showMessage('🌿 鲜草 +1！', 2000);
     setTimeout(() => {
-      setFishes(prev => prev.filter(f => f.id !== fishId));
+      setClovers(prev => prev.filter(c => c.id !== cloverId));
     }, 500);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -445,7 +481,7 @@ const PixelCat: React.FC = () => {
   // STATE TRANSITION (mood-aware)
   // ─────────────────────────────────────────────────
   const transitionState = useCallback(() => {
-    setCatState(prev => {
+    setSheepState(prev => {
       const transitions = getTransitions(moodRef.current);
       const options = transitions[prev];
       const next = options[Math.floor(Math.random() * options.length)];
@@ -459,16 +495,16 @@ const PixelCat: React.FC = () => {
 
   // ── Frame Animation ──
   useEffect(() => {
-    const fps = catState === 'walk' ? 200 : catState === 'sleep' ? 1000 : catState === 'play' ? 250 : 500;
+    const fps = sheepState === 'walk' ? 200 : sheepState === 'sleep' ? 1000 : sheepState === 'play' ? 250 : 500;
     const interval = setInterval(() => {
       setFrameIdx(prev => (prev + 1) % currentFrames.length);
     }, fps);
     return () => clearInterval(interval);
-  }, [catState, currentFrames.length]);
+  }, [sheepState, currentFrames.length]);
 
   // ── Walk Movement ──
   useEffect(() => {
-    if (catState !== 'walk' || isDragging) return;
+    if (sheepState !== 'walk' || isDragging) return;
     const speed = 2;
     const interval = setInterval(() => {
       setPosX(prev => {
@@ -480,29 +516,29 @@ const PixelCat: React.FC = () => {
       });
     }, 50);
     return () => clearInterval(interval);
-  }, [catState, direction, spriteWidth, isDragging]);
+  }, [sheepState, direction, spriteWidth, isDragging]);
 
   // ── Auto Transitions ──
   useEffect(() => {
     if (isDragging) return;
-    const [minDur, maxDur] = STATE_DURATIONS[catState];
+    const [minDur, maxDur] = STATE_DURATIONS[sheepState];
     stateTimerRef.current = setTimeout(transitionState, randomBetween(minDur, maxDur));
     return () => clearTimeout(stateTimerRef.current);
-  }, [catState, transitionState, isDragging]);
+  }, [sheepState, transitionState, isDragging]);
 
   // ── Idle Timeout → Sleep ──
   useEffect(() => {
     const checkIdle = setInterval(() => {
       const elapsed = Date.now() - lastActivityRef.current;
-      if (elapsed > 5 * 60 * 1000 && catState === 'idle') showMessage('有水喝吗...💧');
-      if (elapsed > 10 * 60 * 1000 && catState !== 'sleep') {
-        setCatState('sleep');
+      if (elapsed > 5 * 60 * 1000 && sheepState === 'idle') showMessage('有水喝吗...💧');
+      if (elapsed > 10 * 60 * 1000 && sheepState !== 'sleep') {
+        setSheepState('sleep');
         setFrameIdx(0);
         showMessage('💤 zzZ...');
       }
     }, 30_000);
     return () => clearInterval(checkIdle);
-  }, [catState, showMessage]);
+  }, [sheepState, showMessage]);
 
   // ── Mouse Proximity → Play ──
   useEffect(() => {
@@ -516,8 +552,8 @@ const PixelCat: React.FC = () => {
       const cx = posXRef.current + spriteWidth / 2;
       const cy = window.innerHeight - 12 - spriteHeight / 2;
       const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
-      if (dist < 80 && catState === 'idle') {
-        setCatState('play');
+      if (dist < 80 && sheepState === 'idle') {
+        setSheepState('play');
         setFrameIdx(0);
         setDirection(e.clientX > cx ? 1 : -1);
         clearTimeout(stateTimerRef.current);
@@ -526,25 +562,24 @@ const PixelCat: React.FC = () => {
     };
     window.addEventListener('mousemove', handler, { passive: true });
     return () => window.removeEventListener('mousemove', handler);
-  }, [catState, spriteWidth, spriteHeight, transitionState, isDragging]);
+  }, [sheepState, spriteWidth, spriteHeight, transitionState, isDragging]);
 
   // ─────────────────────────────────────────────────
   // DRAG SYSTEM
   // ─────────────────────────────────────────────────
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    if (e.button === 2) return; // ignore right-click
+    if (e.button === 2) return;
     const ref = dragRef.current;
     ref.startX = e.clientX;
     ref.startY = e.clientY;
     ref.origX = posXRef.current;
     ref.active = false;
-    // Start drag after 300ms hold
     ref.timer = window.setTimeout(() => {
       ref.active = true;
       setIsDragging(true);
-      setCatState('play');
+      setSheepState('play');
       setFrameIdx(0);
-      showMessage('放我下来啦！😹', 5000);
+      showMessage('放我下来啦！😤', 5000);
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     }, 300);
   }, [showMessage]);
@@ -552,7 +587,6 @@ const PixelCat: React.FC = () => {
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     const ref = dragRef.current;
     if (!ref.active) {
-      // If moved too much before timer, cancel drag intent
       if (Math.abs(e.clientX - ref.startX) > 5 || Math.abs(e.clientY - ref.startY) > 5) {
         clearTimeout(ref.timer);
       }
@@ -571,11 +605,11 @@ const PixelCat: React.FC = () => {
     ref.active = false;
     setIsDragging(false);
     setIsDropping(true);
-    setPosY(12); // snap back to bottom
+    setPosY(12);
     setMood(prev => Math.min(100, prev + 5));
     setTimeout(() => {
       setIsDropping(false);
-      setCatState('idle');
+      setSheepState('idle');
       setFrameIdx(0);
     }, 500);
   }, []);
@@ -591,35 +625,35 @@ const PixelCat: React.FC = () => {
 
   const closePanel = useCallback(() => setPanel(null), []);
 
-  const feedCat = useCallback(() => {
-    if (fishCount <= 0) {
-      showMessage('没有鱼干了...🥺', 2000);
+  const feedSheep = useCallback(() => {
+    if (grassCount <= 0) {
+      showMessage('没有鲜草了...🥺', 2000);
       return;
     }
-    setFishCount(prev => prev - 1);
+    setGrassCount(prev => prev - 1);
     setMood(prev => Math.min(100, prev + 15));
-    setCatState('lick');
+    setSheepState('graze');
     setFrameIdx(0);
     showMessage('好吃！😋', 3000);
     setPanel(null);
-  }, [fishCount, showMessage]);
+  }, [grassCount, showMessage]);
 
-  const petCat = useCallback(() => {
+  const petSheep = useCallback(() => {
     setMood(prev => Math.min(100, prev + 5));
-    setCatState('play');
+    setSheepState('play');
     setFrameIdx(0);
-    showMessage('咕噜咕噜~ 🥰', 3000);
+    showMessage('蹭蹭~ 🥰', 3000);
     setPanel(null);
   }, [showMessage]);
 
   // ─────────────────────────────────────────────────
   // PERSIST
   // ─────────────────────────────────────────────────
-  useEffect(() => { localStorage.setItem('pixelcat-clicks', String(clickCount)); }, [clickCount]);
-  useEffect(() => { localStorage.setItem('pixelcat-posX', String(posX)); }, [posX]);
-  useEffect(() => { localStorage.setItem('pixelcat-hidden', String(isHidden)); }, [isHidden]);
-  useEffect(() => { localStorage.setItem('pixelcat-mood', String(mood)); }, [mood]);
-  useEffect(() => { localStorage.setItem('pixelcat-fish', String(fishCount)); }, [fishCount]);
+  useEffect(() => { localStorage.setItem('pixelsheep-clicks', String(clickCount)); }, [clickCount]);
+  useEffect(() => { localStorage.setItem('pixelsheep-posX', String(posX)); }, [posX]);
+  useEffect(() => { localStorage.setItem('pixelsheep-hidden', String(isHidden)); }, [isHidden]);
+  useEffect(() => { localStorage.setItem('pixelsheep-mood', String(mood)); }, [mood]);
+  useEffect(() => { localStorage.setItem('pixelsheep-grass', String(grassCount)); }, [grassCount]);
 
   // Time-of-day greeting
   useEffect(() => {
@@ -638,7 +672,6 @@ const PixelCat: React.FC = () => {
   // ─────────────────────────────────────────────────
   const handleClick = useCallback((e: React.MouseEvent) => {
     if (isDragging) return;
-    // Don't count if just finished dragging
     if (dragRef.current.active) return;
     e.stopPropagation();
     lastActivityRef.current = Date.now();
@@ -653,60 +686,80 @@ const PixelCat: React.FC = () => {
         setTimeout(() => setIsSuperSaiyan(false), 10_000);
       }
     } else if (newCount > 30 && newCount % 10 === 0) {
-      showMessage(`${newCount} 次了还戳！🐾`, 2000);
+      showMessage(`${newCount} 次了还薅！🐾`, 2000);
     }
 
-    if (catState === 'sleep') {
-      setCatState('idle');
+    if (sheepState === 'sleep') {
+      setSheepState('idle');
       setFrameIdx(0);
-      if (!CLICK_MESSAGES[newCount]) showMessage('喵？你把我吵醒了…');
-    } else if (catState !== 'play') {
-      setCatState('play');
+      if (!CLICK_MESSAGES[newCount]) showMessage('咩？你把我吵醒了…');
+    } else if (sheepState !== 'play') {
+      setSheepState('play');
       setFrameIdx(0);
       clearTimeout(stateTimerRef.current);
       stateTimerRef.current = setTimeout(transitionState, 2000);
     }
-  }, [clickCount, catState, showMessage, transitionState, isDragging]);
+  }, [clickCount, sheepState, showMessage, transitionState, isDragging]);
 
   // ─────────────────────────────────────────────────
   // RENDER
   // ─────────────────────────────────────────────────
 
-  // Hidden state
   if (isHidden) {
     return (
-      <button className="pixel-cat__toggle pixel-cat__toggle--show" onClick={() => setIsHidden(false)} title="显示猫猫">🐱</button>
+      <button
+        className="pixel-sheep__toggle pixel-sheep__toggle--show"
+        onClick={() => setIsHidden(false)}
+        title="显示小羊"
+      >
+        🐑
+      </button>
     );
   }
 
-  const catClasses = [
-    'pixel-cat',
-    isSuperSaiyan && 'pixel-cat--golden',
-    isDragging && 'pixel-cat--dragging',
-    isDropping && 'pixel-cat--dropping',
+  const sheepClasses = [
+    'pixel-sheep',
+    isSuperSaiyan && 'pixel-sheep--golden',
+    isDragging && 'pixel-sheep--dragging',
+    isDropping && 'pixel-sheep--dropping',
   ].filter(Boolean).join(' ');
 
   return (
     <>
-      {/* ── Falling Fishes ── */}
-      {fishes.map(fish => (
+      {/* ── Wool Particles ── */}
+      {woolParticles.map(p => (
         <div
-          key={fish.id}
-          className={`pixel-cat__fish${fish.collected ? ' pixel-cat__fish--collected' : ''}`}
+          key={p.id}
+          className="pixel-sheep__wool-particle"
           style={{
-            left: fish.x,
-            animationDuration: `${fish.duration}s`,
-            width: FISH_FRAME[0].length * PX + 16,
-            height: FISH_FRAME.length * PX + 16,
+            left: p.x,
+            top: p.y,
+            width: p.size,
+            height: p.size,
+            opacity: p.opacity,
           }}
-          onClick={(e) => { e.stopPropagation(); if (!fish.collected) collectFish(fish.id); }}
+        />
+      ))}
+
+      {/* ── Falling Clovers ── */}
+      {clovers.map(clover => (
+        <div
+          key={clover.id}
+          className={`pixel-sheep__clover${clover.collected ? ' pixel-sheep__clover--collected' : ''}`}
+          style={{
+            left: clover.x,
+            animationDuration: `${clover.duration}s`,
+            width: CLOVER_FRAME[0].length * PX + 16,
+            height: CLOVER_FRAME.length * PX + 16,
+          }}
+          onClick={(e) => { e.stopPropagation(); if (!clover.collected) collectClover(clover.id); }}
         >
           <div
-            className="pixel-cat__fish-sprite"
+            className="pixel-sheep__clover-sprite"
             style={{
               width: PX,
               height: PX,
-              boxShadow: FISH_SHADOW,
+              boxShadow: CLOVER_SHADOW,
               marginLeft: 8,
               marginTop: 8,
             }}
@@ -714,9 +767,9 @@ const PixelCat: React.FC = () => {
         </div>
       ))}
 
-      {/* ── Cat ── */}
+      {/* ── Sheep ── */}
       <div
-        className={catClasses}
+        className={sheepClasses}
         style={{
           left: posX,
           bottom: posY,
@@ -730,14 +783,14 @@ const PixelCat: React.FC = () => {
         onPointerUp={handlePointerUp}
       >
         {/* Mood indicator */}
-        <div className="pixel-cat__mood">{getMoodEmoji(mood)}</div>
+        <div className="pixel-sheep__mood">{getMoodEmoji(mood)}</div>
 
         {/* Speech Bubble */}
-        {message && <div className="pixel-cat__bubble">{message}</div>}
+        {message && <div className="pixel-sheep__bubble">{message}</div>}
 
         {/* Sprite */}
         <div
-          className={`pixel-cat__sprite pixel-cat__sprite--${catState}`}
+          className={`pixel-sheep__sprite pixel-sheep__sprite--${sheepState}`}
           style={{
             position: 'absolute',
             bottom: 0,
@@ -750,9 +803,9 @@ const PixelCat: React.FC = () => {
 
         {/* Hide button */}
         <button
-          className="pixel-cat__hide"
+          className="pixel-sheep__hide"
           onClick={(e) => { e.stopPropagation(); setIsHidden(true); setMessage(null); }}
-          title="隐藏猫猫"
+          title="隐藏小羊"
         >
           ×
         </button>
@@ -761,39 +814,39 @@ const PixelCat: React.FC = () => {
       {/* ── Right-click Panel ── */}
       {panel && (
         <>
-          <div className="pixel-cat__panel-overlay" onClick={closePanel} onContextMenu={e => { e.preventDefault(); closePanel(); }} />
+          <div className="pixel-sheep__panel-overlay" onClick={closePanel} onContextMenu={e => { e.preventDefault(); closePanel(); }} />
           <div
-            className="pixel-cat__panel"
+            className="pixel-sheep__panel"
             style={{
               left: Math.min(panel.x, window.innerWidth - 210),
               top: Math.min(panel.y, window.innerHeight - 250),
             }}
           >
-            <div className="pixel-cat__panel-title">🐱 猫猫状态</div>
-            <div className="pixel-cat__panel-row">
-              <span className="pixel-cat__panel-label">心情</span>
-              <span className="pixel-cat__panel-value">
+            <div className="pixel-sheep__panel-title">🐑 小羊状态</div>
+            <div className="pixel-sheep__panel-row">
+              <span className="pixel-sheep__panel-label">心情</span>
+              <span className="pixel-sheep__panel-value">
                 {getMoodEmoji(mood)}
-                <span className="pixel-cat__panel-mood-bar">
-                  <span className="pixel-cat__panel-mood-fill" style={{ width: `${mood}%`, background: getMoodColor(mood) }} />
+                <span className="pixel-sheep__panel-mood-bar">
+                  <span className="pixel-sheep__panel-mood-fill" style={{ width: `${mood}%`, background: getMoodColor(mood) }} />
                 </span>
               </span>
             </div>
-            <div className="pixel-cat__panel-row">
-              <span className="pixel-cat__panel-label">鱼干</span>
-              <span className="pixel-cat__panel-value">🐟 {fishCount}</span>
+            <div className="pixel-sheep__panel-row">
+              <span className="pixel-sheep__panel-label">鲜草</span>
+              <span className="pixel-sheep__panel-value">🌿 {grassCount}</span>
             </div>
-            <div className="pixel-cat__panel-row">
-              <span className="pixel-cat__panel-label">摸头</span>
-              <span className="pixel-cat__panel-value">✋ {clickCount}</span>
+            <div className="pixel-sheep__panel-row">
+              <span className="pixel-sheep__panel-label">薅毛</span>
+              <span className="pixel-sheep__panel-value">✋ {clickCount}</span>
             </div>
-            <div className="pixel-cat__panel-row">
-              <span className="pixel-cat__panel-label">状态</span>
-              <span className="pixel-cat__panel-value">{catState}</span>
+            <div className="pixel-sheep__panel-row">
+              <span className="pixel-sheep__panel-label">状态</span>
+              <span className="pixel-sheep__panel-value">{sheepState}</span>
             </div>
-            <div className="pixel-cat__panel-actions">
-              <button className="pixel-cat__panel-btn" onClick={feedCat}>🐟 喂食</button>
-              <button className="pixel-cat__panel-btn" onClick={petCat}>✋ 摸摸</button>
+            <div className="pixel-sheep__panel-actions">
+              <button className="pixel-sheep__panel-btn" onClick={feedSheep}>🌿 喂草</button>
+              <button className="pixel-sheep__panel-btn" onClick={petSheep}>✋ 摸摸</button>
             </div>
           </div>
         </>
@@ -802,4 +855,4 @@ const PixelCat: React.FC = () => {
   );
 };
 
-export default PixelCat;
+export default PixelSheep;

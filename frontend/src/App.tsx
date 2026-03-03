@@ -10,7 +10,7 @@ import ReadingProgress from './components/ReadingProgress';
 import CursorGlow from './components/CursorGlow';
 import NotificationToast from './components/NotificationToast';
 import OfflineNotice from './components/OfflineNotice';
-import PixelCat from './components/PixelCat';
+import PixelSheep from './components/PixelSheep';
 import HomePage from './pages/HomePage';
 import ArticlePage from './pages/ArticlePage';
 import AboutPage from './pages/AboutPage';
@@ -56,7 +56,7 @@ function App() {
           </main>
           <Footer />
           <ScrollToTop />
-          <PixelCat />
+          <PixelSheep />
         </div>
       </Router>
       </WebSocketProvider>
