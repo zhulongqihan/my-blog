@@ -135,10 +135,16 @@ services:
       - backend_logs:/app/logs
     expose:
       - "8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/articles?page=0\\&size=1 >/dev/null || exit 1"]
+      interval: 20s
+      timeout: 8s
+      retries: 12
+      start_period: 180s
     deploy:
       resources:
         limits:
-          memory: 1024M
+          memory: 1280M
     networks:
       - myblog-network
 
