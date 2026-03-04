@@ -1,8 +1,8 @@
 # 个人博客系统
 
 > 创建日期：2026年1月27日  
-> 最后更新：2026年3月4日  
-> 版本：v2.0.0  
+> 最后更新：2026年3月5日  
+> 版本：v2.1.0  
 > GitHub: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)  
 > 网站：http://cyruszhang.online 
 
@@ -12,7 +12,7 @@
 
 这是一个全栈个人博客系统，前后端分离架构。后端使用 Spring Boot 3.x 提供 RESTful API，前台页面使用 React 19 + TypeScript + Vite，后台管理系统使用 Vue 3 + Element Plus + Pinia（双前端框架）。前台设计为大地色系极简风格。
 
-**项目亮点**：双前端框架（React + Vue）、**Docker Compose 一键部署**（5 容器编排 + 多阶段构建 + 健康检查）、Markdown 编辑器 + 图片上传、完整的后台管理系统、JWT + RBAC 权限体系、**Redis 多级缓存系统**（Cache Aside + Write-Behind + 缓存预热 + 监控面板）、**Redis 高并发五大特性**（缓存三重防御 + BitMap签到 + 一人一赞 + ZSet Feed流 + HyperLogLog UV统计）、**RabbitMQ 消息队列**（评论邮件通知 + 日志异步化 + 死信队列 + 监控）、**WebSocket 实时通知**（STOMP + SockJS + MQ联动 + 在线人数 + 通知中心）、ECharts 数据可视化、**API 限流与防护系统**（Redis Lua 滑动窗口 + AOP + IP 黑白名单）、**酷炫前端交互**（打字机标题 + 阅读进度条 + 鼠标光晕 + 3D卡片倾斜 + 数字滚动动画 + 主题切换 + 粒子背景 + 图片灯箱 + 分享卡片）、**像素猫桌宠系统**（CSS 像素画 + 心情/拖拽/鱼干收集/右键面板）、**AI 创意工坊**（Dify + SSE 流式结构化方案生成）。
+**项目亮点**：双前端框架（React + Vue）、**Docker Compose 一键部署**（5 容器编排 + 多阶段构建 + 健康检查）、Markdown 编辑器 + 图片上传、完整的后台管理系统、JWT + RBAC 权限体系、**Redis 多级缓存系统**（Cache Aside + Write-Behind + 缓存预热 + 监控面板）、**Redis 高并发五大特性**（缓存三重防御 + BitMap签到 + 一人一赞 + ZSet Feed流 + HyperLogLog UV统计）、**RabbitMQ 消息队列**（评论邮件通知 + 日志异步化 + 死信队列 + 监控）、**WebSocket 实时通知**（STOMP + SockJS + MQ联动 + 在线人数 + 通知中心）、ECharts 数据可视化、**API 限流与防护系统**（Redis Lua 滑动窗口 + AOP + IP 黑白名单）、**酷炫前端交互**（打字机标题 + 阅读进度条 + 鼠标光晕 + 3D视差卡片 + 光泽动效 + 数字滚动动画 + 暗色模式 + 粒子背景 + 图片灯箱 + 分享卡片 + 命令面板 + 书签系统 + 阅读统计）、**像素羊桌宠系统**（CSS 像素画 + 多状态动画帧 + 拖拽交互）、**AI 创意工坊**（通义千问 qwen-plus + DashScope OpenAI 兼容接口 + SSE 流式结构化方案生成 + Nginx 服务端 Key 注入）。
 
 ### 核心特性
 
@@ -50,8 +50,12 @@
 - **在线人数统计** - WebSocket 连接/断开事件 + AtomicInteger 原子计数
 - **通知中心** - 管理后台铃铛实时红点 + 通知列表 + 系统公告广播
 - **MQ → WebSocket 联动** - 评论消息队列消费后自动推送实时通知
-- **像素猫桌宠系统** - CSS box-shadow 像素画 + 心情系统 + 拖拽交互 + 鱼干收集小游戏 + 右键状态面板
-- **AI 创意工坊** - Dify + SSE 流式输出，生成结构化前端方案（摘要/步骤/代码要点/验收清单）
+- **像素羊桌宠系统** - CSS box-shadow 像素画 + 多状态动画帧（行走/休息/进食）+ 拖拽交互
+- **AI 创意工坊** - 通义千问（DashScope OpenAI 兼容接口）+ SSE 流式输出，生成结构化前端方案（摘要/步骤/代码要点/验收清单），API Key 由 Nginx 服务端注入，前端零感知
+- **书签收藏系统** - localStorage 持久化，文章页一键收藏，专属书签管理页
+- **阅读统计仪表盘** - 热力图、连续阅读天数、文章完成度、最近阅读列表
+- **命令面板 + 快捷键** - Ctrl/Cmd+K 唤起命令面板，支持文章模糊搜索、主题切换、页面跳转
+- **成就系统（18 个）** - 4 大类别（阅读/探索/社交/特殊），4 个稀有度等级，framer-motion 弹出动效
 - **Docker 容器化** - Docker Compose 一键编排 5 个容器，多阶段构建，healthcheck 保证启动顺序
 - **缓存三重防御** - 布隆过滤器防穿透 + 互斥锁防击穿 + 逻辑过期防雪崩
 - **BitMap 签到系统** - Redis SETBIT/BITCOUNT/BITFIELD，连续签到 + 日历回显 + 成就徽章
@@ -659,7 +663,7 @@ stop.bat
 - [x] 配置管理（开发/生产环境分离）
 - [x] **缓存三重防御**（布隆过滤器防穿透 + 互斥锁防击穿 + 逻辑过期防雪崩）
 - [x] **BitMap 签到系统**（SETBIT/BITCOUNT/BITFIELD，连续签到 + 日历回显 + 成就徽章）
-- [x] **一人一赞系统**（Redisson 分布式锁 + Lua 脚本原子操作 + Write-Behind 同步）
+- [x] **一人一赞系统**（Redisson 分布式锁 + Lua 脚本原子操作 + Write-Behind 同步，支持匿名访客 IP 哈希识别）
 - [x] **ZSet Feed 流**（标签订阅 + 推模式 Fan-Out + ZREVRANGEBYSCORE 滚动分页）
 - [x] **HyperLogLog UV 统计**（文章级 UV + 全站日 UV + 热门榜定时刷新）
 
@@ -703,6 +707,17 @@ stop.bat
 - [x] 文章卡片 3D 微倾斜（ArticleCard 增强）
 - [x] 统计数字滚动动画（AnimatedCounter 组件）
 - [x] WebSocket 在线人数显示（OnlineCount 组件）
+- [x] 暗色模式（全站主题切换 + CSS 变量 + localStorage 持久化）
+- [x] 阅读进度自动恢复（localStorage 记录，返回文章自动定位）
+- [x] 增强视差卡片（±5° 3D 倾斜 + 光泽跟随鼠标，framer-motion useSpring）
+- [x] 命令面板（Ctrl/Cmd+K，模糊搜索文章 + 导航 + 操作，键盘方向键导航）
+- [x] 全局快捷键系统（useKeyboardShortcuts hook，Ctrl+K/D//, Ctrl+Shift+H）
+- [x] 书签收藏（文章页收藏按钮 + BookmarksPage 管理页 + localStorage 存储）
+- [x] 阅读统计页（ReadingStatsPage：热力图 35 天 + 连续阅读天数 + 完成度 + 最近阅读）
+- [x] AI 创意工坊升级（DashScope qwen-plus，Nginx 服务端注入 Key，前端零泄露）
+- [x] 像素羊桌宠（重绘为羊的外形：垂耳 + 小角 + 暖棕毛色 + 尾巴，5 套状态动画帧）
+- [x] 成就系统扩展（18 个成就，4 分类 4 稀有度，进度条 + Tab 筛选 + 弹出动效）
+- [x] 目录浮动导航 TOC（position:fixed，IntersectionObserver 追踪当前章节）
 
 ### 后台管理前端 (Vue 3)
 - [x] Vue 3 + Element Plus + TypeScript 项目初始化
@@ -731,6 +746,7 @@ stop.bat
 - [x] systemd 服务配置
 - [x] 域名解析配置
 - [x] **生产环境API接口验证成功**
+- [x] DashScope AI 接口通过 Nginx 代理上线（服务端注入 Key，GitHub 仓库中为占位符）
 
 ---
 
@@ -844,16 +860,42 @@ stop.bat
 - [ ] SEO 优化
 
 **扩展功能：**
-- [x] 暗色模式（全站主题切换 + 本地持久化）
-- [ ] RSS 订阅
+- [x] 暗色模式（全站主题切换 + CSS 变量 + localStorage 持久化）
 - [x] 文章分享卡片（Canvas 导出图片）
-- [ ] 文章统计
-- [ ] Docker 容器化
+- [x] 文章阅读统计（ReadingStatsPage：热力图 + 连续天数 + 完成度）
+- [x] 书签收藏系统（文章页收藏按钮 + BookmarksPage 管理页）
+- [x] 命令面板（Ctrl+K 快速导航 + 文章搜索 + 全局快捷键）
+- [x] 增强视差卡片（3D 倾斜 + 光泽跟随鼠标，framer-motion）
+- [ ] RSS 订阅
 - [ ] CI/CD 自动化部署
 
 ---
 
 ## 开发日志
+
+### 2026-03-05（v2.1.0 体验大升级 + 安全加固）
+
+**Bug 修复（6项）：**
+- 修复 AI 创意工坊调用失败：下线 Dify Cloud，切换到 DashScope OpenAI 兼容接口（qwen-plus），新建 `aiApi.ts` SSE 流式客户端，Nginx 服务端注入 Authorization，前端零感知
+- 修复点赞数离开页面后归零：后端开放匿名点赞（IP 哈希识别访客），前端对接完整 API 链路，likeCount 从后端实时同步
+- 修复阅读进度返回页面显示 0%：新增 useEffect 在文章加载后从 localStorage 恢复进度并可跳回上次位置
+- 修复成就系统过少（仅 3 个）：完全重写 AchievementHub，扩展至 18 个成就，4 大类别（阅读/探索/社交/特殊），4 个稀有度等级
+- 修复像素桌宠外形似猫：重设调色板（暖棕色 + 米白羊毛），重绘 20×16 帧：耷拉双耳、小角、蓬松毛团、尾巴，5 套状态动画
+- 修复种子文章内容陈旧：全部重写 3 篇文章（博客架构全解析 / Web排版与色彩心理学 / Redis高并发实战）
+
+**新增功能（6项）：**
+- 阅读统计仪表盘（`/reading-stats`）：35 天热力图、连续阅读天数，文章完成度进度条、最近阅读列表，数据来自 localStorage
+- 命令面板（Ctrl/Cmd+K）：模糊搜索文章 + 导航页面 + 主题切换，上下箭头导航，Enter 执行，Esc 关闭；全局快捷键 hook（`useKeyboardShortcuts.ts`）
+- 书签收藏系统：文章页顶部工具栏新增「收藏」按钮，localStorage 持久化；`/bookmarks` 书签管理页，支持单删/清空，带阅读进度小进度条
+- 增强视差卡片：倾斜幅度从 ±2° → ±5-6°，新增光泽高光层随鼠标位置移动（radial-gradient），hover 浮起阴影，framer-motion useSpring 弹性动效
+- 目录浮动导航（已内置）：`position: fixed`，IntersectionObserver 追踪当前章节，高亮激活态，点击平滑滚动
+- 暗色模式（已内置）：CSS 变量切换，localStorage 持久化，Header 月亮/太阳图标
+
+**安全加固：**
+- 仓库所有文件中的真实 DashScope API Key 已替换为占位符 `YOUR_DASHSCOPE_API_KEY`
+- `frontend/.env.development` 中 Key 字段改为 `your-dashscope-api-key-here`
+- 删除废弃的 `difyApi.ts`（已被 `aiApi.ts` 取代）
+- `.gitignore` 补充 `frontend/.env.local`、`frontend/.env.development.local`
 
 ### 2026-03-04（v2.0.0 Redis 高并发五大特性）
 - **缓存三重防御**：新增 CacheClient 工具类封装三大策略 — 布隆过滤器防穿透（Redisson RBloomFilter，预期10000/误判率0.01）、互斥锁防击穿（SETNX + DoubleCheck + sleep 重试）、逻辑过期防雪崩（异步线程池重建 + RedisData 逻辑过期包装）
