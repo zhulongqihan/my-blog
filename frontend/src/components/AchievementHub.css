@@ -1,3 +1,4 @@
+/* ===== Achievement Hub ===== */
 .achievement-hub__trigger {
   border: 1px solid var(--border-color);
   background: var(--bg-primary);
@@ -16,31 +17,40 @@
   position: fixed;
   inset: 0;
   z-index: 160;
-  background: rgba(0, 0, 0, 0.34);
+  background: rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
+  backdrop-filter: blur(4px);
 }
 
 .achievement-hub__panel {
-  width: min(92vw, 420px);
+  width: min(94vw, 520px);
+  max-height: 80vh;
   border: 1px solid var(--border-color);
   background: var(--bg-primary);
-  border-radius: 12px;
-  padding: 12px;
+  border-radius: 16px;
+  padding: 20px;
+  overflow-y: auto;
 }
 
 .achievement-hub__head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .achievement-hub__head h4 {
   margin: 0;
-  font-size: 0.92rem;
+  font-size: 1.1rem;
   font-family: var(--font-sans);
+}
+
+.achievement-hub__subtitle {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
 }
 
 .achievement-hub__close {
@@ -48,31 +58,182 @@
   background: var(--bg-secondary);
   color: var(--text-muted);
   border-radius: 8px;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
+/* 进度条 */
+.achievement-hub__progress-bar {
+  height: 6px;
+  background: var(--bg-secondary);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.achievement-hub__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-rust-light), var(--accent-rust), #e74c3c);
+  border-radius: 3px;
+}
+
+/* 分类标签 */
+.achievement-hub__tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.achievement-hub__tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.achievement-hub__tab {
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.achievement-hub__tab.is-active {
+  border-color: var(--accent-rust-light);
+  background: var(--accent-rust-light);
+  color: var(--accent-rust);
+  font-weight: 600;
+}
+
+/* 成就列表 */
 .achievement-hub__list {
   display: grid;
   gap: 8px;
 }
 
-.achievement-hub__item {
+.achievement-hub__card {
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 8px 10px;
+  border-radius: 10px;
+  padding: 10px 12px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  color: var(--text-secondary);
-  font-size: 0.8rem;
+  gap: 10px;
+  transition: all 0.2s ease;
+  opacity: 0.5;
 }
 
-.achievement-hub__item.is-done {
-  border-color: var(--accent-rust-light);
-  color: var(--accent-rust);
+.achievement-hub__card.is-done {
+  opacity: 1;
+}
+
+.achievement-hub__card.is-done.rarity-common {
+  border-color: #9ca3af40;
+  background: #9ca3af08;
+}
+
+.achievement-hub__card.is-done.rarity-rare {
+  border-color: #3b82f640;
+  background: #3b82f608;
+}
+
+.achievement-hub__card.is-done.rarity-epic {
+  border-color: #a855f740;
+  background: #a855f708;
+}
+
+.achievement-hub__card.is-done.rarity-legendary {
+  border-color: #f59e0b40;
+  background: #f59e0b08;
+  box-shadow: 0 0 12px #f59e0b10;
+}
+
+/* 图标 */
+.achievement-hub__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+}
+
+.achievement-hub__icon.rarity-common { color: #6b7280; }
+.achievement-hub__icon.rarity-rare { color: #3b82f6; }
+.achievement-hub__icon.rarity-epic { color: #a855f7; }
+.achievement-hub__icon.rarity-legendary { color: #f59e0b; }
+
+.is-done .achievement-hub__icon.rarity-common { background: #9ca3af18; }
+.is-done .achievement-hub__icon.rarity-rare { background: #3b82f618; }
+.is-done .achievement-hub__icon.rarity-epic { background: #a855f718; }
+.is-done .achievement-hub__icon.rarity-legendary { background: #f59e0b18; }
+
+.achievement-hub__lock {
+  font-size: 1rem;
+  font-weight: 700;
+  opacity: 0.3;
+}
+
+/* 信息 */
+.achievement-hub__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.achievement-hub__name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.achievement-hub__card:not(.is-done) .achievement-hub__name {
+  color: var(--text-muted);
+}
+
+.achievement-hub__desc {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* 稀有度标签 */
+.achievement-hub__rarity {
+  font-size: 0.62rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.achievement-hub__rarity.rarity-common {
+  background: #9ca3af18;
+  color: #6b7280;
+}
+
+.achievement-hub__rarity.rarity-rare {
+  background: #3b82f618;
+  color: #3b82f6;
+}
+
+.achievement-hub__rarity.rarity-epic {
+  background: #a855f718;
+  color: #a855f7;
+}
+
+.achievement-hub__rarity.rarity-legendary {
+  background: #f59e0b18;
+  color: #f59e0b;
 }

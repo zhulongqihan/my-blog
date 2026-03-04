@@ -157,6 +157,8 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
   const navLinks = [
     { path: '/', label: '首页' },
     { path: '/archive', label: '归档' },
+    { path: '/reading-stats', label: '统计' },
+    { path: '/bookmarks', label: '书签' },
     { path: '/about', label: '关于' },
   ];
 

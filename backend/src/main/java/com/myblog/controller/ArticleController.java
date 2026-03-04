@@ -102,8 +102,10 @@ public class ArticleController {
     @PostMapping("/{id}/like")
     public ResponseEntity<ApiResponse<LikeResponseDTO>> toggleLike(
             @PathVariable Long id,
-            @AuthenticationPrincipal User user) {
-        LikeResponseDTO result = articleService.toggleLike(id, user.getId());
+            @AuthenticationPrincipal User user,
+            HttpServletRequest request) {
+        String visitorId = resolveVisitorId(user, request);
+        LikeResponseDTO result = articleService.toggleLike(id, visitorId);
         return ResponseEntity.ok(ApiResponse.success(result.getLiked() ? "点赞成功" : "已取消点赞", result));
     }
 
@@ -113,11 +115,35 @@ public class ArticleController {
     @GetMapping("/{id}/like/status")
     public ResponseEntity<ApiResponse<LikeResponseDTO>> getLikeStatus(
             @PathVariable Long id,
-            @AuthenticationPrincipal User user) {
+            @AuthenticationPrincipal User user,
+            HttpServletRequest request) {
+        String visitorId = resolveVisitorId(user, request);
         LikeResponseDTO dto = new LikeResponseDTO();
         dto.setLikeCount(articleService.getLikeCount(id));
-        dto.setLiked(user != null && articleService.isLiked(id, user.getId()));
+        dto.setLiked(articleService.isLiked(id, visitorId));
         return ResponseEntity.ok(ApiResponse.success(dto));
+    }
+
+    /**
+     * 解析访客标识：登录用户用 userId，游客用 IP 哈希
+     */
+    private String resolveVisitorId(User user, HttpServletRequest request) {
+        if (user != null) {
+            return String.valueOf(user.getId());
+        }
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("X-Real-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        // 取第一个 IP（可能有多个代理）
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        // 用 hashCode 缩短，加 anon: 前缀区分登录用户
+        return "anon:" + Math.abs((ip != null ? ip : "unknown").hashCode());
     }
 
     // ========== CRUD ==========

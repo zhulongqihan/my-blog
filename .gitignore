@@ -1,6 +1,9 @@
 # 开发指导文档（不上传到 GitHub）
 docs/
 
+# 面试指导文档（不上传到 GitHub）
+面试指导/
+
 # 生产环境配置文件（包含敏感信息）
 backend/src/main/resources/application-prod.yml
 **/application-prod.yml
@@ -43,3 +46,7 @@ desktop.ini
 
 # Docker 环境变量（包含敏感信息）
 docker/.env
+
+# 本地开发环境变量（可能含 API Key）
+frontend/.env.development.local
+frontend/.env.local

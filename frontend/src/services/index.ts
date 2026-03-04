@@ -51,6 +51,14 @@ export const articleApi = {
 
   // 删除文章（需要登录）
   delete: (id: number) => del<void>(`/articles/${id}`),
+
+  // 切换点赞（支持游客）
+  toggleLike: (id: number) =>
+    post<{ liked: boolean; likeCount: number }>(`/articles/${id}/like`, {}),
+
+  // 查询点赞状态
+  getLikeStatus: (id: number) =>
+    get<{ liked: boolean; likeCount: number }>(`/articles/${id}/like/status`),
 };
 
 // ==================== 分类 API ====================

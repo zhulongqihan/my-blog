@@ -1,11 +1,14 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef, type CSSProperties } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, ArrowLeft, Tag, Loader2, BookOpen, Minimize2, Copy, Check, Image as ImageIcon, X, ChevronLeft, ChevronRight, Share2, Heart, Type, RotateCcw, Timer, Play, Pause, RefreshCw, ChevronDown, ChevronRight as ChevronRightSmall } from 'lucide-react';
+import { Calendar, Clock, ArrowLeft, Tag, Loader2, BookOpen, Minimize2, Copy, Check, Image as ImageIcon, X, ChevronLeft, ChevronRight, Share2, Heart, Type, RotateCcw, Timer, Play, Pause, RefreshCw, ChevronDown, ChevronRight as ChevronRightSmall, Bookmark } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import QRCode from 'qrcode';
 import { useArticle } from '../hooks/useArticles';
+import { articleApi } from '../services';
+import { isBookmarked as checkBookmarked, toggleBookmark } from '../services/bookmarks';
+import { unlockGlobalAchievement } from '../components/AchievementHub';
 import './ArticlePage.css';
 
 const pageVariants = {
@@ -249,6 +252,9 @@ const ArticlePage = () => {
   const [scrollY, setScrollY] = useState(0);
   const [fontScale, setFontScale] = useState(1);
   const [likedCount, setLikedCount] = useState(0);
+  const [isLiked, setIsLiked] = useState(false);
+  const [isLikeLoading, setIsLikeLoading] = useState(false);
+  const [isBookmarkedState, setIsBookmarkedState] = useState(false);
   const [likeBursts, setLikeBursts] = useState<Array<{ id: number; x: number; y: number }>>([]);
   const [achievementToast, setAchievementToast] = useState('');
   const [readingProgress, setReadingProgress] = useState(0);
@@ -259,6 +265,8 @@ const ArticlePage = () => {
   const [focusSeconds, setFocusSeconds] = useState(25 * 60);
   const [focusPreset, setFocusPreset] = useState(25);
   const [focusToast, setFocusToast] = useState('');
+  const pageEnteredAt = useRef(Date.now());
+  const tocJumpCount = useRef(0);
 
   const headings = useMemo(() => extractHeadings(article?.content || ''), [article?.content]);
   const imageSources = useMemo(() => extractImageSources(article?.content || ''), [article?.content]);
@@ -270,6 +278,32 @@ const ArticlePage = () => {
     });
     return map;
   }, [headings]);
+
+  // 加载文章后初始化点赞状态
+  useEffect(() => {
+    if (!article?.id) return;
+    setLikedCount(article.likeCount ?? 0);
+    articleApi.getLikeStatus(article.id).then(res => {
+      const data = (res as unknown as { data: { liked: boolean; likeCount: number } }).data;
+      if (data) {
+        setIsLiked(data.liked);
+        setLikedCount(data.likeCount);
+      }
+    }).catch(() => { /* 静默失败 */ });
+
+    // 初始化书签状态
+    setIsBookmarkedState(checkBookmarked(article.id));
+  }, [article?.id, article?.likeCount]);
+
+  // 加载文章后恢复阅读进度
+  useEffect(() => {
+    if (!article?.id) return;
+    const progressMap = JSON.parse(localStorage.getItem('article-reading-progress-map') || '{}') as Record<string, ReadingProgressEntry>;
+    const saved = progressMap[String(article.id)];
+    if (saved?.percent > 0) {
+      setReadingProgress(saved.percent);
+    }
+  }, [article?.id]);
 
   useEffect(() => {
     localStorage.setItem('article-reading-mode', String(isReadingMode));
@@ -347,19 +381,55 @@ const ArticlePage = () => {
     if (!article?.id) return;
 
     const milestones = [
-      { key: 'starter', threshold: 25, title: '📖 阅读入门：已阅读 25%' },
-      { key: 'focus', threshold: 60, title: '🎯 专注阅读：已阅读 60%' },
-      { key: 'finisher', threshold: 100, title: '🏆 阅读完成：已完整读完' },
+      { key: 'starter', threshold: 25, title: '📖 初出茅庐：已阅读 25%' },
+      { key: 'focus', threshold: 60, title: '🎯 渐入佳境：已阅读 60%' },
+      { key: 'finisher', threshold: 100, title: '🏆 一字不漏：已完整读完' },
     ];
 
     milestones.forEach(milestone => {
       if (readingProgress >= milestone.threshold && !unlockedAchievements.includes(milestone.key)) {
         setUnlockedAchievements(prev => [...prev, milestone.key]);
+        unlockGlobalAchievement(milestone.key);
         setAchievementToast(milestone.title);
         window.setTimeout(() => setAchievementToast(''), 2200);
       }
     });
+
+    // 计时成就
+    const elapsedMs = Date.now() - pageEnteredAt.current;
+    if (readingProgress >= 100 && elapsedMs < 3 * 60 * 1000 && !unlockedAchievements.includes('speed-reader')) {
+      setUnlockedAchievements(prev => [...prev, 'speed-reader']);
+      unlockGlobalAchievement('speed-reader');
+      setAchievementToast('⚡ 一目十行：3 分钟内读完');
+      window.setTimeout(() => setAchievementToast(''), 2200);
+    }
+    if (elapsedMs > 10 * 60 * 1000 && !unlockedAchievements.includes('marathon')) {
+      setUnlockedAchievements(prev => [...prev, 'marathon']);
+      unlockGlobalAchievement('marathon');
+      setAchievementToast('⏱️ 阅读马拉松：阅读超过 10 分钟');
+      window.setTimeout(() => setAchievementToast(''), 2200);
+    }
+
+    // 探索类成就：文章数量
+    const progressMap = JSON.parse(localStorage.getItem('article-reading-progress-map') || '{}');
+    const readArticleCount = Object.keys(progressMap).length;
+    if (readArticleCount >= 3) unlockGlobalAchievement('explorer');
+    if (readArticleCount >= 5) unlockGlobalAchievement('collector');
+
+    // 完美主义者：所有阅读成就
+    const readingKeys = ['starter', 'focus', 'finisher', 'speed-reader', 'marathon', 'deep-reader'];
+    if (readingKeys.every(k => unlockedAchievements.includes(k))) {
+      unlockGlobalAchievement('perfectionist');
+    }
   }, [readingProgress, unlockedAchievements, article?.id]);
+
+  // 时间段成就 + 首次访问
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour >= 0 && hour < 5) unlockGlobalAchievement('night-owl');
+    if (hour >= 5 && hour < 7) unlockGlobalAchievement('early-bird');
+    unlockGlobalAchievement('first-visit');
+  }, []);
 
   useEffect(() => {
     if (headings.length === 0) return;
@@ -387,6 +457,8 @@ const ArticlePage = () => {
     const element = document.getElementById(id);
     if (!element) return;
     element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    tocJumpCount.current += 1;
+    if (tocJumpCount.current >= 3) unlockGlobalAchievement('toc-navigator');
   };
 
   const handleCopyCode = async (code: string, key: string) => {
@@ -417,8 +489,10 @@ const ArticlePage = () => {
     window.scrollTo({ top: resumePosition, behavior: 'smooth' });
   };
 
-  const handleLikeClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setLikedCount(prev => prev + 1);
+  const handleLikeClick = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (isLikeLoading || !article?.id) return;
+    setIsLikeLoading(true);
+    // 粒子动画
     const rect = event.currentTarget.getBoundingClientRect();
     const burstId = Date.now();
     setLikeBursts(prev => [
@@ -432,7 +506,43 @@ const ArticlePage = () => {
     window.setTimeout(() => {
       setLikeBursts(prev => prev.filter(item => item.id !== burstId));
     }, 720);
-  };
+    try {
+      const res = await articleApi.toggleLike(article.id);
+      const data = (res as unknown as { data: { liked: boolean; likeCount: number } }).data;
+      if (data) {
+        setIsLiked(data.liked);
+        setLikedCount(data.likeCount);
+        if (data.liked) {
+          unlockGlobalAchievement('first-like');
+          // 检查是否点赞了多篇
+          const likedArticles = JSON.parse(localStorage.getItem('liked-articles') || '[]') as number[];
+          if (!likedArticles.includes(article.id)) {
+            likedArticles.push(article.id);
+            localStorage.setItem('liked-articles', JSON.stringify(likedArticles));
+          }
+          if (likedArticles.length >= 3) unlockGlobalAchievement('liker');
+        }
+      }
+    } catch {
+      // 静默失败
+    } finally {
+      setIsLikeLoading(false);
+    }
+  }, [isLikeLoading, article?.id]);
+
+  const handleBookmarkClick = useCallback(() => {
+    if (!article) return;
+    const added = toggleBookmark({
+      articleId: article.id,
+      title: article.title,
+      summary: article.summary || '',
+      progress: readingProgress,
+    });
+    setIsBookmarkedState(added);
+    if (added) {
+      unlockGlobalAchievement('bookmark-first');
+    }
+  }, [article, readingProgress]);
 
   const switchImage = (direction: 'prev' | 'next') => {
     if (lightboxIndex === null || imageSources.length === 0) return;
@@ -696,29 +806,33 @@ const ArticlePage = () => {
             恢复上次位置
           </button>
         )}
-        <button className="article-page__reading-toggle liquid-btn" onClick={handleLikeClick}>
-          <Heart size={14} />
-          点赞 +{likedCount}
+        <button className={`article-page__reading-toggle liquid-btn${isLiked ? ' is-liked' : ''}`} onClick={handleLikeClick} disabled={isLikeLoading}>
+          <Heart size={14} fill={isLiked ? 'currentColor' : 'none'} />
+          {isLiked ? '已赞' : '点赞'} {likedCount}
+        </button>
+        <button className={`article-page__reading-toggle liquid-btn${isBookmarkedState ? ' is-bookmarked' : ''}`} onClick={handleBookmarkClick}>
+          <Bookmark size={14} fill={isBookmarkedState ? 'currentColor' : 'none'} />
+          {isBookmarkedState ? '已收藏' : '收藏'}
         </button>
         <div className="article-page__font-group">
-          <button className="article-page__reading-toggle liquid-btn" onClick={() => setFontScale(0)} disabled={fontScale === 0}>
+          <button className="article-page__reading-toggle liquid-btn" onClick={() => { setFontScale(0); unlockGlobalAchievement('font-tweaker'); }} disabled={fontScale === 0}>
             <Type size={14} /> A-
           </button>
           <button className="article-page__reading-toggle liquid-btn" onClick={() => setFontScale(1)} disabled={fontScale === 1}>
             <Type size={14} /> A
           </button>
-          <button className="article-page__reading-toggle liquid-btn" onClick={() => setFontScale(2)} disabled={fontScale === 2}>
+          <button className="article-page__reading-toggle liquid-btn" onClick={() => { setFontScale(2); unlockGlobalAchievement('font-tweaker'); }} disabled={fontScale === 2}>
             <Type size={14} /> A+
           </button>
         </div>
         <button
           className="article-page__reading-toggle liquid-btn"
-          onClick={() => setIsReadingMode(prev => !prev)}
+          onClick={() => { setIsReadingMode(prev => !prev); unlockGlobalAchievement('reading-mode'); }}
         >
           {isReadingMode ? <Minimize2 size={14} /> : <BookOpen size={14} />}
           {isReadingMode ? '退出阅读模式' : '阅读模式'}
         </button>
-        <button className="article-page__reading-toggle liquid-btn" onClick={exportShareCard} disabled={isExporting}>
+        <button className="article-page__reading-toggle liquid-btn" onClick={() => { exportShareCard(); unlockGlobalAchievement('sharer'); }} disabled={isExporting}>
           <Share2 size={14} />
           {isExporting ? '导出中...' : '分享卡片'}
         </button>

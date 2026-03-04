@@ -1,0 +1,213 @@
+/* ===== Bookmarks Page ===== */
+.bookmarks-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--spacing-3xl) var(--spacing-lg);
+  min-height: 60vh;
+}
+
+.bookmarks-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-2xl);
+}
+
+.bookmarks-page__header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.bookmarks-page__icon {
+  color: var(--accent-rust);
+}
+
+.bookmarks-page__title {
+  font-family: var(--font-serif);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.bookmarks-page__subtitle {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin: 2px 0 0;
+}
+
+.bookmarks-page__clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.bookmarks-page__clear:hover {
+  color: #e53935;
+  border-color: #e53935;
+  background: rgba(229, 57, 53, 0.05);
+}
+
+/* ===== Empty State ===== */
+.bookmarks-page__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-3xl) 0;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.bookmarks-page__home-link {
+  display: inline-block;
+  margin-top: var(--spacing-sm);
+  padding: 8px 20px;
+  border-radius: 8px;
+  background: var(--accent-rust);
+  color: white;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.bookmarks-page__home-link:hover {
+  opacity: 0.85;
+}
+
+/* ===== Bookmark Item ===== */
+.bookmarks-page__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.bookmark-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  background: var(--bg-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.bookmark-item:hover {
+  border-color: var(--accent-rust);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.bookmark-item__link {
+  flex: 1;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+
+.bookmark-item__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bookmark-item__summary {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin: 0 0 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bookmark-item__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.bookmark-item__date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bookmark-item__progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bookmark-item__bar {
+  display: inline-block;
+  width: 50px;
+  height: 4px;
+  background: var(--bg-secondary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.bookmark-item__bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent-rust);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.bookmark-item__remove {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.bookmark-item__remove:hover {
+  color: #e53935;
+  background: rgba(229, 57, 53, 0.08);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 640px) {
+  .bookmarks-page {
+    padding: var(--spacing-xl) var(--spacing-md);
+  }
+
+  .bookmarks-page__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+  }
+
+  .bookmarks-page__title {
+    font-size: 1.4rem;
+  }
+
+  .bookmark-item {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+}

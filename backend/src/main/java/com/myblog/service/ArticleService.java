@@ -445,10 +445,11 @@ public class ArticleService {
 
     /**
      * Toggle 点赞/取消（Redisson 分布式锁 + Lua 原子操作）
+     * visitorId: 登录用户为 userId，游客为 anon:ipHash
      */
     @SuppressWarnings("unchecked")
-    public LikeResponseDTO toggleLike(Long articleId, Long userId) {
-        RLock lock = redissonClient.getLock(RedisKeyPrefix.LOCK_LIKE + userId);
+    public LikeResponseDTO toggleLike(Long articleId, String visitorId) {
+        RLock lock = redissonClient.getLock(RedisKeyPrefix.LOCK_LIKE + visitorId);
         boolean isLocked = false;
         try {
             isLocked = lock.tryLock(1, 5, TimeUnit.SECONDS);
@@ -462,7 +463,7 @@ public class ArticleService {
                             RedisKeyPrefix.ARTICLE_LIKED + articleId,
                             RedisKeyPrefix.ARTICLE_LIKE_COUNT + articleId
                     ),
-                    userId.toString()
+                    visitorId
             );
 
             LikeResponseDTO dto = new LikeResponseDTO();
@@ -481,13 +482,13 @@ public class ArticleService {
     }
 
     /**
-     * 查询当前用户是否已赞
+     * 查询当前访客是否已赞
      */
-    public boolean isLiked(Long articleId, Long userId) {
+    public boolean isLiked(Long articleId, String visitorId) {
         return Boolean.TRUE.equals(
                 stringRedisTemplate.opsForSet().isMember(
                         RedisKeyPrefix.ARTICLE_LIKED + articleId,
-                        userId.toString()
+                        visitorId
                 )
         );
     }

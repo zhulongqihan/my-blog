@@ -119,6 +119,26 @@
   cursor: not-allowed;
 }
 
+.article-page__reading-toggle.is-liked {
+  color: #e74c3c;
+  border-color: #e74c3c40;
+  background: #e74c3c10;
+}
+
+.article-page__reading-toggle.is-liked:hover {
+  border-color: #e74c3c;
+}
+
+.article-page__reading-toggle.is-bookmarked {
+  color: var(--accent-rust);
+  border-color: rgba(180, 110, 60, 0.3);
+  background: rgba(180, 110, 60, 0.08);
+}
+
+.article-page__reading-toggle.is-bookmarked:hover {
+  border-color: var(--accent-rust);
+}
+
 /* ===== Loading & Error States ===== */
 .loading-state,
 .error-state {

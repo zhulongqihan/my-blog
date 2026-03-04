@@ -1,7 +1,28 @@
 .article-card {
   position: relative;
-  padding: var(--spacing-xl) 0;
+  padding: var(--spacing-xl) var(--spacing-lg);
   border-bottom: 1px solid var(--border-light);
+  border-radius: 12px;
+  transition: box-shadow 0.3s ease, transform 0.15s ease;
+  will-change: transform;
+  transform-style: preserve-3d;
+}
+
+.article-card--hovered {
+  box-shadow:
+    0 8px 30px rgba(0, 0, 0, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.04);
+  border-color: transparent;
+  z-index: 2;
+}
+
+.article-card__glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: overlay;
 }
 
 .article-card:first-child {

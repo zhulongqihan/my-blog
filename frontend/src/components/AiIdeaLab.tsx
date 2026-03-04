@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Bot, Sparkles, Wand2, Loader2, Copy, Check } from 'lucide-react';
-import { getUserId, sendChatMessage } from '../services/difyApi';
+import { sendChatMessage } from '../services/aiApi';
 import './AiIdeaLab.css';
 
 interface SectionResult {
@@ -63,7 +63,6 @@ const AiIdeaLab = () => {
   const [error, setError] = useState('');
   const [copiedKey, setCopiedKey] = useState('');
   const abortRef = useRef<AbortController | null>(null);
-  const userIdRef = useRef(getUserId());
 
   const runIdea = (input?: string) => {
     const query = (input || goal).trim();
@@ -76,8 +75,8 @@ const AiIdeaLab = () => {
 
     const controller = sendChatMessage(
       {
-        query: `${PROMPT_TEMPLATE}\n\n用户需求：${query}`,
-        userId: userIdRef.current,
+        systemPrompt: PROMPT_TEMPLATE,
+        query: query,
       },
       {
         onChunk: chunk => {
