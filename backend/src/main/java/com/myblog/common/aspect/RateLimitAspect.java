@@ -61,7 +61,9 @@ public class RateLimitAspect {
         rateLimitScript = new DefaultRedisScript<>();
         rateLimitScript.setScriptSource(new ResourceScriptSource(
                 new ClassPathResource("scripts/rate_limit.lua")));
-        rateLimitScript.setResultType((Class) List.class);
+        @SuppressWarnings("unchecked")
+        Class<List<Long>> resultType = (Class<List<Long>>) (Class<?>) List.class;
+        rateLimitScript.setResultType(resultType);
     }
     
     /**

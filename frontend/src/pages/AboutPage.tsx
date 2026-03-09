@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Code2, Coffee, BookOpen, GraduationCap, Github, Mail } from 'lucide-react';
+import { Bot, Code2, Coffee, BookOpen, ExternalLink, GraduationCap, Github, Mail } from 'lucide-react';
 import AnimatedCounter from '../components/AnimatedCounter';
+import { AI_AGENT_NAME, AI_AGENT_SUMMARY, AI_AGENT_URL } from '../constants/externalLinks';
 import { articleApi } from '../services';
 import { PROFILE_SKILLS, PROFILE_STATS } from '../config/profile';
 import { useTags } from '../hooks/useCategories';
 import './AboutPage.css';
+
+const AI_AGENT_STACK = ['Java 17', 'Spring Boot', 'Spring AI Alibaba', 'DashScope', 'Milvus'];
 
 const pageVariants = {
   initial: { opacity: 0, y: 20 },
@@ -171,6 +174,42 @@ const AboutPage = () => {
       </motion.section>
 
       {/* Contact */}
+      <motion.section
+        className="about-projects"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.95 }}
+      >
+        <h2 className="about-section-title">相关项目</h2>
+        <div className="about-project-card">
+          <div className="about-project-card__header">
+            <div className="about-project-card__title-wrap">
+              <span className="about-project-card__badge">AI Agent</span>
+              <h3 className="about-project-card__title">{AI_AGENT_NAME}</h3>
+            </div>
+            <Bot size={22} strokeWidth={1.6} className="about-project-card__icon" />
+          </div>
+          <p className="about-project-card__text">
+            {AI_AGENT_SUMMARY}
+            当前已独立部署在服务器上，适合作为我在 Agent 编排、故障研判和低配机器部署方面的项目展示。
+          </p>
+          <div className="about-project-card__tags">
+            {AI_AGENT_STACK.map(item => (
+              <span key={item} className="about-project-card__tag">{item}</span>
+            ))}
+          </div>
+          <a
+            href={AI_AGENT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="about-project-card__link"
+          >
+            <ExternalLink size={16} />
+            <span>访问在线演示</span>
+          </a>
+        </div>
+      </motion.section>
+
       <motion.section
         className="about-contact"
         initial={{ opacity: 0, y: 20 }}

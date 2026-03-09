@@ -1,14 +1,11 @@
 package com.myblog.controller;
 
-import com.myblog.dto.NotificationResponse;
-import com.myblog.service.NotificationService;
 import com.myblog.websocket.WebSocketEventListener;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 

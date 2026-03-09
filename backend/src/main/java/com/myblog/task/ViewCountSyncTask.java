@@ -1,7 +1,6 @@
 package com.myblog.task;
 
 import com.myblog.common.constant.RedisKeyPrefix;
-import com.myblog.entity.Article;
 import com.myblog.repository.ArticleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,7 +1,8 @@
-import { Github, Mail, Terminal } from 'lucide-react';
+import { Bot, Github, Mail, Terminal } from 'lucide-react';
 import OnlineCount from './OnlineCount';
 import OnlineAvatarStack from './OnlineAvatarStack';
 import AchievementHub from './AchievementHub';
+import { AI_AGENT_URL } from '../constants/externalLinks';
 import './Footer.css';
 
 const Footer = () => {
@@ -43,6 +44,15 @@ const Footer = () => {
             <a href="mailto:2511819891@qq.com" className="footer__link">
               <Mail size={16} strokeWidth={1.5} />
               <span>Email</span>
+            </a>
+            <a
+              href={AI_AGENT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="footer__link"
+            >
+              <Bot size={16} strokeWidth={1.5} />
+              <span>AI Agent</span>
             </a>
           </div>
           <p className="footer__terminal-line footer__terminal-line--cursor">

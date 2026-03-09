@@ -62,11 +62,13 @@ public class ArticleService {
     private FeedService feedService;
 
     // ========== Lua 脚本：点赞 Toggle ==========
-    private static final DefaultRedisScript<List> LIKE_TOGGLE_SCRIPT;
+    private static final DefaultRedisScript<List<Long>> LIKE_TOGGLE_SCRIPT;
     static {
         LIKE_TOGGLE_SCRIPT = new DefaultRedisScript<>();
         LIKE_TOGGLE_SCRIPT.setLocation(new ClassPathResource("scripts/like_toggle.lua"));
-        LIKE_TOGGLE_SCRIPT.setResultType(List.class);
+        @SuppressWarnings("unchecked")
+        Class<List<Long>> resultType = (Class<List<Long>>) (Class<?>) List.class;
+        LIKE_TOGGLE_SCRIPT.setResultType(resultType);
     }
 
     public Page<ArticleResponse> getPublishedArticles(Pageable pageable) {
@@ -447,7 +449,6 @@ public class ArticleService {
      * Toggle 点赞/取消（Redisson 分布式锁 + Lua 原子操作）
      * visitorId: 登录用户为 userId，游客为 anon:ipHash
      */
-    @SuppressWarnings("unchecked")
     public LikeResponseDTO toggleLike(Long articleId, String visitorId) {
         RLock lock = redissonClient.getLock(RedisKeyPrefix.LOCK_LIKE + visitorId);
         boolean isLocked = false;

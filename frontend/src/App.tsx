@@ -12,6 +12,7 @@ import NotificationToast from './components/NotificationToast';
 import OfflineNotice from './components/OfflineNotice';
 import PixelSheep from './components/PixelSheep';
 import CommandPalette from './components/CommandPalette';
+import { AI_AGENT_URL } from './constants/externalLinks';
 import { useKeyboardShortcuts, type ShortcutAction } from './hooks/useKeyboardShortcuts';
 import HomePage from './pages/HomePage';
 import ArticlePage from './pages/ArticlePage';
@@ -39,6 +40,10 @@ function AppContent() {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   }, []);
 
+  const openAiAgent = useCallback(() => {
+    window.open(AI_AGENT_URL, '_blank', 'noopener,noreferrer');
+  }, []);
+
   const shortcuts = useMemo<ShortcutAction[]>(() => [
     {
       key: 'k', ctrl: true, description: '打开命令面板',
@@ -56,7 +61,11 @@ function AppContent() {
       key: 'h', ctrl: true, shift: true, description: '返回首页',
       action: () => navigate('/'),
     },
-  ], [toggleTheme, navigate]);
+    {
+      key: 'a', ctrl: true, shift: true, description: '打开 AI Agent',
+      action: openAiAgent,
+    },
+  ], [toggleTheme, navigate, openAiAgent]);
 
   useKeyboardShortcuts(shortcuts);
 

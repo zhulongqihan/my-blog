@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Home, Archive, BarChart3, User, BookOpen,
-  Moon, Sun, Command, Sparkles, Award
+  Moon, Sun, Command, Sparkles, Award, Bot
 } from 'lucide-react';
+import { AI_AGENT_NAME, AI_AGENT_URL } from '../constants/externalLinks';
 import { articleApi } from '../services';
 import type { Article } from '../types';
 import type { ShortcutAction } from '../hooks/useKeyboardShortcuts';
@@ -86,6 +87,12 @@ const CommandPalette = ({ isOpen, onClose, theme, onToggleTheme, shortcuts }: Co
         id: 'nav-search', icon: <Search size={18} />, label: '搜索页',
         description: '打开搜索页面', category: 'navigation',
         action: () => runAndClose(() => navigate('/search')),
+      },
+      {
+        id: 'nav-ai-agent', icon: <Bot size={18} />, label: AI_AGENT_NAME,
+        description: '打开独立部署的 AI Agent 项目', category: 'navigation',
+        shortcut: shortcuts.find(s => s.key.toLowerCase() === 'a' && s.ctrl && s.shift) ? 'Ctrl + Shift + A' : undefined,
+        action: () => runAndClose(() => window.open(AI_AGENT_URL, '_blank', 'noopener,noreferrer')),
       },
     ];
 
