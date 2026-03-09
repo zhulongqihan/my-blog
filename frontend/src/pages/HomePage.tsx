@@ -5,6 +5,7 @@ import ArticleCard from '../components/ArticleCard';
 import Typewriter from '../components/Typewriter';
 import AiIdeaLab from '../components/AiIdeaLab';
 import ParticleBackground from '../components/ParticleBackground';
+import ProjectBridge from '../components/ProjectBridge';
 import { useArticles, useFeaturedArticles } from '../hooks/useArticles';
 import { Loader2, RefreshCw, Shuffle, BookOpenCheck, ArrowRight } from 'lucide-react';
 import './HomePage.css';
@@ -58,6 +59,7 @@ const HomePage = () => {
 
   const featuredArticle = featuredArticles[0];
   const regularArticles = articles.filter(a => !a.featured);
+  const bridgeArticles = useMemo(() => regularArticles.slice(0, 3), [regularArticles]);
 
   useEffect(() => {
     const today = new Date().toISOString().slice(0, 10);
@@ -294,6 +296,12 @@ const HomePage = () => {
           </>
         )}
       </section>
+
+      <ProjectBridge
+        title="写文章之外，我也在把一些想法做成真正能运行的系统"
+        description="最近这段时间，我把博客里关于 AI、工程化、部署取舍的思考继续往前推了一步，做成了一个独立运行的 AI Agent 项目。相比把入口生硬放进导航，我更想把它放在阅读结束之后，作为这条内容线索的自然延伸。"
+        articleLinks={bridgeArticles}
+      />
     </motion.div>
   );
 };

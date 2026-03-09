@@ -3,17 +3,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Feather, Search, Loader2, Sun, Moon } from 'lucide-react';
 import { articleApi } from '../services';
-import { AI_AGENT_URL } from '../constants/externalLinks';
 import type { Article } from '../types';
 import './Header.css';
 
 const SEARCH_HISTORY_KEY = 'search-history';
-
-interface NavLinkItem {
-  path: string;
-  label: string;
-  external?: boolean;
-}
 
 interface HeaderProps {
   theme: 'light' | 'dark';
@@ -161,13 +154,12 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
     }
   };
 
-  const navLinks: NavLinkItem[] = [
+  const navLinks = [
     { path: '/', label: '首页' },
     { path: '/archive', label: '归档' },
     { path: '/reading-stats', label: '统计' },
     { path: '/bookmarks', label: '书签' },
     { path: '/about', label: '关于' },
-    { path: AI_AGENT_URL, label: 'AI Agent', external: true },
   ];
 
   return (
@@ -179,17 +171,7 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
         </Link>
 
         <nav className="header__nav">
-          {navLinks.map(link => link.external ? (
-            <a
-              key={link.path}
-              href={link.path}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="header__nav-link"
-            >
-              {link.label}
-            </a>
-          ) : (
+          {navLinks.map(link => (
             <Link
               key={link.path}
               to={link.path}
@@ -327,23 +309,12 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
-                {link.external ? (
-                  <a
-                    href={link.path}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="header__mobile-link"
-                  >
-                    {link.label}
-                  </a>
-                ) : (
-                  <Link
-                    to={link.path}
-                    className={`header__mobile-link ${location.pathname === link.path ? 'header__mobile-link--active' : ''}`}
-                  >
-                    {link.label}
-                  </Link>
-                )}
+                <Link
+                  to={link.path}
+                  className={`header__mobile-link ${location.pathname === link.path ? 'header__mobile-link--active' : ''}`}
+                >
+                  {link.label}
+                </Link>
               </motion.div>
             ))}
           </motion.div>

@@ -9,6 +9,8 @@ import { useArticle } from '../hooks/useArticles';
 import { articleApi } from '../services';
 import { isBookmarked as checkBookmarked, toggleBookmark } from '../services/bookmarks';
 import { unlockGlobalAchievement } from '../components/AchievementHub';
+import ProjectBridge from '../components/ProjectBridge';
+import type { Article } from '../types';
 import './ArticlePage.css';
 
 const pageVariants = {
@@ -265,6 +267,7 @@ const ArticlePage = () => {
   const [focusSeconds, setFocusSeconds] = useState(25 * 60);
   const [focusPreset, setFocusPreset] = useState(25);
   const [focusToast, setFocusToast] = useState('');
+  const [relatedArticles, setRelatedArticles] = useState<Article[]>([]);
   const pageEnteredAt = useRef(Date.now());
   const tocJumpCount = useRef(0);
 
@@ -376,6 +379,29 @@ const ArticlePage = () => {
     };
     localStorage.setItem('article-reading-progress-map', JSON.stringify(progressMap));
   }, [article?.id, article?.title, readingProgress]);
+
+  useEffect(() => {
+    if (!article?.id) return;
+    const loadRelatedArticles = async () => {
+      try {
+        if (article.category?.id) {
+          const response = await articleApi.getByCategory(article.category.id, 0, 6);
+          const filtered = (response.data.content || []).filter(item => item.id !== article.id).slice(0, 3);
+          if (filtered.length > 0) {
+            setRelatedArticles(filtered);
+            return;
+          }
+        }
+
+        const fallback = await articleApi.getList(0, 6);
+        setRelatedArticles((fallback.data.content || []).filter(item => item.id !== article.id).slice(0, 3));
+      } catch {
+        setRelatedArticles([]);
+      }
+    };
+
+    loadRelatedArticles();
+  }, [article?.id, article?.category?.id]);
 
   useEffect(() => {
     if (!article?.id) return;
@@ -941,6 +967,13 @@ const ArticlePage = () => {
         <div className="article-footer__divider"></div>
         <p className="article-footer__thanks">感谢阅读 ✦</p>
       </footer>
+
+      <ProjectBridge
+        compact={true}
+        title="如果这篇内容对你有帮助，可以顺着这条线再往前走一步"
+        description="这篇文章讨论的很多问题，最后都会落到一个更现实的命题上：如何把技术判断变成真正运行中的系统。我最近在做的 AI Agent 项目，正是把这些关于稳定性、工作流和落地成本的思考继续往前推进。"
+        articleLinks={relatedArticles}
+      />
 
       {lightboxIndex !== null && imageSources[lightboxIndex] && (
         <div className="article-lightbox" role="dialog" aria-modal="true">

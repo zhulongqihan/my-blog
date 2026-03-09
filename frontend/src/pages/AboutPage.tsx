@@ -191,7 +191,7 @@ const AboutPage = () => {
           </div>
           <p className="about-project-card__text">
             {AI_AGENT_SUMMARY}
-            当前已独立部署在服务器上，适合作为我在 Agent 编排、故障研判和低配机器部署方面的项目展示。
+            它和博客里的 AI、部署、工程化相关文章是一条连续的内容线：文章负责把思考写清楚，项目负责把这些思考真正跑起来。
           </p>
           <div className="about-project-card__tags">
             {AI_AGENT_STACK.map(item => (
