@@ -111,6 +111,7 @@ export function sendChatMessage(
         switch (response.status) {
           case 400: msg = '请求参数错误，请稍后重试'; break;
           case 401: msg = 'API 密钥无效，请检查配置'; break;
+          case 502: msg = 'AI 服务网关暂时不可用，请稍后重试'; break;
           case 429: msg = '请求太频繁，请稍后再试'; break;
           case 500: msg = 'AI 服务暂时不可用，请稍后重试'; break;
           default:

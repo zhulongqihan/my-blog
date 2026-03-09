@@ -25,8 +25,9 @@ LABEL description="MyBlog Nginx - React frontend + Vue admin"
 # 移除默认配置
 RUN rm -rf /etc/nginx/conf.d/default.conf /usr/share/nginx/html/*
 
-# 复制自定义 nginx 配置
-COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
+# 使用模板渲染 nginx 配置，运行时从环境变量注入 DashScope Key
+ENV NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
+COPY docker/nginx/nginx.conf /etc/nginx/templates/nginx.conf.template
 
 # 复制前台构建产物
 COPY --from=frontend-builder /build/frontend/dist/ /usr/share/nginx/html/

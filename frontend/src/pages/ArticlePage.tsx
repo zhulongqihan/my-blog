@@ -11,6 +11,7 @@ import { isBookmarked as checkBookmarked, toggleBookmark } from '../services/boo
 import { unlockGlobalAchievement } from '../components/AchievementHub';
 import ProjectBridge from '../components/ProjectBridge';
 import type { Article } from '../types';
+import { formatArticleDate } from '../utils/articleDate';
 import './ArticlePage.css';
 
 const pageVariants = {
@@ -36,12 +37,6 @@ const codeStyle = {
     background: 'transparent',
     fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
   },
-};
-
-// 格式化日期
-const formatDate = (dateStr: string) => {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
 };
 
 // 估算阅读时间
@@ -659,7 +654,7 @@ const ArticlePage = () => {
       ctx.fillStyle = textSecondary;
       ctx.font = '500 32px Inter';
       ctx.fillText(`作者：${article.author?.nickname || article.author?.username || '博主'}`, 120, 960);
-      ctx.fillText(`日期：${formatDate(article.createdAt)}`, 120, 1015);
+      ctx.fillText(`日期：${formatArticleDate(article.publishedAt, article.createdAt)}`, 120, 1015);
 
       ctx.font = '500 30px Inter';
       ctx.fillText(`阅读原文：${window.location.href}`, 120, 1120);
@@ -894,7 +889,7 @@ const ArticlePage = () => {
         >
           <span className="article-header__meta-item">
             <Calendar size={14} strokeWidth={1.5} />
-            {formatDate(article.createdAt)}
+            {formatArticleDate(article.publishedAt, article.createdAt)}
           </span>
           <span className="article-header__meta-item">
             <Clock size={14} strokeWidth={1.5} />

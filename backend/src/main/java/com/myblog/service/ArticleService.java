@@ -386,7 +386,7 @@ public class ArticleService {
     @Cacheable(value = "articleArchive", key = "'all'")
     public ArchiveResponse getArchive() {
         log.info("[Cache MISS] 文章归档 - 从数据库加载");
-        List<Article> articles = articleRepository.findByPublishedTrueOrderByCreatedAtDesc();
+        List<Article> articles = articleRepository.findByPublishedTrueOrderByPublishedAtDesc();
 
         String[] monthNames = {"", "一月", "二月", "三月", "四月", "五月", "六月",
                 "七月", "八月", "九月", "十月", "十一月", "十二月"};
@@ -395,7 +395,8 @@ public class ArticleService {
         // 按年分组，保持倒序
         Map<Integer, List<Article>> yearMap = new LinkedHashMap<>();
         for (Article article : articles) {
-            int year = article.getCreatedAt().getYear();
+            LocalDateTime displayTime = article.getPublishedAt() != null ? article.getPublishedAt() : article.getCreatedAt();
+            int year = displayTime.getYear();
             yearMap.computeIfAbsent(year, k -> new ArrayList<>()).add(article);
         }
 
@@ -407,7 +408,8 @@ public class ArticleService {
             // 按月分组
             Map<Integer, List<Article>> monthMap = new LinkedHashMap<>();
             for (Article article : yearArticles) {
-                int month = article.getCreatedAt().getMonthValue();
+                LocalDateTime displayTime = article.getPublishedAt() != null ? article.getPublishedAt() : article.getCreatedAt();
+                int month = displayTime.getMonthValue();
                 monthMap.computeIfAbsent(month, k -> new ArrayList<>()).add(article);
             }
 
@@ -418,7 +420,7 @@ public class ArticleService {
                         .map(a -> ArchiveResponse.ArticleBrief.builder()
                                 .id(a.getId())
                                 .title(a.getTitle())
-                                .date(a.getCreatedAt().format(dayFormatter))
+                                .date((a.getPublishedAt() != null ? a.getPublishedAt() : a.getCreatedAt()).format(dayFormatter))
                                 .category(a.getCategory() != null ? a.getCategory().getName() : null)
                                 .build())
                         .collect(Collectors.toList());

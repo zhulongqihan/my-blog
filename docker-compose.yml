@@ -158,6 +158,8 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    environment:
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-YOUR_DASHSCOPE_API_KEY}
     ports:
       - "80:80"
     volumes:

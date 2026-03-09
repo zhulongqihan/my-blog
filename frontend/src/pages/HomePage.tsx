@@ -7,6 +7,7 @@ import AiIdeaLab from '../components/AiIdeaLab';
 import ParticleBackground from '../components/ParticleBackground';
 import ProjectBridge from '../components/ProjectBridge';
 import { useArticles, useFeaturedArticles } from '../hooks/useArticles';
+import { formatArticleDate, getArticleDate } from '../utils/articleDate';
 import { Loader2, RefreshCw, Shuffle, BookOpenCheck, ArrowRight } from 'lucide-react';
 import './HomePage.css';
 
@@ -22,12 +23,6 @@ const pageVariants = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: -20 },
-};
-
-// 格式化日期
-const formatDate = (dateStr: string) => {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
 };
 
 // 估算阅读时间
@@ -58,7 +53,12 @@ const HomePage = () => {
   const [resumeEntry, setResumeEntry] = useState<ReadingProgressEntry | null>(null);
 
   const featuredArticle = featuredArticles[0];
-  const regularArticles = articles.filter(a => !a.featured);
+  const regularArticles = useMemo(
+    () => articles
+      .filter(article => !article.featured)
+      .sort((left, right) => new Date(getArticleDate(right.publishedAt, right.createdAt)).getTime() - new Date(getArticleDate(left.publishedAt, left.createdAt)).getTime()),
+    [articles]
+  );
   const bridgeArticles = useMemo(() => regularArticles.slice(0, 3), [regularArticles]);
 
   useEffect(() => {
@@ -223,7 +223,7 @@ const HomePage = () => {
             id={featuredArticle.id}
             title={featuredArticle.title}
             summary={featuredArticle.summary || ''}
-            date={formatDate(featuredArticle.createdAt)}
+            date={formatArticleDate(featuredArticle.publishedAt, featuredArticle.createdAt)}
             readTime={estimateReadTime(featuredArticle.content)}
             coverImage={featuredArticle.coverImage}
             category={featuredArticle.category?.name}
@@ -269,7 +269,7 @@ const HomePage = () => {
                   id={article.id}
                   title={article.title}
                   summary={article.summary || ''}
-                  date={formatDate(article.createdAt)}
+                  date={formatArticleDate(article.publishedAt, article.createdAt)}
                   readTime={estimateReadTime(article.content)}
                   coverImage={article.coverImage}
                   category={article.category?.name}

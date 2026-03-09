@@ -1,8 +1,8 @@
 # 个人博客系统
 
 > 创建日期：2026年1月27日  
-> 最后更新：2026年3月9日  
-> 版本：v2.1.1  
+> 最后更新：2026年3月10日  
+> 版本：v2.1.2  
 > GitHub: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)  
 > 网站：http://cyruszhang.online 
 
@@ -12,7 +12,7 @@
 
 这是一个全栈个人博客系统，前后端分离架构。后端使用 Spring Boot 3.x 提供 RESTful API，前台页面使用 React 19 + TypeScript + Vite，后台管理系统使用 Vue 3 + Element Plus + Pinia（双前端框架）。前台设计为大地色系极简风格。
 
-**项目亮点**：双前端框架（React + Vue）、**Docker Compose 一键部署**（5 容器编排 + 多阶段构建 + 健康检查）、Markdown 编辑器 + 图片上传、完整的后台管理系统、JWT + RBAC 权限体系、**Redis 多级缓存系统**（Cache Aside + Write-Behind + 缓存预热 + 监控面板）、**Redis 高并发五大特性**（缓存三重防御 + BitMap签到 + 一人一赞 + ZSet Feed流 + HyperLogLog UV统计）、**RabbitMQ 消息队列**（评论邮件通知 + 日志异步化 + 死信队列 + 监控）、**WebSocket 实时通知**（STOMP + SockJS + MQ联动 + 在线人数 + 通知中心）、ECharts 数据可视化、**API 限流与防护系统**（Redis Lua 滑动窗口 + AOP + IP 黑白名单）、**酷炫前端交互**（打字机标题 + 阅读进度条 + 鼠标光晕 + 3D视差卡片 + 光泽动效 + 数字滚动动画 + 暗色模式 + 粒子背景 + 图片灯箱 + 分享卡片 + 命令面板 + 书签系统 + 阅读统计）、**像素羊桌宠系统**（CSS 像素画 + 多状态动画帧 + 拖拽交互）、**AI 创意工坊**（通义千问 qwen-plus + DashScope OpenAI 兼容接口 + SSE 流式结构化方案生成 + Nginx 服务端 Key 注入）、**AI Agent 项目联动入口**（导航栏 + 关于页 + 页脚 + 命令面板一键跳转到独立部署的 AeroFlow Sentinel）。
+**项目亮点**：双前端框架（React + Vue）、**Docker Compose 一键部署**（5 容器编排 + 多阶段构建 + 健康检查）、Markdown 编辑器 + 图片上传、完整的后台管理系统、JWT + RBAC 权限体系、**Redis 多级缓存系统**（Cache Aside + Write-Behind + 缓存预热 + 监控面板）、**Redis 高并发五大特性**（缓存三重防御 + BitMap签到 + 一人一赞 + ZSet Feed流 + HyperLogLog UV统计）、**RabbitMQ 消息队列**（评论邮件通知 + 日志异步化 + 死信队列 + 监控）、**WebSocket 实时通知**（STOMP + SockJS + MQ联动 + 在线人数 + 通知中心）、ECharts 数据可视化、**API 限流与防护系统**（Redis Lua 滑动窗口 + AOP + IP 黑白名单）、**酷炫前端交互**（打字机标题 + 阅读进度条 + 鼠标光晕 + 3D视差卡片 + 光泽动效 + 数字滚动动画 + 暗色模式 + 粒子背景 + 图片灯箱 + 分享卡片 + 命令面板 + 书签系统 + 阅读统计）、**像素羊桌宠系统**（CSS 像素画 + 多状态动画帧 + 拖拽交互 + 玩球/梳毛/召回/小憩）、**AI 创意工坊**（通义千问 qwen-plus + DashScope OpenAI 兼容接口 + SSE 流式结构化方案生成 + Nginx 运行时环境变量注入 Key + SNI/IPv4 代理稳态处理）、**AI Agent 项目联动入口**（底部桥接模块 + 关于页 + 命令面板，把博客内容线自然延伸到独立部署的 AeroFlow Sentinel）。
 
 ### 核心特性
 
@@ -50,9 +50,9 @@
 - **在线人数统计** - WebSocket 连接/断开事件 + AtomicInteger 原子计数
 - **通知中心** - 管理后台铃铛实时红点 + 通知列表 + 系统公告广播
 - **MQ → WebSocket 联动** - 评论消息队列消费后自动推送实时通知
-- **像素羊桌宠系统** - CSS box-shadow 像素画 + 多状态动画帧（行走/休息/进食）+ 拖拽交互
-- **AI 创意工坊** - 通义千问（DashScope OpenAI 兼容接口）+ SSE 流式输出，生成结构化前端方案（摘要/步骤/代码要点/验收清单），API Key 由 Nginx 服务端注入，前端零感知
-- **AI Agent 项目入口** - 导航栏、关于页、页脚、命令面板统一暴露 AeroFlow Sentinel 在线演示入口，博客与独立 AI Agent 项目联动展示
+- **像素羊桌宠系统** - CSS box-shadow 像素画 + 多状态动画帧（行走/休息/进食）+ 拖拽交互 + 玩球/梳毛/召回/小憩等额外交互
+- **AI 创意工坊** - 通义千问（DashScope OpenAI 兼容接口）+ SSE 流式输出，生成结构化前端方案（摘要/步骤/代码要点/验收清单），API Key 由 Nginx 运行时环境变量注入，前端零感知
+- **AI Agent 项目入口** - 首页与文章页底部桥接模块、关于页与命令面板联动 AeroFlow Sentinel 在线演示入口，博客与独立 AI Agent 项目形成同一条内容线展示
 - **书签收藏系统** - localStorage 持久化，文章页一键收藏，专属书签管理页
 - **阅读统计仪表盘** - 热力图、连续阅读天数、文章完成度、最近阅读列表
 - **命令面板 + 快捷键** - Ctrl/Cmd+K 唤起命令面板，支持文章模糊搜索、主题切换、页面跳转
@@ -77,7 +77,7 @@
 
 - **AeroFlow Sentinel**：一个独立部署的航旅预订链路稳定性 AI Agent 项目，提供多轮问答、巡检分析和 Markdown 报告输出
 - **在线地址**：`http://cyruszhang.online:9900`
-- **博客联动方式**：已在前台导航栏、关于页、页脚和命令面板中接入统一入口，便于在简历和作品集中展示完整项目矩阵
+- **博客联动方式**：已在首页/文章页底部桥接模块、关于页和命令面板中接入统一入口，并配套一组同主题文章，便于在简历和作品集中展示完整项目矩阵
 
 ---
 
@@ -880,9 +880,17 @@ stop.bat
 
 ## 开发日志
 
+### 2026-03-10（v2.1.2 AI 工坊修复 + 文章升级 + 像素羊增强）
+
+- 修复 AI 创意工坊线上 502：Nginx 到 DashScope 的代理新增 SNI、IPv4 resolver 与运行时环境变量注入 Key，避免 TLS 握手失败和部署时覆盖线上密钥
+- 首页、文章页、搜索页和归档链路统一改为优先使用 `publishedAt`，发布时间语义与排序保持一致
+- 将 6 篇 AI / 工程化 / 生活向文章扩写为长文版本，补充封面图并打散发布时间，使内容线更自然
+- 像素羊桌宠新增玩球、梳毛、召回、小憩等玩法，同时补充影子和面板信息，让交互更完整
+- README 同步到当前部署方式：AI Agent 入口改为桥接式露出，AI 创意工坊 Key 改为 Compose 环境变量注入
+
 ### 2026-03-09（v2.1.1 AI Agent 项目联动 + 代码清理）
 
-- 新增独立 AI Agent 项目入口：前台导航栏、关于页、页脚、命令面板统一接入 AeroFlow Sentinel 在线演示链接
+- 新增独立 AI Agent 项目入口：关于页、命令面板与后续桥接区统一接入 AeroFlow Sentinel 在线演示链接
 - 新增全局快捷键 `Ctrl/Cmd + Shift + A`，可直接打开 AI Agent 项目
 - 关于页新增「相关项目」展示卡片，补充项目简介、技术栈标签和在线访问按钮
 - 清理后端代码中的 unused import 与泛型原始类型警告，降低 IDE 噪音并保持代码整洁

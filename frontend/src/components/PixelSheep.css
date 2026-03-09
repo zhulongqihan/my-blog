@@ -12,6 +12,7 @@
   user-select: none;
   -webkit-user-select: none;
   transition: left 0.06s linear;
+  filter: drop-shadow(0 8px 14px rgba(63, 47, 32, 0.12));
 }
 
 .pixel-sheep--dragging {
@@ -27,6 +28,18 @@
 .pixel-sheep__sprite {
   image-rendering: pixelated;
   -ms-interpolation-mode: nearest-neighbor;
+}
+
+.pixel-sheep__shadow {
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 58px;
+  height: 14px;
+  background: radial-gradient(circle, rgba(84, 60, 39, 0.24) 0%, rgba(84, 60, 39, 0.08) 55%, transparent 100%);
+  transform: translateX(-50%);
+  border-radius: 999px;
+  pointer-events: none;
 }
 
 /* Walk bounce */
@@ -365,7 +378,8 @@
   margin-top: 10px;
   padding-top: 8px;
   border-top: 1.5px dashed #C5E1A5;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
 }
 
@@ -385,6 +399,24 @@
 
 .pixel-sheep__panel-btn:hover {
   background: #C5E1A5;
+}
+
+.pixel-sheep__toy-ball {
+  position: fixed;
+  bottom: 18px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  z-index: 9996;
+  border: 2px solid rgba(91, 58, 41, 0.45);
+  box-shadow: 0 8px 14px rgba(91, 58, 41, 0.16);
+  animation: sheep-ball-bounce 0.9s ease-in-out infinite;
+}
+
+@keyframes sheep-ball-bounce {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  30% { transform: translateY(-10px) rotate(-10deg); }
+  60% { transform: translateY(-4px) rotate(10deg); }
 }
 
 /* --- Responsive: hide on small screens --- */

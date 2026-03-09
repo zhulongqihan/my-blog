@@ -31,7 +31,7 @@ public class ArticleController {
     @RateLimit(maxRequests = 60, timeWindow = 60, limitType = RateLimit.LimitType.IP_AND_API)
     @GetMapping
     public ResponseEntity<ApiResponse<Page<ArticleResponse>>> getArticles(
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 10, sort = "publishedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success(articleService.getPublishedArticles(pageable)));
     }
 
@@ -69,14 +69,14 @@ public class ArticleController {
     @GetMapping("/category/{categoryId}")
     public ResponseEntity<ApiResponse<Page<ArticleResponse>>> getArticlesByCategory(
             @PathVariable Long categoryId,
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 10, sort = "publishedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success(articleService.getArticlesByCategory(categoryId, pageable)));
     }
 
     @GetMapping("/tag/{tagId}")
     public ResponseEntity<ApiResponse<Page<ArticleResponse>>> getArticlesByTag(
             @PathVariable Long tagId,
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 10, sort = "publishedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success(articleService.getArticlesByTag(tagId, pageable)));
     }
 
@@ -84,7 +84,7 @@ public class ArticleController {
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<Page<ArticleResponse>>> searchArticles(
             @RequestParam String keyword,
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 10, sort = "publishedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success(articleService.searchArticles(keyword, pageable)));
     }
 

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Search, ArrowRight, Loader2 } from 'lucide-react';
 import { useArticles } from '../hooks/useArticles';
 import { useTags } from '../hooks/useCategories';
+import { getArticleDate } from '../utils/articleDate';
 import './SearchPage.css';
 
 const SEARCH_HISTORY_KEY = 'search-history';
@@ -63,7 +64,7 @@ export default function SearchPage() {
 
   const sortedArticles = useMemo(() => {
     if (sortMode === 'relevance') return articles;
-    return [...articles].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return [...articles].sort((a, b) => new Date(getArticleDate(b.publishedAt, b.createdAt)).getTime() - new Date(getArticleDate(a.publishedAt, a.createdAt)).getTime());
   }, [articles, sortMode]);
 
   const relatedKeywords = useMemo(() => {

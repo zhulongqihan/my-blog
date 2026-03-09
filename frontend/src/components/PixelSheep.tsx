@@ -331,6 +331,17 @@ function getMoodColor(mood: number): string {
   return '#EF5350';
 }
 
+function getStateLabel(state: SheepState): string {
+  switch (state) {
+    case 'idle': return '发呆';
+    case 'walk': return '巡逻';
+    case 'sleep': return '打盹';
+    case 'play': return '撒欢';
+    case 'graze': return '吃草';
+    default: return state;
+  }
+}
+
 // ─── Clover Type ─────────────────────────────────
 interface Clover {
   id: number;
@@ -346,6 +357,11 @@ interface WoolParticle {
   y: number;
   size: number;
   opacity: number;
+}
+
+interface ToyBall {
+  x: number;
+  color: string;
 }
 
 // ─── Component ───────────────────────────────────
@@ -383,6 +399,17 @@ const PixelSheep: React.FC = () => {
 
   // ── Wool particles ──
   const [woolParticles, setWoolParticles] = useState<WoolParticle[]>([]);
+  const [toyBall, setToyBall] = useState<ToyBall | null>(null);
+  const [targetX, setTargetX] = useState<number | null>(null);
+  const [targetMode, setTargetMode] = useState<'ball' | 'whistle' | null>(null);
+  const [fetchCount, setFetchCount] = useState(() => {
+    const saved = localStorage.getItem('pixelsheep-fetch-count');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+  const [groomCount, setGroomCount] = useState(() => {
+    const saved = localStorage.getItem('pixelsheep-groom-count');
+    return saved ? parseInt(saved, 10) : 0;
+  });
 
   // ── UI ──
   const [message, setMessage] = useState<string | null>(null);
@@ -416,6 +443,21 @@ const PixelSheep: React.FC = () => {
     () => frameToBoxShadow(currentFrames[frameIdx % currentFrames.length], direction),
     [currentFrames, frameIdx, direction]
   );
+
+  const spawnWoolBurst = useCallback((count: number) => {
+    const created = Array.from({ length: count }, () => ({
+      id: ++woolIdRef.current,
+      x: posXRef.current + randomBetween(8, spriteWidth - 8),
+      y: window.innerHeight - 20 - randomBetween(8, spriteHeight),
+      size: randomBetween(3, 6),
+      opacity: 0.55 + Math.random() * 0.35,
+    }));
+
+    setWoolParticles(prev => [...prev, ...created]);
+    window.setTimeout(() => {
+      setWoolParticles(prev => prev.filter(item => !created.some(createdItem => createdItem.id === item.id)));
+    }, 1400);
+  }, [spriteHeight, spriteWidth]);
 
   // ─────────────────────────────────────────────────
   // MOOD SYSTEM: decay over time
@@ -529,7 +571,7 @@ const PixelSheep: React.FC = () => {
 
   // ── Walk Movement ──
   useEffect(() => {
-    if (sheepState !== 'walk' || isDragging) return;
+    if (sheepState !== 'walk' || isDragging || targetX !== null) return;
     const speed = 2;
     const interval = setInterval(() => {
       setPosX(prev => {
@@ -541,15 +583,60 @@ const PixelSheep: React.FC = () => {
       });
     }, 50);
     return () => clearInterval(interval);
-  }, [sheepState, direction, spriteWidth, isDragging]);
+  }, [sheepState, direction, spriteWidth, isDragging, targetX]);
 
   // ── Auto Transitions ──
   useEffect(() => {
-    if (isDragging) return;
+    if (isDragging || targetX !== null || toyBall) return;
     const [minDur, maxDur] = STATE_DURATIONS[sheepState];
     stateTimerRef.current = setTimeout(transitionState, randomBetween(minDur, maxDur));
     return () => clearTimeout(stateTimerRef.current);
-  }, [sheepState, transitionState, isDragging]);
+  }, [sheepState, transitionState, isDragging, targetX, toyBall]);
+
+  useEffect(() => {
+    if (targetX === null || isDragging) return;
+
+    const maxX = window.innerWidth - spriteWidth - 10;
+    const clampedTarget = Math.max(10, Math.min(maxX, targetX));
+    const delta = clampedTarget - posXRef.current;
+
+    if (Math.abs(delta) <= 8) {
+      setPosX(clampedTarget);
+      setTargetX(null);
+
+      if (targetMode === 'ball') {
+        setFetchCount(prev => prev + 1);
+        setMood(prev => Math.min(100, prev + 12));
+        setSheepState('play');
+        setFrameIdx(0);
+        showMessage('球捡回来啦！🎾', 2400);
+        window.setTimeout(() => setToyBall(null), 900);
+      } else if (targetMode === 'whistle') {
+        setSheepState('idle');
+        setFrameIdx(0);
+        showMessage('咩，我回来啦。', 2200);
+      }
+
+      setTargetMode(null);
+      return;
+    }
+
+    setDirection(delta > 0 ? 1 : -1);
+    if (sheepState !== 'walk') {
+      setSheepState('walk');
+      setFrameIdx(0);
+    }
+
+    const interval = window.setInterval(() => {
+      setPosX(prev => {
+        const remaining = clampedTarget - prev;
+        if (Math.abs(remaining) <= 6) return clampedTarget;
+        return prev + Math.sign(remaining) * Math.min(5, Math.abs(remaining));
+      });
+    }, 40);
+
+    return () => window.clearInterval(interval);
+  }, [isDragging, sheepState, showMessage, spriteWidth, targetMode, targetX]);
 
   // ── Idle Timeout → Sleep ──
   useEffect(() => {
@@ -671,6 +758,53 @@ const PixelSheep: React.FC = () => {
     setPanel(null);
   }, [showMessage]);
 
+  const throwBall = useCallback(() => {
+    const maxX = Math.max(80, window.innerWidth - 120);
+    const ballX = randomBetween(60, maxX);
+    const palette = ['#f59e0b', '#ef4444', '#38bdf8', '#8b5cf6'];
+    setToyBall({ x: ballX, color: palette[randomBetween(0, palette.length - 1)] });
+    setTargetX(ballX - spriteWidth / 2);
+    setTargetMode('ball');
+    setSheepState('walk');
+    setFrameIdx(0);
+    showMessage('去把球叼回来！', 2200);
+    setPanel(null);
+  }, [showMessage, spriteWidth]);
+
+  const groomSheep = useCallback(() => {
+    setGroomCount(prev => prev + 1);
+    setMood(prev => Math.min(100, prev + 10));
+    setSheepState('play');
+    setFrameIdx(0);
+    spawnWoolBurst(6);
+    showMessage('今天的羊毛顺滑很多。', 2400);
+    setPanel(null);
+  }, [showMessage, spawnWoolBurst]);
+
+  const whistleSheep = useCallback(() => {
+    const nextTarget = window.innerWidth - spriteWidth - 56;
+    setTargetX(nextTarget);
+    setTargetMode('whistle');
+    showMessage('嘘，小羊回队。', 2200);
+    setPanel(null);
+  }, [showMessage, spriteWidth]);
+
+  const toggleNap = useCallback(() => {
+    if (sheepState === 'sleep') {
+      setSheepState('idle');
+      setFrameIdx(0);
+      showMessage('醒啦，继续巡逻。', 2200);
+    } else {
+      setSheepState('sleep');
+      setFrameIdx(0);
+      setToyBall(null);
+      setTargetX(null);
+      setTargetMode(null);
+      showMessage('今天先眯五分钟。', 2200);
+    }
+    setPanel(null);
+  }, [sheepState, showMessage]);
+
   // ─────────────────────────────────────────────────
   // PERSIST
   // ─────────────────────────────────────────────────
@@ -679,6 +813,8 @@ const PixelSheep: React.FC = () => {
   useEffect(() => { localStorage.setItem('pixelsheep-hidden', String(isHidden)); }, [isHidden]);
   useEffect(() => { localStorage.setItem('pixelsheep-mood', String(mood)); }, [mood]);
   useEffect(() => { localStorage.setItem('pixelsheep-grass', String(grassCount)); }, [grassCount]);
+  useEffect(() => { localStorage.setItem('pixelsheep-fetch-count', String(fetchCount)); }, [fetchCount]);
+  useEffect(() => { localStorage.setItem('pixelsheep-groom-count', String(groomCount)); }, [groomCount]);
 
   // Time-of-day greeting
   useEffect(() => {
@@ -807,6 +943,8 @@ const PixelSheep: React.FC = () => {
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       >
+        <div className="pixel-sheep__shadow" />
+
         {/* Mood indicator */}
         <div className="pixel-sheep__mood">{getMoodEmoji(mood)}</div>
 
@@ -835,6 +973,16 @@ const PixelSheep: React.FC = () => {
           ×
         </button>
       </div>
+
+      {toyBall && (
+        <div
+          className="pixel-sheep__toy-ball"
+          style={{
+            left: toyBall.x,
+            background: `radial-gradient(circle at 35% 35%, #fff 0 18%, ${toyBall.color} 20% 68%, #5b3a29 72% 100%)`,
+          }}
+        />
+      )}
 
       {/* ── Right-click Panel ── */}
       {panel && (
@@ -866,12 +1014,24 @@ const PixelSheep: React.FC = () => {
               <span className="pixel-sheep__panel-value">✋ {clickCount}</span>
             </div>
             <div className="pixel-sheep__panel-row">
+              <span className="pixel-sheep__panel-label">玩球</span>
+              <span className="pixel-sheep__panel-value">🎾 {fetchCount}</span>
+            </div>
+            <div className="pixel-sheep__panel-row">
+              <span className="pixel-sheep__panel-label">梳毛</span>
+              <span className="pixel-sheep__panel-value">🧶 {groomCount}</span>
+            </div>
+            <div className="pixel-sheep__panel-row">
               <span className="pixel-sheep__panel-label">状态</span>
-              <span className="pixel-sheep__panel-value">{sheepState}</span>
+              <span className="pixel-sheep__panel-value">{getStateLabel(sheepState)}</span>
             </div>
             <div className="pixel-sheep__panel-actions">
               <button className="pixel-sheep__panel-btn" onClick={feedSheep}>🌿 喂草</button>
               <button className="pixel-sheep__panel-btn" onClick={petSheep}>✋ 摸摸</button>
+              <button className="pixel-sheep__panel-btn" onClick={throwBall}>🎾 玩球</button>
+              <button className="pixel-sheep__panel-btn" onClick={groomSheep}>🧶 梳毛</button>
+              <button className="pixel-sheep__panel-btn" onClick={whistleSheep}>📣 召回</button>
+              <button className="pixel-sheep__panel-btn" onClick={toggleNap}>{sheepState === 'sleep' ? '☀️ 叫醒' : '🌙 小憩'}</button>
             </div>
           </div>
         </>

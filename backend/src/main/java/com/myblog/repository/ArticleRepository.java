@@ -69,7 +69,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     /**
      * 获取所有已发布文章（按创建时间倒序），用于归档页
      */
-    List<Article> findByPublishedTrueOrderByCreatedAtDesc();
+    List<Article> findByPublishedTrueOrderByPublishedAtDesc();
 
     // ========== v2.0 新增：Redis 高并发特性 ==========
 
