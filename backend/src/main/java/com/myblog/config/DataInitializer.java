@@ -13,16 +13,21 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.time.ZoneId;
 
@@ -37,6 +42,7 @@ public class DataInitializer implements CommandLineRunner {
     private final ArticleRepository articleRepository;
     private final CommentRepository commentRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ResourceLoader resourceLoader;
 
     @Value("${blog.demo.reset-content:false}")
     private boolean resetDemoContent;
@@ -57,6 +63,50 @@ public class DataInitializer implements CommandLineRunner {
 
         if (articleRepository.count() == 0) {
             seedArticles();
+            syncLongFormContent();
+        }
+    }
+
+    /**
+     * Keep the seeded articles in external Markdown files so the content can be reviewed
+     * independently from the bootstrap code. The personal essay is intentionally excluded.
+     */
+    private void syncLongFormContent() {
+        Map<String, String> contentFiles = new LinkedHashMap<>();
+        contentFiles.put("博客系统技术架构全解析", "54-blog-architecture.md");
+        contentFiles.put("极简主义设计的魅力", "55-minimal-design.md");
+        contentFiles.put("Spring Boot 3.x 新特性解析", "56-spring-boot-3.md");
+        contentFiles.put("研究生这一年，我怎么平衡课程、项目和持续输出", "58-study-balance.md");
+        contentFiles.put("AI 时代的普通人写作：为什么我还是坚持把想法写成长文", "59-writing-with-ai.md");
+        contentFiles.put("Redis 在高并发场景下的实战方案", "60-redis-concurrency.md");
+        contentFiles.put("低配云服务器上部署 AI 应用，我做了哪些取舍", "61-low-cost-ai-deployment.md");
+        contentFiles.put("AI 爆火之后，普通开发者应该怎样建立自己的工具箱", "62-ai-toolbox.md");
+        contentFiles.put("我为什么做了一个航旅稳定性 AI Agent 项目", "63-aeroflow-sentinel.md");
+        contentFiles.put("从提示词到工作流：我对这波 AI Agent 热潮的几个判断", "64-agent-workflows.md");
+        contentFiles.put("从博客到作品集：我怎样把内容线做成可讲述的项目线", "65-blog-to-portfolio.md");
+        contentFiles.put("欢迎来到我的博客", "66-welcome.md");
+
+        List<Article> articles = articleRepository.findAll();
+        for (Article article : articles) {
+            String filename = contentFiles.get(article.getTitle());
+            if (filename == null) {
+                continue;
+            }
+            article.setContent(readArticleContent(filename));
+        }
+        articleRepository.saveAll(articles);
+    }
+
+    private String readArticleContent(String filename) {
+        try {
+            return new String(
+                    resourceLoader.getResource("classpath:article-content/" + filename)
+                            .getInputStream()
+                            .readAllBytes(),
+                    StandardCharsets.UTF_8
+            );
+        } catch (IOException exception) {
+            throw new IllegalStateException("无法读取文章正文: " + filename, exception);
         }
     }
 
