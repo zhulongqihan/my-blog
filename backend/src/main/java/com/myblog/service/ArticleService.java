@@ -381,18 +381,6 @@ public class ArticleService {
     }
 
     public ArticleSummaryResponse toSummaryResponse(Article article) {
-        int likeCount = article.getLikeCount();
-        try {
-            String redisCount = stringRedisTemplate.opsForValue().get(
-                    RedisKeyPrefix.ARTICLE_LIKE_COUNT + article.getId()
-            );
-            if (redisCount != null) {
-                likeCount = Integer.parseInt(redisCount);
-            }
-        } catch (Exception e) {
-            // fallback to DB value
-        }
-
         int contentLength = article.getContent() == null ? 0 : article.getContent().length();
         int readTimeMinutes = Math.max(1, (int) Math.ceil(contentLength / 300.0));
 
@@ -420,8 +408,8 @@ public class ArticleService {
                                 .build())
                         .collect(Collectors.toList()))
                 .viewCount(article.getViewCount())
-                .likeCount(likeCount)
-                .commentCount(commentRepository.countByArticle(article))
+                // 摘要接口不访问 Redis 或评论表，避免列表请求产生 N+1 查询。
+                .likeCount(article.getLikeCount())
                 .published(article.getPublished())
                 .featured(article.getFeatured())
                 .readTimeMinutes(readTimeMinutes)
