@@ -1,5 +1,5 @@
 # ========== Stage 1: 构建 React 前台 ==========
-FROM node:18-alpine AS frontend-builder
+FROM node:20-alpine AS frontend-builder
 
 WORKDIR /build/frontend
 COPY frontend/package.json frontend/package-lock.json* ./
@@ -8,7 +8,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # ========== Stage 2: 构建 Vue 管理后台 ==========
-FROM node:18-alpine AS admin-builder
+FROM node:20-alpine AS admin-builder
 
 WORKDIR /build/admin
 COPY admin-frontend/package.json admin-frontend/package-lock.json* ./
