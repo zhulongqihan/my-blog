@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Feather, Search, Loader2, Sun, Moon } from 'lucide-react';
+import { Menu, X, Feather, Search, Loader2, Sun, Moon, CircleUserRound, LogOut, Sparkles } from 'lucide-react';
 import { articleApi } from '../services';
-import type { Article } from '../types';
+import { useAuth } from '../hooks/useAuth';
+import type { ArticleSummary } from '../types';
 import './Header.css';
 
 const SEARCH_HISTORY_KEY = 'search-history';
@@ -17,15 +18,18 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [keyword, setKeyword] = useState('');
-  const [suggestions, setSuggestions] = useState<Article[]>([]);
+  const [suggestions, setSuggestions] = useState<ArticleSummary[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
   const searchRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   const saveSearchHistory = (query: string) => {
     const normalized = query.trim();
@@ -65,6 +69,7 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
       setIsMobileMenuOpen(false);
     }
     setShowSuggestions(false);
+    setShowUserMenu(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
@@ -72,6 +77,9 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
     const onClickOutside = (event: MouseEvent) => {
       if (!searchRef.current?.contains(event.target as Node)) {
         setShowSuggestions(false);
+      }
+      if (!userMenuRef.current?.contains(event.target as Node)) {
+        setShowUserMenu(false);
       }
     };
     window.addEventListener('click', onClickOutside);
@@ -161,6 +169,12 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
     { path: '/bookmarks', label: '书签' },
     { path: '/about', label: '关于' },
   ];
+
+  const handleLogout = async () => {
+    await logout();
+    setShowUserMenu(false);
+    navigate('/');
+  };
 
   return (
     <header className={`header ${isScrolled ? 'header--scrolled' : ''}`}>
@@ -280,6 +294,39 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
           )}
         </div>
 
+        <div className="header__user" ref={userMenuRef}>
+          {isAuthenticated && user ? (
+            <>
+              <button
+                className={`header__user-trigger ${showUserMenu ? 'header__user-trigger--active' : ''}`}
+                onClick={() => setShowUserMenu(prev => !prev)}
+                aria-label="打开用户菜单"
+              >
+                <CircleUserRound size={16} />
+                <span className="header__user-name">{user.nickname || user.username}</span>
+              </button>
+              {showUserMenu && (
+                <div className="header__user-menu">
+                  <div className="header__user-card">
+                    <div className="header__user-title">{user.nickname || user.username}</div>
+                    <div className="header__user-meta">{user.role === 'ADMIN' ? '管理员' : '读者'} · {user.email}</div>
+                  </div>
+                  <Link to="/auth" className="header__user-link" onClick={() => setShowUserMenu(false)}>
+                    <Sparkles size={14} /> 账号中心
+                  </Link>
+                  <button className="header__user-link" onClick={handleLogout}>
+                    <LogOut size={14} /> 退出登录
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <Link to="/auth" className="header__auth-link liquid-btn">
+              <CircleUserRound size={15} /> 登录 / 注册
+            </Link>
+          )}
+        </div>
+
         <button className="header__theme-toggle" onClick={onToggleTheme} aria-label="切换主题">
           {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
         </button>
@@ -317,6 +364,26 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
                 </Link>
               </motion.div>
             ))}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: navLinks.length * 0.1 }}
+            >
+              {isAuthenticated && user ? (
+                <div className="header__mobile-user-box">
+                  <div className="header__mobile-user-name">{user.nickname || user.username}</div>
+                  <div className="header__mobile-user-meta">{user.email}</div>
+                  <div className="header__mobile-user-actions">
+                    <Link to="/auth" className="header__mobile-auth-link">账号中心</Link>
+                    <button className="header__mobile-auth-link" onClick={handleLogout}>退出登录</button>
+                  </div>
+                </div>
+              ) : (
+                <Link to="/auth" className="header__mobile-link header__mobile-link--auth">
+                  登录 / 注册
+                </Link>
+              )}
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

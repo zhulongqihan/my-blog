@@ -1,6 +1,7 @@
-import { get, post, put, del } from './api';
+import api, { get, post, put, del } from './api';
 import type {
   Article,
+  ArticleSummary,
   ArticleRequest,
   PageResponse,
   Category,
@@ -17,28 +18,28 @@ import type {
 
 export const articleApi = {
   // 获取文章列表（分页）
-  getList: (page = 0, size = 10) => get<PageResponse<Article>>('/articles', { page, size }),
+  getList: (page = 0, size = 10) => get<PageResponse<ArticleSummary>>('/articles', { page, size }),
 
   // 获取单篇文章
   getById: (id: number) => get<Article>(`/articles/${id}`),
 
   // 获取精选文章
-  getFeatured: () => get<Article[]>('/articles/featured'),
+  getFeatured: () => get<ArticleSummary[]>('/articles/featured'),
 
   // 获取热门文章
-  getPopular: (limit = 5) => get<Article[]>('/articles/popular', { limit }),
+  getPopular: (limit = 5) => get<ArticleSummary[]>('/articles/popular', { limit }),
 
   // 按分类获取文章
   getByCategory: (categoryId: number, page = 0, size = 10) =>
-    get<PageResponse<Article>>(`/articles/category/${categoryId}`, { page, size }),
+    get<PageResponse<ArticleSummary>>(`/articles/category/${categoryId}`, { page, size }),
 
   // 按标签获取文章
   getByTag: (tagId: number, page = 0, size = 10) =>
-    get<PageResponse<Article>>(`/articles/tag/${tagId}`, { page, size }),
+    get<PageResponse<ArticleSummary>>(`/articles/tag/${tagId}`, { page, size }),
 
   // 搜索文章
   search: (keyword: string, page = 0, size = 10) =>
-    get<PageResponse<Article>>('/articles/search', { keyword, page, size }),
+    get<PageResponse<ArticleSummary>>('/articles/search', { keyword, page, size }),
 
   // 获取文章归档
   getArchive: () => get<ArchiveResponse>('/articles/archive'),
@@ -119,4 +120,9 @@ export const authApi = {
 
   // 获取当前用户信息
   getCurrentUser: () => get<AuthResponse>('/auth/me'),
+
+  // 登出
+  logout: async () => {
+    await api.post('/auth/logout');
+  },
 };

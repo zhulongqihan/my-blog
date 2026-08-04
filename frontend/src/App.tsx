@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { lazy, Suspense, useEffect, useState, useCallback, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { AuthProvider } from './contexts/AuthContext';
@@ -14,13 +14,14 @@ import PixelSheep from './components/PixelSheep';
 import CommandPalette from './components/CommandPalette';
 import { AI_AGENT_URL } from './constants/externalLinks';
 import { useKeyboardShortcuts, type ShortcutAction } from './hooks/useKeyboardShortcuts';
-import HomePage from './pages/HomePage';
-import ArticlePage from './pages/ArticlePage';
-import AboutPage from './pages/AboutPage';
-import ArchivePage from './pages/ArchivePage';
-import SearchPage from './pages/SearchPage';
-import ReadingStatsPage from './pages/ReadingStatsPage';
-import BookmarksPage from './pages/BookmarksPage';
+const HomePage = lazy(() => import('./pages/HomePage'));
+const ArticlePage = lazy(() => import('./pages/ArticlePage'));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
+const ArchivePage = lazy(() => import('./pages/ArchivePage'));
+const SearchPage = lazy(() => import('./pages/SearchPage'));
+const ReadingStatsPage = lazy(() => import('./pages/ReadingStatsPage'));
+const BookmarksPage = lazy(() => import('./pages/BookmarksPage'));
+const AuthPage = lazy(() => import('./pages/AuthPage'));
 import './App.css';
 
 function AppContent() {
@@ -85,15 +86,18 @@ function AppContent() {
       />
       <main className="main-content">
         <AnimatePresence mode="wait">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/article/:id" element={<ArticlePage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/archive" element={<ArchivePage />} />
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/reading-stats" element={<ReadingStatsPage />} />
-            <Route path="/bookmarks" element={<BookmarksPage />} />
-          </Routes>
+          <Suspense fallback={<div aria-live="polite">正在加载页面...</div>}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/article/:id" element={<ArticlePage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/archive" element={<ArchivePage />} />
+              <Route path="/search" element={<SearchPage />} />
+              <Route path="/reading-stats" element={<ReadingStatsPage />} />
+              <Route path="/bookmarks" element={<BookmarksPage />} />
+              <Route path="/auth" element={<AuthPage />} />
+            </Routes>
+          </Suspense>
         </AnimatePresence>
       </main>
       <Footer />

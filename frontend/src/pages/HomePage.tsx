@@ -25,13 +25,7 @@ const pageVariants = {
   exit: { opacity: 0, y: -20 },
 };
 
-// 估算阅读时间
-const estimateReadTime = (content: string) => {
-  const wordsPerMinute = 300;
-  const words = content?.length || 0;
-  const minutes = Math.ceil(words / wordsPerMinute);
-  return `${minutes} 分钟`;
-};
+const formatReadTime = (minutes?: number) => `${Math.max(1, minutes || 1)} 分钟`;
 
 const QUOTES = [
   '代码会过时，但思考方式会复利。',
@@ -224,7 +218,7 @@ const HomePage = () => {
             title={featuredArticle.title}
             summary={featuredArticle.summary || ''}
             date={formatArticleDate(featuredArticle.publishedAt, featuredArticle.createdAt)}
-            readTime={estimateReadTime(featuredArticle.content)}
+            readTime={formatReadTime(featuredArticle.readTimeMinutes)}
             coverImage={featuredArticle.coverImage}
             category={featuredArticle.category?.name}
             tags={featuredArticle.tags?.map(t => t.name)}
@@ -270,7 +264,7 @@ const HomePage = () => {
                   title={article.title}
                   summary={article.summary || ''}
                   date={formatArticleDate(article.publishedAt, article.createdAt)}
-                  readTime={estimateReadTime(article.content)}
+                  readTime={formatReadTime(article.readTimeMinutes)}
                   coverImage={article.coverImage}
                   category={article.category?.name}
                   tags={article.tags?.map(t => t.name)}

@@ -12,10 +12,10 @@ services:
     container_name: myblog-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-RootPass2026}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-blogdb}
       MYSQL_USER: ${MYSQL_USER:-bloguser}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-MyBlog2026}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD must be set}
       TZ: Asia/Shanghai
     volumes:
       - mysql_data:/var/lib/mysql
@@ -41,13 +41,15 @@ services:
     image: redis:7-alpine
     container_name: myblog-redis
     restart: unless-stopped
-    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru --requirepass BlogRedis2026
+    command: >-
+      redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru
+      --requirepass "${REDIS_PASSWORD:?REDIS_PASSWORD must be set}"
     volumes:
       - redis_data:/data
     ports:
       - "127.0.0.1:6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "BlogRedis2026", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:?REDIS_PASSWORD must be set}", "ping"]
       interval: 10s
       timeout: 3s
       retries: 3
@@ -64,8 +66,8 @@ services:
     container_name: myblog-rabbitmq
     restart: unless-stopped
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-admin}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-admin123}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:?RABBITMQ_DEFAULT_USER must be set}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS must be set}
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     ports:
@@ -101,24 +103,24 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: prod
       # ---- 数据库：覆盖 spring.datasource.* ----
-      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/blogdb?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
-      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-bloguser}
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-MyBlog2026}
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/blogdb?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:?MYSQL_USER must be set}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD must be set}
       # ---- Redis：覆盖 spring.data.redis.* (Spring Boot 3.x) ----
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: "6379"
-      SPRING_DATA_REDIS_PASSWORD: BlogRedis2026
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
       # 兼容旧命名空间 spring.redis.*
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: "6379"
-      SPRING_REDIS_PASSWORD: BlogRedis2026
+      SPRING_REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
       # ---- RabbitMQ：覆盖 spring.rabbitmq.* ----
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: "5672"
-      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-admin}
-      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-admin123}
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:?RABBITMQ_DEFAULT_USER must be set}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS must be set}
       # ---- JWT ----
-      JWT_SECRET: ${JWT_SECRET:-0vC37MKrX3ncvfxFacfkojXfawfX8VXtOLjZKA2yU7U=}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
       # ---- CORS（含 www 子域）----
       CORS_ALLOWEDORIGINS: "http://cyruszhang.online,https://cyruszhang.online,http://www.cyruszhang.online,https://www.cyruszhang.online,http://118.31.221.81"
@@ -127,6 +129,7 @@ services:
       FILE_ACCESSURL: /uploads
       # ---- 日志路径（覆盖服务器上硬编码的 /www/my-blog/... 路径）----
       LOGGING_FILE_NAME: /app/logs/backend.log
+      BLOG_DEMO_RESET_CONTENT: ${BLOG_DEMO_RESET_CONTENT:-false}
       # ---- JVM 参数 ----
       JAVA_OPTS: "-Xms256m -Xmx512m"
       TZ: Asia/Shanghai
@@ -159,7 +162,9 @@ services:
       backend:
         condition: service_healthy
     environment:
-      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-YOUR_DASHSCOPE_API_KEY}
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:?DASHSCOPE_API_KEY must be set}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "80:80"
     volumes:

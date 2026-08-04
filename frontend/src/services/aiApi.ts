@@ -7,6 +7,7 @@
 const AI_API_URL = import.meta.env.VITE_AI_API_URL || '/ai-api';
 const AI_API_KEY = import.meta.env.VITE_AI_API_KEY || '';
 const AI_MODEL = import.meta.env.VITE_AI_MODEL || 'qwen-plus';
+const IS_DEV = import.meta.env.DEV;
 
 // ==================== 类型定义 ====================
 
@@ -111,7 +112,8 @@ export function sendChatMessage(
         switch (response.status) {
           case 400: msg = '请求参数错误，请稍后重试'; break;
           case 401: msg = 'API 密钥无效，请检查配置'; break;
-          case 502: msg = 'AI 服务网关暂时不可用，请稍后重试'; break;
+          case 404: msg = isProxy && IS_DEV ? '本地 AI 代理未命中，请检查 Vite 开发代理配置' : 'AI 服务地址不存在'; break;
+          case 502: msg = isProxy && IS_DEV ? '本地 AI 代理暂时不可用，请检查 VITE_DASHSCOPE_API_KEY 和 Vite 代理配置' : 'AI 服务网关暂时不可用，请稍后重试'; break;
           case 429: msg = '请求太频繁，请稍后再试'; break;
           case 500: msg = 'AI 服务暂时不可用，请稍后重试'; break;
           default:

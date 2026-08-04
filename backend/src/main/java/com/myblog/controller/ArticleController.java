@@ -5,6 +5,7 @@ import com.myblog.dto.ApiResponse;
 import com.myblog.dto.ArchiveResponse;
 import com.myblog.dto.ArticleRequest;
 import com.myblog.dto.ArticleResponse;
+import com.myblog.dto.ArticleSummaryResponse;
 import com.myblog.dto.LikeResponseDTO;
 import com.myblog.entity.User;
 import com.myblog.service.ArticleService;
@@ -30,7 +31,7 @@ public class ArticleController {
 
     @RateLimit(maxRequests = 60, timeWindow = 60, limitType = RateLimit.LimitType.IP_AND_API)
     @GetMapping
-    public ResponseEntity<ApiResponse<Page<ArticleResponse>>> getArticles(
+    public ResponseEntity<ApiResponse<Page<ArticleSummaryResponse>>> getArticles(
             @PageableDefault(size = 10, sort = "publishedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success(articleService.getPublishedArticles(pageable)));
     }
@@ -47,12 +48,12 @@ public class ArticleController {
     }
 
     @GetMapping("/featured")
-    public ResponseEntity<ApiResponse<List<ArticleResponse>>> getFeaturedArticles() {
+    public ResponseEntity<ApiResponse<List<ArticleSummaryResponse>>> getFeaturedArticles() {
         return ResponseEntity.ok(ApiResponse.success(articleService.getFeaturedArticles()));
     }
 
     @GetMapping("/popular")
-    public ResponseEntity<ApiResponse<List<ArticleResponse>>> getPopularArticles(
+    public ResponseEntity<ApiResponse<List<ArticleSummaryResponse>>> getPopularArticles(
             @RequestParam(defaultValue = "5") int limit) {
         return ResponseEntity.ok(ApiResponse.success(articleService.getPopularArticles(limit)));
     }
@@ -61,20 +62,20 @@ public class ArticleController {
      * 本周热门文章（基于 UV 排行）
      */
     @GetMapping("/hot/weekly")
-    public ResponseEntity<ApiResponse<List<ArticleResponse>>> getWeeklyHot(
+    public ResponseEntity<ApiResponse<List<ArticleSummaryResponse>>> getWeeklyHot(
             @RequestParam(defaultValue = "10") int limit) {
         return ResponseEntity.ok(ApiResponse.success(articleService.getWeeklyHotArticles(limit)));
     }
 
     @GetMapping("/category/{categoryId}")
-    public ResponseEntity<ApiResponse<Page<ArticleResponse>>> getArticlesByCategory(
+    public ResponseEntity<ApiResponse<Page<ArticleSummaryResponse>>> getArticlesByCategory(
             @PathVariable Long categoryId,
             @PageableDefault(size = 10, sort = "publishedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success(articleService.getArticlesByCategory(categoryId, pageable)));
     }
 
     @GetMapping("/tag/{tagId}")
-    public ResponseEntity<ApiResponse<Page<ArticleResponse>>> getArticlesByTag(
+    public ResponseEntity<ApiResponse<Page<ArticleSummaryResponse>>> getArticlesByTag(
             @PathVariable Long tagId,
             @PageableDefault(size = 10, sort = "publishedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success(articleService.getArticlesByTag(tagId, pageable)));
@@ -82,7 +83,7 @@ public class ArticleController {
 
     @RateLimit(maxRequests = 30, timeWindow = 60, limitType = RateLimit.LimitType.IP_AND_API, prefix = "search")
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<Page<ArticleResponse>>> searchArticles(
+    public ResponseEntity<ApiResponse<Page<ArticleSummaryResponse>>> searchArticles(
             @RequestParam String keyword,
             @PageableDefault(size = 10, sort = "publishedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success(articleService.searchArticles(keyword, pageable)));

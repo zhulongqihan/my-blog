@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Article, PageResponse } from '../types';
+import type { Article, ArticleSummary, PageResponse } from '../types';
 import { articleApi } from '../services';
 
 interface UseArticlesOptions {
@@ -11,7 +11,7 @@ interface UseArticlesOptions {
 }
 
 interface UseArticlesResult {
-  articles: Article[];
+  articles: ArticleSummary[];
   isLoading: boolean;
   error: string | null;
   totalPages: number;
@@ -24,7 +24,7 @@ interface UseArticlesResult {
 export const useArticles = (options: UseArticlesOptions = {}): UseArticlesResult => {
   const { page = 0, size = 10, categoryId, tagId, keyword } = options;
 
-  const [articles, setArticles] = useState<Article[]>([]);
+  const [articles, setArticles] = useState<ArticleSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pageInfo, setPageInfo] = useState({ totalPages: 0, currentPage: 0, hasMore: false });
@@ -47,7 +47,7 @@ export const useArticles = (options: UseArticlesOptions = {}): UseArticlesResult
           response = await articleApi.getList(pageNum, size);
         }
 
-        const data = response.data as PageResponse<Article>;
+        const data = response.data as PageResponse<ArticleSummary>;
 
         setArticles(prev => (append ? [...prev, ...data.content] : data.content));
         setPageInfo({
@@ -120,7 +120,7 @@ export const useArticle = (id: number) => {
 
 // 获取精选文章
 export const useFeaturedArticles = () => {
-  const [articles, setArticles] = useState<Article[]>([]);
+  const [articles, setArticles] = useState<ArticleSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

@@ -54,6 +54,7 @@ public class SecurityConfig {
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()  // WebSocket 端点
                 .requestMatchers("/api/articles/search").permitAll()
+                .requestMatchers(HttpMethod.HEAD, "/api/articles/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/articles/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
@@ -61,6 +62,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/comments/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/comments/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/notifications/online-count").permitAll()
+                .requestMatchers(HttpMethod.GET, "/sitemap.xml").permitAll()
                 // 点赞接口允许匿名访问（游客用 IP 标识）
                 .requestMatchers(HttpMethod.POST, "/api/articles/*/like").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/articles/*/like/status").permitAll()
@@ -81,7 +83,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
         

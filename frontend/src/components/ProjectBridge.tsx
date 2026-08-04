@@ -1,13 +1,13 @@
 import { Bot, ExternalLink, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AI_AGENT_NAME, AI_AGENT_SUMMARY, AI_AGENT_URL } from '../constants/externalLinks';
-import type { Article } from '../types';
+import type { ArticleSummary } from '../types';
 import './ProjectBridge.css';
 
 interface ProjectBridgeProps {
   title: string;
   description: string;
-  articleLinks?: Article[];
+  articleLinks?: ArticleSummary[];
   compact?: boolean;
 }
 

@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState, useCallback, useRef, type CSSProperties } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, ArrowLeft, Tag, Loader2, BookOpen, Minimize2, Copy, Check, Image as ImageIcon, X, ChevronLeft, ChevronRight, Share2, Heart, Type, RotateCcw, Timer, Play, Pause, RefreshCw, ChevronDown, ChevronRight as ChevronRightSmall, Bookmark } from 'lucide-react';
+import { Calendar, Clock, ArrowLeft, Tag, Loader2, BookOpen, Minimize2, Copy, Check, Image as ImageIcon, X, ChevronLeft, ChevronRight, Share2, Heart, Type, RotateCcw, Timer, Play, Pause, RefreshCw, ChevronDown, ChevronRight as ChevronRightSmall, Bookmark, MessageSquareMore, Reply, Send, Trash2 } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import axios from 'axios';
 import QRCode from 'qrcode';
 import { useArticle } from '../hooks/useArticles';
-import { articleApi } from '../services';
+import { articleApi, commentApi } from '../services';
+import { useAuth } from '../hooks/useAuth';
 import { isBookmarked as checkBookmarked, toggleBookmark } from '../services/bookmarks';
 import { unlockGlobalAchievement } from '../components/AchievementHub';
 import ProjectBridge from '../components/ProjectBridge';
-import type { Article } from '../types';
+import type { ArticleSummary, Comment } from '../types';
 import { formatArticleDate } from '../utils/articleDate';
 import './ArticlePage.css';
 
@@ -87,6 +89,34 @@ interface ReadingProgressEntry {
   updatedAt: number;
   path: string;
 }
+
+interface CommentDraft {
+  content: string;
+  guestName: string;
+  guestEmail: string;
+}
+
+const EMPTY_COMMENT_DRAFT: CommentDraft = {
+  content: '',
+  guestName: '',
+  guestEmail: '',
+};
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (axios.isAxiosError(error)) {
+    const message = (error.response?.data as { message?: string } | undefined)?.message;
+    return message || fallback;
+  }
+
+  return fallback;
+};
+
+const formatCommentDate = (date: string) => new Date(date).toLocaleString('zh-CN', {
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+});
 
 // Parse markdown-like content to JSX
 const parseContent = (
@@ -239,6 +269,7 @@ const parseContent = (
 const ArticlePage = () => {
   const { id } = useParams();
   const { article, isLoading, error } = useArticle(Number(id));
+  const { user, isAuthenticated } = useAuth();
   const [isReadingMode, setIsReadingMode] = useState(() => {
     return localStorage.getItem('article-reading-mode') === 'true';
   });
@@ -262,9 +293,67 @@ const ArticlePage = () => {
   const [focusSeconds, setFocusSeconds] = useState(25 * 60);
   const [focusPreset, setFocusPreset] = useState(25);
   const [focusToast, setFocusToast] = useState('');
-  const [relatedArticles, setRelatedArticles] = useState<Article[]>([]);
+  const [relatedArticles, setRelatedArticles] = useState<ArticleSummary[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentsError, setCommentsError] = useState('');
+  const [commentsTotal, setCommentsTotal] = useState(0);
+  const [commentDraft, setCommentDraft] = useState<CommentDraft>(EMPTY_COMMENT_DRAFT);
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [activeReplyId, setActiveReplyId] = useState<number | null>(null);
+  const [replyDrafts, setReplyDrafts] = useState<Record<number, CommentDraft>>({});
+  const [commentActionId, setCommentActionId] = useState<number | null>(null);
   const pageEnteredAt = useRef(Date.now());
   const tocJumpCount = useRef(0);
+  const commentsSectionRef = useRef<HTMLElement | null>(null);
+  const commentTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    if (!article) return;
+
+    const defaultTitle = 'My Blog | 个人技术博客';
+    const defaultDescription = '一个关于编程、技术与生活的个人博客';
+    const description = article.summary?.trim() || defaultDescription;
+    const canonicalUrl = `${window.location.origin}/article/${article.id}`;
+    const imageUrl = article.coverImage
+      ? new URL(article.coverImage, window.location.origin).href
+      : undefined;
+
+    document.title = `${article.title} | My Blog`;
+    document.querySelector('meta[name="description"]')?.setAttribute('content', description);
+    document.querySelector('link[rel="canonical"]')?.setAttribute('href', canonicalUrl);
+    document.querySelector('meta[property="og:type"]')?.setAttribute('content', 'article');
+    document.querySelector('meta[property="og:title"]')?.setAttribute('content', article.title);
+    document.querySelector('meta[property="og:description"]')?.setAttribute('content', description);
+    document.querySelector('meta[property="og:url"]')?.setAttribute('content', canonicalUrl);
+    document.querySelector('meta[name="twitter:title"]')?.setAttribute('content', article.title);
+    document.querySelector('meta[name="twitter:description"]')?.setAttribute('content', description);
+
+    let imageMeta = document.querySelector('meta[property="og:image"]');
+    if (imageUrl) {
+      if (!imageMeta) {
+        imageMeta = document.createElement('meta');
+        imageMeta.setAttribute('property', 'og:image');
+        document.head.appendChild(imageMeta);
+      }
+      imageMeta.setAttribute('content', imageUrl);
+    } else {
+      imageMeta?.remove();
+    }
+
+    return () => {
+      document.title = defaultTitle;
+      document.querySelector('meta[name="description"]')?.setAttribute('content', defaultDescription);
+      document.querySelector('link[rel="canonical"]')?.setAttribute('href', `${window.location.origin}/`);
+      document.querySelector('meta[property="og:type"]')?.setAttribute('content', 'website');
+      document.querySelector('meta[property="og:title"]')?.setAttribute('content', defaultTitle);
+      document.querySelector('meta[property="og:description"]')?.setAttribute('content', defaultDescription);
+      document.querySelector('meta[property="og:url"]')?.setAttribute('content', `${window.location.origin}/`);
+      document.querySelector('meta[name="twitter:title"]')?.setAttribute('content', defaultTitle);
+      document.querySelector('meta[name="twitter:description"]')?.setAttribute('content', defaultDescription);
+      imageMeta?.remove();
+    };
+  }, [article]);
 
   const headings = useMemo(() => extractHeadings(article?.content || ''), [article?.content]);
   const imageSources = useMemo(() => extractImageSources(article?.content || ''), [article?.content]);
@@ -277,10 +366,36 @@ const ArticlePage = () => {
     return map;
   }, [headings]);
 
+  const commentCountFromTree = useMemo(() => {
+    const countItems = (items: Comment[]): number => items.reduce(
+      (total, item) => total + 1 + countItems(item.replies || []),
+      0
+    );
+
+    return countItems(comments);
+  }, [comments]);
+
+  const loadComments = useCallback(async () => {
+    if (!article?.id) return;
+    setCommentsLoading(true);
+    setCommentsError('');
+
+    try {
+      const response = await commentApi.getByArticle(article.id, 0, 100);
+      setComments(response.data.content || []);
+      setCommentsTotal(response.data.totalElements ?? (response.data.content || []).length);
+    } catch (loadError) {
+      setCommentsError(getErrorMessage(loadError, '评论加载失败，请稍后重试'));
+    } finally {
+      setCommentsLoading(false);
+    }
+  }, [article?.id]);
+
   // 加载文章后初始化点赞状态
   useEffect(() => {
     if (!article?.id) return;
     setLikedCount(article.likeCount ?? 0);
+    setCommentsTotal(article.commentCount ?? 0);
     articleApi.getLikeStatus(article.id).then(res => {
       const data = (res as unknown as { data: { liked: boolean; likeCount: number } }).data;
       if (data) {
@@ -292,6 +407,11 @@ const ArticlePage = () => {
     // 初始化书签状态
     setIsBookmarkedState(checkBookmarked(article.id));
   }, [article?.id, article?.likeCount]);
+
+  useEffect(() => {
+    if (!article?.id) return;
+    loadComments();
+  }, [article?.id, loadComments]);
 
   // 加载文章后恢复阅读进度
   useEffect(() => {
@@ -510,6 +630,11 @@ const ArticlePage = () => {
     window.scrollTo({ top: resumePosition, behavior: 'smooth' });
   };
 
+  const jumpToComments = useCallback(() => {
+    commentsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.setTimeout(() => commentTextareaRef.current?.focus(), 320);
+  }, []);
+
   const handleLikeClick = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     if (isLikeLoading || !article?.id) return;
     setIsLikeLoading(true);
@@ -564,6 +689,157 @@ const ArticlePage = () => {
       unlockGlobalAchievement('bookmark-first');
     }
   }, [article, readingProgress]);
+
+  const validateCommentDraft = useCallback((draft: CommentDraft) => {
+    if (!draft.content.trim()) return '评论内容不能为空';
+    if (!isAuthenticated) {
+      if (!draft.guestName.trim()) return '游客评论需要填写昵称';
+      if (!draft.guestEmail.trim()) return '游客评论需要填写邮箱';
+    }
+    return '';
+  }, [isAuthenticated]);
+
+  const submitComment = useCallback(async (draft: CommentDraft, parentId?: number) => {
+    if (!article?.id || commentSubmitting) return;
+
+    const validationError = validateCommentDraft(draft);
+    if (validationError) {
+      setCommentsError(validationError);
+      return;
+    }
+
+    setCommentSubmitting(true);
+    setCommentsError('');
+
+    try {
+      await commentApi.create(article.id, {
+        content: draft.content.trim(),
+        parentId,
+        guestName: isAuthenticated ? undefined : draft.guestName.trim(),
+        guestEmail: isAuthenticated ? undefined : draft.guestEmail.trim(),
+      });
+      setCommentDraft(EMPTY_COMMENT_DRAFT);
+      if (parentId) {
+        setReplyDrafts(prev => ({ ...prev, [parentId]: EMPTY_COMMENT_DRAFT }));
+        setActiveReplyId(null);
+      }
+      await loadComments();
+    } catch (submitError) {
+      setCommentsError(getErrorMessage(submitError, '评论提交失败，请稍后再试'));
+    } finally {
+      setCommentSubmitting(false);
+    }
+  }, [article?.id, commentSubmitting, isAuthenticated, loadComments, validateCommentDraft]);
+
+  const handleDeleteComment = useCallback(async (commentId: number) => {
+    if (commentActionId) return;
+    setCommentActionId(commentId);
+    setCommentsError('');
+
+    try {
+      await commentApi.delete(commentId);
+      await loadComments();
+    } catch (deleteError) {
+      setCommentsError(getErrorMessage(deleteError, '删除评论失败，请稍后再试'));
+    } finally {
+      setCommentActionId(null);
+    }
+  }, [commentActionId, loadComments]);
+
+  const renderCommentItem = useCallback((comment: Comment, depth = 0) => {
+    const draft = replyDrafts[comment.id] || EMPTY_COMMENT_DRAFT;
+    const isReplying = activeReplyId === comment.id;
+    const canDelete = Boolean(isAuthenticated && user?.id === comment.user?.id);
+
+    return (
+      <article key={comment.id} className={`article-comments__item ${depth > 0 ? 'article-comments__item--reply' : ''}`}>
+        <div className="article-comments__item-head">
+          <div>
+            <div className="article-comments__author">{comment.user?.nickname || comment.user?.username || comment.guestName || '匿名访客'}</div>
+            <div className="article-comments__time">{formatCommentDate(comment.createdAt)}</div>
+          </div>
+          <div className="article-comments__actions">
+            <button
+              className="article-comments__action"
+              onClick={() => {
+                setActiveReplyId(prev => (prev === comment.id ? null : comment.id));
+                setReplyDrafts(prev => ({
+                  ...prev,
+                  [comment.id]: prev[comment.id] || {
+                    ...EMPTY_COMMENT_DRAFT,
+                    guestName: commentDraft.guestName,
+                    guestEmail: commentDraft.guestEmail,
+                  },
+                }));
+              }}
+            >
+              <Reply size={14} /> 回复
+            </button>
+            {canDelete && (
+              <button
+                className="article-comments__action article-comments__action--danger"
+                onClick={() => handleDeleteComment(comment.id)}
+                disabled={commentActionId === comment.id}
+              >
+                <Trash2 size={14} /> {commentActionId === comment.id ? '删除中...' : '删除'}
+              </button>
+            )}
+          </div>
+        </div>
+
+        <p className="article-comments__content">{comment.content}</p>
+
+        {isReplying && (
+          <div className="article-comments__reply-box">
+            <textarea
+              className="article-comments__textarea"
+              placeholder="写下你的回复..."
+              value={draft.content}
+              onChange={event => setReplyDrafts(prev => ({
+                ...prev,
+                [comment.id]: { ...draft, content: event.target.value },
+              }))}
+            />
+            {!isAuthenticated && (
+              <div className="article-comments__guest-grid">
+                <input
+                  className="article-comments__input"
+                  placeholder="你的昵称"
+                  value={draft.guestName}
+                  onChange={event => setReplyDrafts(prev => ({
+                    ...prev,
+                    [comment.id]: { ...draft, guestName: event.target.value },
+                  }))}
+                />
+                <input
+                  className="article-comments__input"
+                  type="email"
+                  placeholder="邮箱地址"
+                  value={draft.guestEmail}
+                  onChange={event => setReplyDrafts(prev => ({
+                    ...prev,
+                    [comment.id]: { ...draft, guestEmail: event.target.value },
+                  }))}
+                />
+              </div>
+            )}
+            <div className="article-comments__submit-row">
+              <button className="article-comments__ghost" onClick={() => setActiveReplyId(null)}>取消</button>
+              <button className="article-comments__submit liquid-btn" onClick={() => submitComment(draft, comment.id)} disabled={commentSubmitting}>
+                <Send size={14} /> {commentSubmitting ? '发送中...' : '发送回复'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {(comment.replies || []).length > 0 && (
+          <div className="article-comments__replies">
+            {(comment.replies || []).map(reply => renderCommentItem(reply, depth + 1))}
+          </div>
+        )}
+      </article>
+    );
+  }, [activeReplyId, commentActionId, commentDraft.guestEmail, commentDraft.guestName, commentSubmitting, handleDeleteComment, isAuthenticated, replyDrafts, submitComment, user?.id]);
 
   const switchImage = (direction: 'prev' | 'next') => {
     if (lightboxIndex === null || imageSources.length === 0) return;
@@ -835,6 +1111,10 @@ const ArticlePage = () => {
           <Bookmark size={14} fill={isBookmarkedState ? 'currentColor' : 'none'} />
           {isBookmarkedState ? '已收藏' : '收藏'}
         </button>
+        <button className="article-page__reading-toggle liquid-btn" onClick={jumpToComments}>
+          <MessageSquareMore size={14} />
+          去评论区 {Math.max(commentsTotal, commentCountFromTree)}
+        </button>
         <div className="article-page__font-group">
           <button className="article-page__reading-toggle liquid-btn" onClick={() => { setFontScale(0); unlockGlobalAchievement('font-tweaker'); }} disabled={fontScale === 0}>
             <Type size={14} /> A-
@@ -939,6 +1219,79 @@ const ArticlePage = () => {
           toggleCodeCollapse
         )}
       </motion.article>
+
+      <section className="article-comments__prompt">
+        <div>
+          <div className="article-comments__prompt-eyebrow">Talk Back</div>
+          <h2 className="article-comments__prompt-title">读到这里，也可以直接留一句。</h2>
+          <p className="article-comments__prompt-text">游客可直接填写昵称和邮箱留言；登录后则会自动绑定账号身份，并支持回复与删除自己的评论。</p>
+        </div>
+        <button className="article-comments__prompt-btn liquid-btn" onClick={jumpToComments}>
+          <MessageSquareMore size={16} /> 立即留言
+        </button>
+      </section>
+
+      <section className="article-comments" ref={commentsSectionRef}>
+        <div className="article-comments__header">
+          <div>
+            <div className="article-comments__eyebrow">Discussion</div>
+            <h2 className="article-comments__title">
+              <MessageSquareMore size={18} /> 评论区
+            </h2>
+            <p className="article-comments__summary">当前共有 {Math.max(commentsTotal, commentCountFromTree)} 条互动，支持游客留言和登录后回复。</p>
+          </div>
+          {isAuthenticated ? (
+            <div className="article-comments__identity">当前以 {user?.nickname || user?.username} 的身份评论</div>
+          ) : (
+            <Link to="/auth" className="article-comments__identity article-comments__identity--link">登录后可直接使用账号身份评论</Link>
+          )}
+        </div>
+
+        <div className="article-comments__composer">
+          <textarea
+            ref={commentTextareaRef}
+            className="article-comments__textarea"
+            placeholder="写下你的看法、补充或问题..."
+            value={commentDraft.content}
+            onChange={event => setCommentDraft(prev => ({ ...prev, content: event.target.value }))}
+          />
+          {!isAuthenticated && (
+            <div className="article-comments__guest-grid">
+              <input
+                className="article-comments__input"
+                placeholder="你的昵称"
+                value={commentDraft.guestName}
+                onChange={event => setCommentDraft(prev => ({ ...prev, guestName: event.target.value }))}
+              />
+              <input
+                className="article-comments__input"
+                type="email"
+                placeholder="邮箱地址"
+                value={commentDraft.guestEmail}
+                onChange={event => setCommentDraft(prev => ({ ...prev, guestEmail: event.target.value }))}
+              />
+            </div>
+          )}
+          <div className="article-comments__submit-row">
+            <span className="article-comments__hint">{isAuthenticated ? '评论将绑定到当前账户。' : '游客评论需要填写昵称和邮箱。'}</span>
+            <button className="article-comments__submit liquid-btn" onClick={() => submitComment(commentDraft)} disabled={commentSubmitting}>
+              <Send size={14} /> {commentSubmitting ? '提交中...' : '发布评论'}
+            </button>
+          </div>
+        </div>
+
+        {commentsError && <div className="article-comments__error">{commentsError}</div>}
+
+        {commentsLoading ? (
+          <div className="article-comments__empty"><Loader2 size={16} className="loading-spinner" /> 正在加载评论...</div>
+        ) : comments.length === 0 ? (
+          <div className="article-comments__empty">还没有评论。游客也可以直接留言，你可以成为第一位发言的人。</div>
+        ) : (
+          <div className="article-comments__list">
+            {comments.map(comment => renderCommentItem(comment))}
+          </div>
+        )}
+      </section>
 
       {headings.length > 0 && (
         <aside className="article-toc">

@@ -6,7 +6,7 @@
 
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/blogdb?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://localhost:3306/blogdb?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&useSSL=false&serverTimezone=Asia/Shanghai
     username: YOUR_DB_USERNAME  # 修改为实际的数据库用户名
     password: YOUR_DB_PASSWORD  # 修改为实际的数据库密码
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -33,7 +33,14 @@ jwt:
 cors:
   allowed-origins: http://yourdomain.com,https://yourdomain.com  # 修改为实际的域名
 
+site:
+  base-url: https://yourdomain.com  # 用于生成 sitemap.xml
+
 logging:
   level:
     root: INFO
     com.myblog: INFO
+
+blog:
+  demo:
+    reset-content: false  # 如需重建示例文章，改为 true 并重启一次

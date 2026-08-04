@@ -6,18 +6,25 @@ import com.myblog.entity.Tag;
 import com.myblog.entity.User;
 import com.myblog.repository.ArticleRepository;
 import com.myblog.repository.CategoryRepository;
+import com.myblog.repository.CommentRepository;
 import com.myblog.repository.TagRepository;
 import com.myblog.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
+import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+import java.time.ZoneId;
 
 @Slf4j
 @Component
@@ -28,38 +35,65 @@ public class DataInitializer implements CommandLineRunner {
     private final CategoryRepository categoryRepository;
     private final TagRepository tagRepository;
     private final ArticleRepository articleRepository;
+    private final CommentRepository commentRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Value("${blog.demo.reset-content:false}")
+    private boolean resetDemoContent;
+
     @Override
+    @Transactional
     public void run(String... args) {
-        // 创建管理员用户
-        if (!userRepository.existsByUsername("admin")) {
-            User admin = User.builder()
-                    .username("admin")
-                    .password(passwordEncoder.encode("admin123"))
-                    .email("admin@myblog.com")
-                    .nickname("博主")
-                    .bio("这是一个热爱编程的博主")
-                    .role(User.Role.ADMIN)
-                    .build();
-            userRepository.save(admin);
-            log.info("✅ 管理员账号创建成功 - 用户名: admin, 密码: admin123");
+        ensureAdminUser();
+        ensureDefaultCategories();
+        ensureDefaultTags();
+
+        if (resetDemoContent && articleRepository.count() > 0) {
+            resetDemoArticles();
         }
 
-        // 创建默认分类
-        if (categoryRepository.count() == 0) {
-            Arrays.asList(
-                Category.builder().name("技术").description("技术相关文章").icon("💻").sortOrder(1).build(),
-                Category.builder().name("生活").description("生活感悟").icon("🌈").sortOrder(2).build(),
-                Category.builder().name("随笔").description("随想随记").icon("✏️").sortOrder(3).build(),
-                Category.builder().name("教程").description("技术教程").icon("📚").sortOrder(4).build()
-            ).forEach(categoryRepository::save);
-            log.info("✅ 默认分类创建成功");
+        if (articleRepository.count() == 0) {
+            seedArticles();
+        }
+    }
+
+    private void ensureAdminUser() {
+        if (userRepository.existsByUsername("admin")) {
+            return;
         }
 
-        // 创建默认标签
-        if (tagRepository.count() == 0) {
-            Arrays.asList(
+        User admin = User.builder()
+                .username("admin")
+                .password(passwordEncoder.encode("admin123"))
+                .email("admin@myblog.com")
+                .nickname("博主")
+                .bio("记录技术、写作与生活观察的长期主义实践者")
+                .role(User.Role.ADMIN)
+                .build();
+        userRepository.save(admin);
+        log.info("✅ 管理员账号创建成功 - 用户名: admin, 密码: admin123");
+    }
+
+    private void ensureDefaultCategories() {
+        if (categoryRepository.count() > 0) {
+            return;
+        }
+
+        Arrays.asList(
+                Category.builder().name("技术").description("系统设计、后端工程与工具实践").icon("💻").sortOrder(1).build(),
+                Category.builder().name("生活").description("关于节奏、观察和阶段感受").icon("🌿").sortOrder(2).build(),
+                Category.builder().name("随笔").description("带一点个人语气的长文记录").icon("✏️").sortOrder(3).build(),
+                Category.builder().name("教程").description("适合复盘和查阅的技术文章").icon("📚").sortOrder(4).build()
+        ).forEach(categoryRepository::save);
+        log.info("✅ 默认分类创建成功");
+    }
+
+    private void ensureDefaultTags() {
+        if (tagRepository.count() > 0) {
+            return;
+        }
+
+        Arrays.asList(
                 Tag.builder().name("Java").color("#f89820").build(),
                 Tag.builder().name("Spring Boot").color("#6db33f").build(),
                 Tag.builder().name("React").color("#61dafb").build(),
@@ -68,841 +102,364 @@ public class DataInitializer implements CommandLineRunner {
                 Tag.builder().name("Docker").color("#2496ed").build(),
                 Tag.builder().name("前端").color("#e91e63").build(),
                 Tag.builder().name("后端").color("#9c27b0").build()
-            ).forEach(tagRepository::save);
-            log.info("✅ 默认标签创建成功");
-        }
-
-        // 创建示例文章
-        if (articleRepository.count() == 0) {
-            User admin = userRepository.findByUsername("admin").orElse(null);
-            if (admin != null) {
-                Category techCategory = categoryRepository.findByName("技术").orElse(null);
-                Category lifeCategory = categoryRepository.findByName("生活").orElse(null);
-                Category essayCategory = categoryRepository.findByName("随笔").orElse(null);
-                
-                Tag javaTag = tagRepository.findByName("Java").orElse(null);
-                Tag reactTag = tagRepository.findByName("React").orElse(null);
-                Tag frontendTag = tagRepository.findByName("前端").orElse(null);
-                Tag dockerTag = tagRepository.findByName("Docker").orElse(null);
-                Tag backendTag = tagRepository.findByName("后端").orElse(null);
-                
-                // 文章1：欢迎文章
-                Article welcomeArticle = Article.builder()
-                    .title("博客系统技术架构全解析")
-                    .summary("从 Spring Boot 后端到 React 前端，完整剖析这套个人博客系统的技术选型、架构设计与工程实践。")
-                    .content("# 博客系统技术架构全解析\n\n" +
-                            "搭建一套完整的个人博客系统，远比看上去要复杂。这篇文章将从技术选型、架构设计、性能优化等多个维度，分享整个系统的建设思路。\n\n" +
-                            "## 后端架构\n\n" +
-                            "后端基于 **Spring Boot 3.2**，选用这个版本有几方面考量：\n\n" +
-                            "- Java 17 长期支持版本，稳定且语法特性够用\n" +
-                            "- Spring Security 6 的新配置方式更清晰\n" +
-                            "- 对 GraalVM 原生编译的支持日趋成熟\n\n" +
-                            "### 核心技术栈\n\n" +
-                            "| 模块 | 技术方案 | 选型理由 |\n" +
-                            "|------|---------|----------|\n" +
-                            "| 安全认证 | Spring Security + JWT | 无状态、易扩展 |\n" +
-                            "| 数据层 | Spring Data JPA + MySQL 8.0 | 开发效率高 |\n" +
-                            "| 缓存 | Redis 7 + Redisson | 分布式锁支持 |\n" +
-                            "| 消息队列 | RabbitMQ | 异步解耦操作 |\n\n" +
-                            "### 点赞系统设计\n\n" +
-                            "点赞功能看似简单，实际涉及并发控制：\n\n" +
-                            "```java\n" +
-                            "// 使用 Redis Lua 脚本保证原子性\n" +
-                            "String luaScript = \"\"\"\n" +
-                            "    local isMember = redis.call('SISMEMBER', KEYS[1], ARGV[1])\n" +
-                            "    if isMember == 1 then\n" +
-                            "        redis.call('SREM', KEYS[1], ARGV[1])\n" +
-                            "        redis.call('DECR', KEYS[2])\n" +
-                            "        return 0\n" +
-                            "    else\n" +
-                            "        redis.call('SADD', KEYS[1], ARGV[1])\n" +
-                            "        redis.call('INCR', KEYS[2])\n" +
-                            "        return 1\n" +
-                            "    end\n" +
-                            "\"\"\";\n" +
-                            "```\n\n" +
-                            "## 前端架构\n\n" +
-                            "前端使用 **React 19 + TypeScript**，搭配 Vite 构建：\n\n" +
-                            "```typescript\n" +
-                            "// 自定义 Hook 管理文章状态\n" +
-                            "function useArticle(id: string) {\n" +
-                            "  const [article, setArticle] = useState<Article | null>(null);\n" +
-                            "  const [loading, setLoading] = useState(true);\n" +
-                            "  \n" +
-                            "  useEffect(() => {\n" +
-                            "    articleApi.getById(Number(id))\n" +
-                            "      .then(res => setArticle(res.data))\n" +
-                            "      .finally(() => setLoading(false));\n" +
-                            "  }, [id]);\n" +
-                            "  \n" +
-                            "  return { article, loading };\n" +
-                            "}\n" +
-                            "```\n\n" +
-                            "### 特色功能\n\n" +
-                            "- **阅读进度追踪** — 自动记录每篇文章的阅读位置\n" +
-                            "- **成就系统** — 阅读里程碑、时段成就解锁\n" +
-                            "- **AI 创意工坊** — 集成大语言模型辅助写作\n" +
-                            "- **像素小羊** — 可互动的 CSS box-shadow 像素宠物\n\n" +
-                            "## 部署方案\n\n" +
-                            "整个系统通过 Docker Compose 一键部署：\n\n" +
-                            "```bash\n" +
-                            "# 构建并启动所有服务\n" +
-                            "docker compose up -d --build\n\n" +
-                            "# 包含以下容器\n" +
-                            "# - Nginx (反向代理 + 前端静态资源)\n" +
-                            "# - Spring Boot 应用\n" +
-                            "# - MySQL 8.0\n" +
-                            "# - Redis 7\n" +
-                            "# - RabbitMQ\n" +
-                            "```\n\n" +
-                            "## 写在后面\n\n" +
-                            "造轮子的过程本身就是一种学习。每个看似简单的功能背后，都藏着值得思考的技术选型和实现细节。欢迎翻阅其他文章，看看还有哪些有趣的技术实践。")
-                    .author(admin)
-                    .category(techCategory)
-                    .published(true)
-                    .featured(true)
-                    .viewCount(0)
-                    .likeCount(0)
-                    .publishedAt(LocalDateTime.now().minusDays(7))
-                    .build();
-                
-                if (javaTag != null && reactTag != null) {
-                    List<Tag> tags1 = new ArrayList<>();
-                    tags1.add(javaTag);
-                    tags1.add(reactTag);
-                    welcomeArticle.setTags(tags1);
-                }
-                articleRepository.save(welcomeArticle);
-                
-                // 文章2：关于设计
-                Article designArticle = Article.builder()
-                    .title("Web 排版与色彩心理学实践")
-                    .summary("从版式设计到色彩搭配，聊聊独立开发者在前端视觉层面的思考方法论。不追求花哨，只追求读起来舒服。")
-                    .content("# Web 排版与色彩心理学实践\n\n" +
-                            "做独立项目最头疼的环节之一，就是视觉设计。作为一个后端出身的开发者，这几年在前端排版和色彩方面踩了不少坑，也摸索出一些实用的方法。\n\n" +
-                            "## 为什么技术博客也需要设计\n\n" +
-                            "先说一个反直觉的结论：技术文章的阅读完成率和排版质量强相关。\n\n" +
-                            "原因很简单 — 当一篇文章的行高不对、字号太小、段落间距紧凑时，读者的大脑会不自觉地产生\"这篇文章很难\"的错觉。反过来，合理的排版让人觉得内容\"易于消化\"，即使技术含量一样。\n\n" +
-                            "## 色彩选择的逻辑\n\n" +
-                            "### 大地色系的科学依据\n\n" +
-                            "这个博客的配色方案基于色彩心理学中的\"自然色\"理论：\n\n" +
-                            "- **米白背景 `#F8F8F8`** — 暖色基底降低视觉刺激，比冷色调的纯白 `#FFF` 更适合长时间阅读\n" +
-                            "- **炭灰文字 `#2D2D2D`** — 比纯黑 `#000` 少 18% 对比度，减轻视觉疲劳\n" +
-                            "- **铁锈强调 `#8B7355`** — 暖色调的强调色引导注意力，不抢夺正文视线\n\n" +
-                            "### 色彩的情绪映射\n\n" +
-                            "不同色系给读者的心理暗示差别非常大：\n\n" +
-                            "| 色系 | 心理暗示 | 适合场景 |\n" +
-                            "|------|---------|----------|\n" +
-                            "| 冷灰蓝 | 专业、理性 | 企业产品文档 |\n" +
-                            "| 暖棕大地 | 温暖、沉静 | 个人博客、笔记 |\n" +
-                            "| 亮色渐变 | 活泼、年轻 | 社交产品 |\n" +
-                            "| 深色主题 | 沉浸、极客 | 技术社区 |\n\n" +
-                            "本站选择大地色系，是因为个人博客最重要的体验是\"坐下来安静读完一篇文章\"。\n\n" +
-                            "## 排版的几个关键参数\n\n" +
-                            "### 行高与字号\n\n" +
-                            "中文排版和英文有本质区别。中文字形方正、笔画密集，需要更大的行高来\"透气\"：\n\n" +
-                            "```css\n" +
-                            ".article-content {\n" +
-                            "  font-size: 1rem;        /* 16px 基准 */\n" +
-                            "  line-height: 1.85;      /* 中文推荐 1.8-2.0 */\n" +
-                            "  letter-spacing: 0.02em; /* 轻微字间距 */\n" +
-                            "  max-width: 720px;       /* 每行 38-42 个汉字 */\n" +
-                            "}\n" +
-                            "```\n\n" +
-                            "### 字体选择策略\n\n" +
-                            "遵循一个原则：**标题用衬线 / 正文用无衬线**。\n\n" +
-                            "- **标题**：Playfair Display + 思源宋体 — 衬线字体提供\"正式感\"\n" +
-                            "- **正文**：Inter + 系统中文字体 — 无衬线字体保证可读性\n" +
-                            "- **代码**：JetBrains Mono — 等宽字体，连字功能让运算符更清晰\n\n" +
-                            "### 段落节奏\n\n" +
-                            "好的文章排版有\"节奏感\"—— 段落长度交替变化，避免大段文字墙：\n\n" +
-                            "1. 开头段落控制在 2-3 行\n" +
-                            "2. 信息密集处用列表拆分\n" +
-                            "3. 每 3-4 段插入一个视觉断点（代码块、表格、引用）\n\n" +
-                            "## 响应式不只是缩放\n\n" +
-                            "移动端排版不是把桌面版等比缩小那么简单：\n\n" +
-                            "```css\n" +
-                            "@media (max-width: 768px) {\n" +
-                            "  .article-content {\n" +
-                            "    font-size: 0.94rem;  /* 略小但不低于 15px */\n" +
-                            "    line-height: 1.75;   /* 移动端行高可以略低 */\n" +
-                            "    padding: 0 1rem;     /* 保留呼吸空间 */\n" +
-                            "  }\n" +
-                            "  \n" +
-                            "  pre { font-size: 0.8rem; } /* 代码块缩小 */\n" +
-                            "}\n" +
-                            "```\n\n" +
-                            "## 最后说几句\n\n" +
-                            "设计是一门权衡的艺术。对独立开发者来说，不需要追求视觉上的惊艳，但需要在排版、色彩和间距上做到\"不犯错\"。当读者没有注意到设计的存在，只是自然而然地读完了文章 —— 这就是设计的成功。")
-                    .author(admin)
-                    .category(lifeCategory)
-                    .published(true)
-                    .featured(true)
-                    .viewCount(0)
-                    .likeCount(0)
-                    .publishedAt(LocalDateTime.now().minusDays(5))
-                    .build();
-                
-                if (frontendTag != null) {
-                    List<Tag> tags2 = new ArrayList<>();
-                    tags2.add(frontendTag);
-                    designArticle.setTags(tags2);
-                }
-                articleRepository.save(designArticle);
-                
-                // 文章3：技术分享
-                Article techArticle = Article.builder()
-                    .title("Redis 在高并发场景下的实战方案")
-                    .summary("结合真实业务场景，梳理 Redis 在分布式锁、接口限流、缓存击穿防护等方面的工程实践。")
-                    .content("# Redis 在高并发场景下的实战方案\n\n" +
-                            "Redis 已经是后端工程的标配基础设施。但多数时候我们只用到了 GET/SET，远没发挥出它在并发控制方面的潜力。这篇文章结合博客系统的实际需求，整理几个核心场景。\n\n" +
-                            "## 场景一：分布式锁控制点赞\n\n" +
-                            "点赞操作需要原子性 —— 如果同一个用户在极短时间内连续点击，可能产生重复数据。常见方案是 Redisson 分布式锁：\n\n" +
-                            "```java\n" +
-                            "RLock lock = redissonClient.getLock(\"like:\" + articleId + \":\" + visitorId);\n" +
-                            "try {\n" +
-                            "    if (lock.tryLock(2, 5, TimeUnit.SECONDS)) {\n" +
-                            "        // Lua 脚本保证 SISMEMBER + SADD/SREM + INCR/DECR 的原子性\n" +
-                            "        Long result = redisTemplate.execute(likeScript, keys, args);\n" +
-                            "        return result != null && result == 1;\n" +
-                            "    }\n" +
-                            "} finally {\n" +
-                            "    if (lock.isHeldByCurrentThread()) lock.unlock();\n" +
-                            "}\n" +
-                            "```\n\n" +
-                            "### 为什么用 Lua 脚本\n\n" +
-                            "单独用 Redisson 锁不够，因为判断\"是否已点赞\"和\"执行点赞\"之间仍然有时间窗。Lua 脚本在 Redis 服务端执行，天然单线程，真正做到了原子操作。\n\n" +
-                            "## 场景二：接口限流\n\n" +
-                            "对外暴露的 API 需要防刷。基于滑动窗口的限流比固定窗口更平滑：\n\n" +
-                            "```java\n" +
-                            "String key = \"rate:\" + ip + \":\" + uri;\n" +
-                            "long now = System.currentTimeMillis();\n" +
-                            "long windowMs = 60_000; // 1 分钟窗口\n\n" +
-                            "// 移除窗口外的请求记录\n" +
-                            "redisTemplate.opsForZSet().removeRangeByScore(key, 0, now - windowMs);\n" +
-                            "// 统计窗口内的请求数\n" +
-                            "Long count = redisTemplate.opsForZSet().zCard(key);\n" +
-                            "if (count != null && count >= maxRequests) {\n" +
-                            "    throw new RateLimitExceededException();\n" +
-                            "}\n" +
-                            "// 记录本次请求\n" +
-                            "redisTemplate.opsForZSet().add(key, UUID.randomUUID().toString(), now);\n" +
-                            "redisTemplate.expire(key, Duration.ofMinutes(2));\n" +
-                            "```\n\n" +
-                            "这里使用 Sorted Set，以时间戳作为 score，天然支持按时间范围清理。\n\n" +
-                            "## 场景三：缓存击穿防护\n\n" +
-                            "热点文章的缓存过期瞬间，大量请求穿透到数据库，可能导致雪崩。两层防护：\n\n" +
-                            "1. **互斥锁** — 只允许一个线程回源查库\n" +
-                            "2. **逻辑过期** — 缓存永不物理过期，通过逻辑时间戳判断是否需要更新\n\n" +
-                            "```java\n" +
-                            "public Article getArticleWithCache(Long id) {\n" +
-                            "    String key = \"article:\" + id;\n" +
-                            "    String json = redisTemplate.opsForValue().get(key);\n" +
-                            "    \n" +
-                            "    if (json != null) {\n" +
-                            "        CacheWrapper wrapper = parse(json);\n" +
-                            "        if (!wrapper.isExpired()) return wrapper.getData();\n" +
-                            "        // 逻辑过期，异步更新\n" +
-                            "        CompletableFuture.runAsync(() -> refreshCache(id, key));\n" +
-                            "        return wrapper.getData(); // 先返回旧数据\n" +
-                            "    }\n" +
-                            "    return loadAndCache(id, key);\n" +
-                            "}\n" +
-                            "```\n\n" +
-                            "## 场景四：排行榜\n\n" +
-                            "Redis 的 Sorted Set 天然适合排行榜：\n\n" +
-                            "```bash\n" +
-                            "# 文章热度排行（score = 浏览量 * 1 + 点赞量 * 5）\n" +
-                            "ZADD article:hot 150 \"article:1\"\n" +
-                            "ZADD article:hot 420 \"article:2\"\n" +
-                            "\n" +
-                            "# 取 Top 10\n" +
-                            "ZREVRANGE article:hot 0 9 WITHSCORES\n" +
-                            "```\n\n" +
-                            "## 运维层面的注意事项\n\n" +
-                            "### 内存控制\n\n" +
-                            "- 给所有 key 设置合理的 TTL\n" +
-                            "- 监控 `info memory` 中的 `used_memory` 增长趋势\n" +
-                            "- 使用 `maxmemory-policy allkeys-lru` 作为兜底策略\n\n" +
-                            "### 持久化选择\n\n" +
-                            "- 点赞数据：AOF + 每秒 fsync，保证不丢数据\n" +
-                            "- 限流计数：纯内存即可，重启后自动恢复\n" +
-                            "- 缓存数据：RDB 快照足够，丢了可以重建\n\n" +
-                            "## 总结\n\n" +
-                            "Redis 的价值不仅是\"快\"，更在于它提供了丰富的数据结构来解决并发场景下的各种工程问题。关键在于理解每种数据结构的特性，选对了结构，实现就是水到渠成的事。")
-                    .author(admin)
-                    .category(techCategory)
-                    .published(true)
-                    .featured(false)
-                    .viewCount(0)
-                    .likeCount(0)
-                    .publishedAt(LocalDateTime.now().minusDays(3))
-                    .build();
-                
-                if (javaTag != null) {
-                    List<Tag> tags3 = new ArrayList<>();
-                    tags3.add(javaTag);
-                    techArticle.setTags(tags3);
-                }
-                articleRepository.save(techArticle);
-
-                articleRepository.save(buildArticle(
-                    admin,
-                    techCategory,
-                    false,
-                    0,
-                    2,
-                    "我为什么做了一个航旅稳定性 AI Agent 项目",
-                    "从博客里的 AI 创意工坊到独立 Agent 项目，这篇文章完整介绍 AeroFlow Sentinel 的定位、架构和为什么我决定把它做成可演示的作品。",
-                    """
-        # 我为什么做了一个航旅稳定性 AI Agent 项目
-
-        最近这半年，我越来越清楚一件事：如果简历里写“会用大模型”“做过 AI 功能”，其实并不能真正说明问题。真正能拉开差距的，是你有没有把这些能力做成一个独立运行、可复现、可解释的系统。
-
-        于是我做了 AeroFlow Sentinel。
-
-        它不是一个泛泛的聊天网页，而是一个聚焦在航旅预订链路稳定性分析的 AI Agent 项目。它能围绕搜索、下单、出票、退改签、供应商网关等环节进行多轮问答，也能通过 Supervisor、Planner、Executor 的多 Agent 协作方式输出巡检报告。
-
-        ## 这个项目为什么和博客有关
-
-        很多人会把“写文章”和“做项目”分开理解，但对我来说，这两件事本来就是同一件事的两面。
-
-        - 博客负责把方法论讲清楚
-        - 项目负责把方法论跑起来
-        - 文档负责让别人看得懂我为什么这样设计
-
-        过去我在博客里写过 Redis 高并发、部署、前端体验、AI 集成等内容。继续往前走一步，就是把这些零散思考收束成一个完整的工程项目。
-
-        ## 这个 Agent 解决的真实问题
-
-        我不想做一个“什么都能聊两句，但什么都不深入”的大模型壳子，所以一开始就限定了业务范围：只做航旅预订链路稳定性相关分析。
-
-        这样做有三个好处：
-
-        1. 问题边界清晰，容易构建高质量提示词和工作流
-        2. 能体现领域建模能力，而不只是调 API
-        3. 方便把知识库、巡检手册和系统输出连接起来
-
-        ## 架构上我关心的不是炫技，而是落地
-
-        这个项目的后端基于 Java 17、Spring Boot、Spring AI Alibaba，前端则保持轻量，优先解决流式输出、模式切换、对话上下文和报告展示。
-
-        我更在意的是这些问题：
-
-        - 在低配 ECS 上能不能稳定跑起来
-        - 向量库不可用时有没有降级方案
-        - 多 Agent 流程是不是能被普通人理解
-        - 文档和演示能不能支撑面试沟通
-
-        所以你会看到我在这个项目里做了几件很务实的事：
-
-        - 保留本地 Markdown 手册兜底检索
-        - 支持 Demo 模式，减少部署门槛
-        - 巡检结果统一输出 Markdown，便于复盘和留痕
-        - 把线上演示做成一个可直接打开的页面，而不是停留在代码仓库里
-
-        ## 我最看重的收获
-
-        这个项目真正有价值的地方，并不是“又接了一个模型”。
-
-        而是它逼着我把很多模糊的概念具体化：
-
-        - 什么叫一个可解释的 Agent 工作流
-        - 什么叫一个有边界的业务场景
-        - 什么叫真实可运行的演示系统
-        - 什么叫在简历里写得出、面试里讲得明白
-
-        ## 最后
-
-        如果说博客是我公开思考的地方，那这个 Agent 项目更像是我把思考继续推进后的工程结果。
-
-        我很喜欢这种关系：不是为了凑作品而做项目，而是因为写着写着，发现有些问题必须通过一个真正的系统来回答。
-        """,
-                    tagsOf(javaTag, dockerTag, backendTag)
-                ));
-
-                articleRepository.save(buildArticle(
-                    admin,
-                    techCategory,
-                    false,
-                    0,
-                    1,
-                    "低配云服务器上部署 AI 应用，我做了哪些取舍",
-                    "从 2G 内存到容器资源限制，聊聊个人项目在真实服务器上部署 AI 应用时，哪些地方应该克制，哪些地方不能省。",
-                    """
-        # 低配云服务器上部署 AI 应用，我做了哪些取舍
-
-        很多教程默认你有一台配置不错的云服务器，有足够的内存、磁盘和网络带宽。但现实往往不是这样。个人项目、学生项目、作品集项目，大多数时候跑在一台低配机器上。
-
-        我最近同时维护博客和一个独立 AI Agent 项目，这件事让我重新理解了“工程取舍”四个字。
-
-        ## 第一原则：先区分什么必须在线，什么可以分离
-
-        如果所有能力都硬塞到同一个进程、同一套容器里，最后往往是两边都不稳定。
-
-        所以我做的第一件事就是拆边界：
-
-        - 博客继续保持 Docker Compose 管理
-        - AI Agent 先独立运行，避免拖垮博客主站
-        - 公网访问上允许不同端口，而不是一开始就追求最完美的域名形态
-
-        这不是“妥协”，而是优先级管理。
-
-        ## 第二原则：资源限制要主动写死
-
-        很多人部署项目时怕出问题，不敢设资源上限。但对低配机器来说，不设上限才更危险。
-
-        我更倾向于在 Docker Compose 里明确写出内存上限：
-
-        - MySQL 控制在可接受范围
-        - Redis 用小内存并配合淘汰策略
-        - RabbitMQ 只承担必要职责
-        - 后端 JVM 明确指定 Xms/Xmx
-
-        这样做的好处不是省那几十兆，而是避免某个服务异常膨胀后把整台机器拖死。
-
-        ## 第三原则：演示优先级高于“理论最优”
-
-        个人项目常见的误区是：总想一步到位做成企业级架构。
-
-        但如果你的目标之一是对外展示，那么一个稳定、能打开、能跑通核心链路的 Demo，往往比一套复杂但经常启动失败的系统更有价值。
-
-        所以在 AI Agent 项目里，我做了这些偏向演示友好的设计：
-
-        - Demo profile 默认关闭昂贵依赖
-        - Milvus 不可用时自动降级
-        - 输出使用 Markdown，便于展示结果
-        - 页面优先突出任务链路，而不是堆砌参数
-
-        ## 第四原则：安全边界不能因为低配就省略
-
-        预算有限不代表可以把 Key 暴露在前端里。
-
-        这也是我为什么坚持把 DashScope 的 Authorization 放在 Nginx 层，由服务端注入，而不是让前端直接带着 Key 请求。
-
-        资源可以紧一点，但安全边界不能顺手删掉。
-
-        ## 第五原则：把复杂度留给未来，把可用性留给现在
-
-        我现在没有把 AI Agent 也立即塞进博客的 Docker Compose，不是因为不会，而是因为这一步对“当前可用性”的帮助不如对“未来复杂度”的增加来得明显。
-
-        真正值得做的演进顺序应该是：
-
-        1. 先跑稳
-        2. 再统一入口
-        3. 再做子域名和守护进程
-        4. 最后再考虑更漂亮的部署形态
-
-        ## 结语
-
-        低配机器最锻炼人的地方，不是技术炫耀空间少，而是逼着你认真回答一个问题：什么是这个系统真正重要的部分？
-
-        当资源有限时，架构会变得诚实。你必须学会删减、排序、分层，这些能力比“我会多少组件”更接近真实工程。
-        """,
-                    tagsOf(dockerTag, backendTag)
-                ));
-
-                articleRepository.save(buildArticle(
-                    admin,
-                    techCategory,
-                    false,
-                    0,
-                    0,
-                    "AI 爆火之后，普通开发者应该怎样建立自己的工具箱",
-                    "不是追着每个新名词跑，而是搭一套自己真的会用、能复用、能解释的 AI 工具链。",
-                    """
-        # AI 爆火之后，普通开发者应该怎样建立自己的工具箱
-
-        过去一段时间，AI 领域最容易制造焦虑的一件事，就是新名词更新得太快了。
-
-        今天是 Agent，明天是 MCP，后天是工作流，再过两周又会有新的框架和新的叙事。对普通开发者来说，如果只是跟着热度跑，很容易陷入一种“什么都知道一点，但没有真正沉淀”的状态。
-
-        我现在越来越相信，普通开发者真正需要的不是追热点，而是建立一套自己的 AI 工具箱。
-
-        ## 先把工具箱分层
-
-        我把它拆成四层：
-
-        ### 第一层：模型调用层
-
-        这是最基础的一层。你至少要知道：
-
-        - 什么是聊天补全接口
-        - 什么是流式输出
-        - 什么是系统提示词、用户消息、多轮上下文
-
-        这一层解决的是“你能不能把模型先接起来”。
-
-        ### 第二层：产品交互层
-
-        接起来只是开始，真正的差异往往体现在交互上：
-
-        - 返回太慢时怎么做流式展示
-        - 内容太长时怎么结构化输出
-        - 结果怎么复制、保存、继续追问
-        - 用户如何知道系统现在在做什么
-
-        这一层决定你的 AI 功能是不是像个真正能用的产品，而不是一个调试面板。
-
-        ### 第三层：工程化层
-
-        这部分经常被忽略，但恰恰最重要：
-
-        - Key 放在哪里
-        - 如何控制请求超时和错误提示
-        - 如何记录日志和排障
-        - 如何在服务器上稳定部署
-
-        没有这一层，项目就很难从“能跑一次”变成“可以长期展示”。
-
-        ### 第四层：场景建模层
-
-        这是我现在最重视的一层。真正有辨识度的项目，不是“我接了一个模型”，而是“我针对某个问题建了一个合理的任务边界”。
-
-        比如博客里的 AI 创意工坊，关注的是前端方案生成；而独立 Agent 项目关注的是航旅稳定性分析。这就是场景建模。
-
-        ## 我的工具箱里有什么
-
-        就当前阶段来说，我会优先保留这些能力：
-
-        - 一个稳定的大模型服务商入口
-        - 一套可复用的 SSE 前端解析逻辑
-        - 一种服务端保护 Key 的代理方式
-        - 一套适合展示的结构化输出模板
-        - 一个能够承载特定业务场景的项目外壳
-
-        注意，这里面没有“把所有最热门框架都装一遍”。
-
-        ## 最容易犯的错误
-
-        ### 错误一：过早追求全能
-
-        越想做“万能 AI 平台”，越容易做出一个定位模糊的产品。普通开发者更适合先做窄场景、深一点。
-
-        ### 错误二：只会 Demo，不会解释
-
-        一个按钮能跑出结果不代表你真的理解它。你最好能讲清楚：
-
-        - 为什么选这个模型
-        - 为什么选这种输出结构
-        - 为什么这么部署
-        - 如果失败了怎么降级
-
-        ### 错误三：把新名词当能力
-
-        会说 MCP、RAG、Agent 并不等于会用。能在自己的项目里做出边界清晰、体验完整、可上线的东西，才更像能力。
-
-        ## 我现在的判断
-
-        对大多数普通开发者来说，最值得投入的方向不是无限追新，而是：
-
-        - 把模型调用做扎实
-        - 把交互体验做好
-        - 把部署和安全边界守住
-        - 把业务场景收窄并讲清楚
-
-        当这些基础能力稳定之后，再往 Agent、工作流、知识库这些更复杂的方向扩展，才会更顺。
-
-        ## 最后
-
-        AI 的热闹还会持续很久，但真正会留下来的，往往不是那些一眼看起来最炫的东西，而是那些真的能被反复使用、反复讲述、反复演示的能力模块。
-
-        工具箱的意义就在这里：它不是让你追上所有变化，而是让你在变化里保持自己的节奏。
-        """,
-                    tagsOf(reactTag, backendTag, dockerTag)
-                ));
-
-                articleRepository.save(buildArticle(
-                    admin,
-                    lifeCategory,
-                    false,
-                    0,
-                    0,
-                    "研究生这一年，我怎么平衡课程、项目和持续输出",
-                    "不是完美的时间管理，而是用一套足够朴素的节奏，把学习、项目和写作慢慢叠起来。",
-                    """
-        # 研究生这一年，我怎么平衡课程、项目和持续输出
-
-        很多时候，真正让人焦虑的不是忙，而是你明明很忙，却看不到这些投入最后汇成了什么。
-
-        研究生这段时间，我一直在做几件事：上课、写项目、准备面试、维护博客、折腾 AI 方向的新东西。它们每一件单看都合理，但堆在一起时，很容易让人觉得生活像一个不断拉扯的页面。
-
-        我后来慢慢意识到，自己需要的不是更激进的效率系统，而是一种能持续下去的节奏。
-
-        ## 我先接受了一件事：不可能每天都同时推进所有事
-
-        如果总想着一天里课程、项目、写作、运动、社交、面试准备全部兼顾，最后通常是哪件都只做了一点点，还会因为“不够完整”而自责。
-
-        后来我改成了更现实的分配方式：
-
-        - 有些天重点是输入，比如上课、看资料、梳理思路
-        - 有些天重点是输出，比如写代码、写文章、做项目页
-        - 有些天重点只是把之前的进度接上，不追求大推进
-
-        这听起来不高级，但比“每天全都要”有效得多。
-
-        ## 我给自己留了一个很小的输出单位
-
-        持续输出最难的地方，在于你总觉得要有一整块完整时间才能开始。
-
-        但现实里，大块时间并不总能出现。
-
-        所以我给自己定的最低单位很小：
-
-        - 写一个段落
-        - 改一个模块
-        - 把一个想法记到文档里
-        - 修掉一个真实问题
-
-        这件事带来的变化非常大。因为一旦“开始”的门槛降低了，很多事情就不会在心理上无限拖延。
-
-        ## 博客和项目其实在帮我节省时间
-
-        以前我以为写博客会额外占时间，后来发现它反而在帮我整理时间。
-
-        因为当你把一件事写出来之后：
-
-        - 你对它的理解会更清楚
-        - 以后面试时可以直接复用表达
-        - 做相关项目时也更容易知道自己要强调什么
-
-        换句话说，写作不是和项目竞争时间，而是在给项目和表达做压缩存储。
-
-        ## 我尽量让“同一条内容线”服务多个目标
-
-        比如我最近在做 AI Agent 项目，这件事本身可以拆成很多层：
-
-        - 写一篇文章，讲为什么做它
-        - 改博客入口，让两个项目形成关联
-        - 梳理部署过程，变成文档
-        - 最后把它沉淀成简历里的一个完整项目
-
-        这样一来，我做的不是四件分散的事，而是在同一条线上推进四个结果。
-
-        这比同时并行做四条完全不同的线轻松很多。
-
-        ## 我现在最看重的是“节奏感”
-
-        我越来越不相信那种把自己压到极限的高强度叙事。
-
-        对我来说，真正重要的是：
-
-        - 本周有没有在往前走
-        - 这个月有没有留下能复用的东西
-        - 这段时间的努力有没有形成清晰的作品
-
-        只要答案是肯定的，就不需要因为某一天不够满分而否定自己。
-
-        ## 最后
-
-        课程、项目和输出从来不是彼此独立的三件事。关键是你能不能找到一种方式，让它们互相供给，而不是互相消耗。
-
-        我还远没做到特别从容，但至少现在比以前更清楚：持续成长，很多时候不是靠爆发，而是靠一种不那么戏剧化、但可以重复很多天的稳定节奏。
-        """,
-                    tagsOf(frontendTag)
-                ));
-
-                articleRepository.save(buildArticle(
-                    admin,
-                    essayCategory != null ? essayCategory : lifeCategory,
-                    false,
-                    0,
-                    0,
-                    "AI 时代的普通人写作：为什么我还是坚持把想法写成长文",
-                    "在短内容越来越快的环境里，我反而越来越相信长文的价值，因为它是把模糊判断变成清晰结构的一种方式。",
-                    """
-        # AI 时代的普通人写作：为什么我还是坚持把想法写成长文
-
-        这两年最常见的一种说法是：AI 让写作越来越便宜了。
-
-        这句话没错。但我越来越在意它的另一面：当写作成本下降之后，真正稀缺的反而不是“能不能写出来”，而是“你到底有没有想清楚”。
-
-        所以我反而更愿意写长文。
-
-        ## 长文不是为了显得深刻，而是为了逼自己把问题讲明白
-
-        很多念头在脑子里看起来是顺的，一旦真的写成几千字，你就会发现它哪里含糊、哪里跳步、哪里只是情绪，哪里才是真正的判断。
-
-        对我来说，写长文最大的价值不是输出给别人看，而是把自己的想法从“差不多明白”推进到“可以复述、可以讨论、可以落地”。
-
-        ## 短内容时代更需要慢一点的思考容器
-
-        短内容很适合提醒、刺激、抛钩子，但并不总适合承载复杂问题。
-
-        比如这些问题：
-
-        - 一个项目为什么要这样设计
-        - 一个技术选择背后的取舍是什么
-        - 一段阶段性的成长究竟发生了什么变化
-
-        如果只用几十秒的视频或几百字的碎片表达，很多时候只能留下态度，留不下结构。
-
-        而我更想保留结构。
-
-        ## AI 不会让写作失去意义，反而会重新定义意义
-
-        我现在也会用 AI 帮助自己整理资料、生成初稿、检查表达盲区。但这并没有让我觉得“那我就不用写了”。
-
-        相反，它让我更清楚什么部分是机器可以补的，什么部分是必须自己承担的。
-
-        比如：
-
-        - 素材归纳，AI 可以加速
-        - 结构拆解，AI 可以辅助
-        - 语言润色，AI 可以参与
-        - 但真正的判断、取舍、立场，还是得自己来
-
-        写作的价值，正在从“手工生成文字”转向“对问题负责”。
-
-        ## 我为什么把博客当成长期容器
-
-        对我来说，博客不是一个资讯流，而更像一个沉淀系统。
-
-        这里的文章不一定都追热点，也不一定都立刻有流量，但它们会慢慢构成一个更稳定的东西：
-
-        - 我思考问题的路径
-        - 我做项目时的判断依据
-        - 我在不同阶段关心的主题
-
-        它们会把一个人从“会发内容”变成“有持续输出轨迹的人”。
-
-        ## 最后
-
-        在 AI 时代继续写长文，也许看起来有点逆势而行。但我反而觉得，这是我能给自己保留的一种确定性。
-
-        因为世界会越来越快，工具会越来越强，而一个人愿不愿意把自己的经验、判断和困惑认真写下来，仍然是一件很私人、也很珍贵的事。
-        """,
-                    tagsOf(frontendTag)
-                ));
-
-                articleRepository.save(buildArticle(
-                    admin,
-                    techCategory,
-                    false,
-                    0,
-                    0,
-                    "从提示词到工作流：我对这波 AI Agent 热潮的几个判断",
-                    "Agent 不是一句提示词的放大版，它真正有意义的地方，在于任务拆解、状态管理和结果可解释性。",
-                    """
-        # 从提示词到工作流：我对这波 AI Agent 热潮的几个判断
-
-        如果把过去一年的 AI 热潮浓缩成一句话，大概就是：大家已经不满足于“问一句、答一句”了，开始期待模型自己完成更长、更复杂的任务链。
-
-        这就是 Agent 这个词重新爆火的背景。
-
-        但我越来越觉得，围绕 Agent 的讨论里，真正值得关注的不是名字，而是三个更具体的问题：
-
-        - 任务有没有被正确拆开
-        - 系统内部状态有没有被管理好
-        - 最后的输出能不能被人理解和复盘
-
-        ## 提示词当然重要，但它不是全部
-
-        很多人第一次接触 Agent，会把它理解成“提示词写得更长一点”。这不完全错，但也不够。
-
-        提示词决定了系统如何理解任务，但当任务变复杂时，光有提示词不够，还需要：
-
-        - 把目标分解为多个阶段
-        - 在阶段之间传递上下文
-        - 根据中间结果调整下一步
-        - 在失败时决定重试、降级还是终止
-
-        这时你真正面对的，已经不是“怎么问模型”，而是“怎么设计一个工作流”。
-
-        ## 我为什么开始更关注工作流设计
-
-        因为一旦进入真实场景，问题就会立刻变得具体：
-
-        - 哪一步应该由模型做，哪一步应该由规则做
-        - 哪一步必须联网，哪一步可以本地完成
-        - 哪一步输出给用户，哪一步只作为内部推理
-
-        这些都不是单个 prompt 能解决的。
-
-        所以我在做独立 Agent 项目时，更在意的是把系统拆成 Supervisor、Planner、Executor 这样的角色。它们不一定必须叫这个名字，但背后对应的是不同的职责。
-
-        ## 真正的门槛是“可解释”
-
-        我觉得未来一段时间里，Agent 项目最容易拉开差距的地方，不是能不能完成任务，而是能不能把完成过程说清楚。
-
-        尤其在运维、巡检、分析、知识助手这类场景里，用户通常不只关心结果，还关心：
-
-        - 为什么是这个结论
-        - 中间参考了哪些信息
-        - 有没有遗漏的风险点
-        - 如果我不接受这个结果，还能怎么继续问
-
-        这意味着 Agent 的输出最好天然适合结构化展示，比如 Markdown、分段结论、步骤式报告，而不是一整坨看似流畅但难以追踪的文字。
-
-        ## 我对接下来的一点判断
-
-        ### 第一，窄场景会比大而全更有生命力
-
-        通用 Agent 听起来很酷，但真正容易做出成果的，还是那些业务边界清晰、评价标准明确的场景。
-
-        ### 第二，工程化会越来越重要
-
-        未来大家比拼的不会只是“接没接模型”，而是：
-
-        - 你的系统稳不稳定
-        - 有没有降级路径
-        - 出错后怎么排查
-        - 部署成本高不高
-
-        ### 第三，能写清楚的人会更占优势
-
-        Agent 项目复杂度高，越复杂的东西，越需要文档、文章、复盘和演示去帮助别人理解。这也是我为什么一边做项目，一边继续写博客。
-
-        ## 结语
-
-        我不觉得 Agent 是一个短期热词，但我也不认为它的价值只是包装一个新概念。
-
-        对我来说，它真正有意思的地方，在于它逼着开发者同时面对提示词、流程设计、状态管理、交互体验和工程落地这些问题。
-
-        这也是为什么我会继续对这个方向保持投入：它不是单点技能，而是一条能把很多能力真正串起来的主线。
-        """,
-                    tagsOf(javaTag, backendTag, dockerTag)
-                ));
-                
-                log.info("✅ 示例文章创建成功 - 共 {} 篇", articleRepository.count());
-            }
-        }
+        ).forEach(tagRepository::save);
+        log.info("✅ 默认标签创建成功");
     }
 
-            private Article buildArticle(
-                User author,
-                Category category,
-                boolean featured,
-                int viewCount,
-                int daysAgo,
-                String title,
-                String summary,
-                String content,
-                List<Tag> tags
-            ) {
-            Article article = Article.builder()
+    private void resetDemoArticles() {
+        List<Article> existingArticles = articleRepository.findAll();
+        if (!existingArticles.isEmpty()) {
+            existingArticles.forEach(article -> article.getTags().clear());
+            articleRepository.saveAll(existingArticles);
+            articleRepository.flush();
+        }
+
+        commentRepository.deleteAllInBatch();
+        articleRepository.deleteAllInBatch();
+        log.info("♻️ 已按配置清空示例文章与评论数据，将重新写入新的时间线内容");
+    }
+
+    private void seedArticles() {
+        User admin = userRepository.findByUsername("admin").orElse(null);
+        if (admin == null) {
+            log.warn("⚠️ 未找到管理员账号，跳过示例文章写入");
+            return;
+        }
+
+        Category techCategory = categoryRepository.findByName("技术").orElse(null);
+        Category lifeCategory = categoryRepository.findByName("生活").orElse(null);
+        Category essayCategory = categoryRepository.findByName("随笔").orElse(lifeCategory);
+        Category tutorialCategory = categoryRepository.findByName("教程").orElse(techCategory);
+
+        Tag javaTag = tagRepository.findByName("Java").orElse(null);
+        Tag springTag = tagRepository.findByName("Spring Boot").orElse(null);
+        Tag reactTag = tagRepository.findByName("React").orElse(null);
+        Tag mysqlTag = tagRepository.findByName("MySQL").orElse(null);
+        Tag dockerTag = tagRepository.findByName("Docker").orElse(null);
+        Tag frontendTag = tagRepository.findByName("前端").orElse(null);
+        Tag backendTag = tagRepository.findByName("后端").orElse(null);
+
+        List<Article> articles = new ArrayList<>(List.of(
+                article(admin, essayCategory, true, 326, publishAt(2025, 12, 1, 20, 15), "博客系统技术架构全解析", "把一套个人博客从页面、接口、部署、缓存和通知链路完整做通之后，我终于能比较平静地回头讲一讲：哪些设计是必要的，哪些其实只是当时的执念。", cover("studio-grid"), """
+                        # 博客系统技术架构全解析
+
+                        这套博客最初只是一个很朴素的想法：我想有一个地方，能把平时写的技术文章、生活记录和做项目时的判断都放进去，而且它不只是一个静态页面集合，而是一套真的能长期维护的系统。
+
+                        真正开始做以后，我才意识到，个人项目最难的从来不是把首页搭起来，而是当你一点点往里加功能时，系统会不会很快失去秩序。文章、评论、标签、后台、缓存、通知、部署，这些东西在需求清单上看起来像平铺直叙的条目，落到工程里却会互相牵动。
+
+                        我后来给自己定了一个很简单的原则：一切围绕“长期能维护”来做。不是为了把技术栈堆满，而是为了让这套系统在三个月后、半年后，回头看时仍然能顺着脉络读懂。
+
+                        ## 为什么是前后端分离，而不是单体页面
+
+                        这不是为了追时髦。更现实的原因是，我希望前台和后台的体验可以明显不同。前台更强调阅读、节奏和视觉氛围，后台则更看重信息密度、反馈速度和管理效率。把它们放在同一个模板体系里，最终往往会谁都不够像样。
+
+                        所以前台我用了 React 负责交互和页面组织，后台管理则单独用 Vue 3 和 Element Plus。这个决定让代码量变多了，但换来的好处非常实际：我不需要为了后台表格去牺牲前台的设计，也不需要把前台的动效逻辑强行塞进后台。
+
+                        ## 后端真正承担的，是“把内容变成系统”
+
+                        后端层面我最看重的不是接口数量，而是边界感。文章、分类、标签、评论、通知、日志，每个模块都要有自己的职责，不然做着做着就会变成一个到处粘逻辑的控制器工程。
+
+                        在这套项目里，Spring Boot 帮我解决了大量工程基础问题，但真正决定项目质量的，其实是那些看起来不那么显眼的安排：DTO 怎么收口、缓存放在服务层还是控制器层、哪些操作需要异步、哪些事件应该写日志、哪些功能必须允许游客访问。
+
+                        这些问题没有哪一个单独拿出来很“惊艳”，但就是这些小决定，最后决定了一套系统能不能稳稳站住。
+
+                        ## 前台体验为什么花了这么多精力
+
+                        我不想把博客做成一个只有功能清单的网站。文章本身是内容，但阅读体验同样是内容的一部分。读者能不能舒服地往下读，能不能在某个细节处感受到作者是认真打磨过界面的，这些事情会悄悄影响一整篇文章的停留时间。
+
+                        所以前台我花了不少时间做一些看起来不那么“必要”的东西：阅读进度条、文章卡片的轻微倾斜、书签、阅读统计、命令面板、分享卡片导出、小羊桌宠、创意工坊。它们里有些是为了好玩，有些是为了体验完整，但共同点是都在试图把“技术博客”做得更有人味一点。
+
+                        ## 这套架构里最值得保留的，不是某个组件，而是方法
+
+                        如果现在让我重新从头做一遍，我会保留的不是某一段代码，而是这一套推进方法：先把主链路跑通，再慢慢给它加上更好的结构、更合理的拆分和更可解释的边界。项目是这样长出来的，而不是一开始就被设计得很完美。
+
+                        这也是为什么我现在愿意把它写成一篇长文。因为系统真正留下来的，不只是运行结果，还有做这些选择时形成的判断方式。对我来说，这比“做了多少功能”更重要。
+                        """, tagsOf(javaTag, reactTag, dockerTag, backendTag)),
+                article(admin, lifeCategory, false, 214, publishAt(2025, 9, 22, 21, 5), "极简主义设计的魅力", "极简不等于清空一切，它更像是一种克制的取舍：知道什么该出现，什么不该抢镜。做完这个博客之后，我对这件事有了更具体的体会。", cover("warm-journal"), """
+                        # 极简主义设计的魅力
+
+                        很多人第一次聊极简设计，通常会把它理解成“元素少一点”“留白多一点”或者“配色淡一点”。这些都没错，但都还停留在表面。真正让我越来越喜欢极简风格的，是它背后那种很克制的判断：不是能放什么，而是应该留下什么。
+
+                        做这个博客的时候，我一开始其实也走过弯路。总觉得既然是个人项目，就该把喜欢的动效、喜欢的颜色、喜欢的装饰都放进去。结果页面一多，视觉上的热闹感很快就变成了噪音。并不是内容真的更丰富了，而是每个模块都在争夺注意力，最后谁都没有得到完整表达。
+
+                        后来我慢慢学会往回收。标题不再追求夸张，色彩减少到几个稳定的主色，卡片阴影和动画幅度都压下来，页面里的留白开始承担“让读者喘口气”的作用。也就是从那个时候开始，我第一次真正理解：极简并不是删掉细节，而是把细节放在更合适的位置。
+
+                        ## 真正的重点，是让信息有呼吸感
+
+                        页面里最容易被忽视的，不是颜色，也不是字体，而是信息之间的距离。段落和段落之间、标题和正文之间、图片区和文字区之间，只要这些节奏处理不好，再漂亮的视觉元素也会显得拥挤。
+
+                        我后来给自己的一个提醒是：不要把页面当成容器，要把它当成阅读节奏本身的一部分。用户往下滚动的时候，其实是在一段一段接受信息。如果每一段都挤在一起，就算内容不复杂，也会让人觉得累。
+
+                        ## 极简不意味着冷淡
+
+                        这可能是最容易被误解的一点。很多极简页面看起来干净，但也容易显得没有温度。尤其做个人博客，如果画面只剩下秩序，没有一点情绪，最后会很像模板，而不是一个人在真实地表达。
+
+                        所以我更喜欢的是“有气味的极简”。它可以克制，但不冷；可以安静，但不板着脸。比如大地色系就是我很喜欢的一种选择，它不像纯黑白那样强势，却有一种适合阅读、适合停留的温度。
+
+                        ## 对独立开发者来说，极简是一种保护
+
+                        项目越往后做，你越会发现精力是稀缺的。功能要做，接口要调，部署要管，细节要补，如果视觉层面也一直堆新东西，很容易把自己拖进“永远做不完”的状态。
+
+                        极简有时候像是一种自我保护。它逼着你先把主线抓住，把最重要的结构搭好，然后只在真正值得出现的地方增加装饰。这样做的结果，不只是页面更稳，也会让你自己在维护时更轻松。
+
+                        ## 我现在理解的极简，是一种长期主义
+
+                        好看的页面很多，但真正能在不断迭代后仍然保持完整气质的页面并不多。极简之所以让我着迷，不是因为它总能让画面看起来“高级”，而是因为它天然适合长期维护。你可以往里加内容、加功能、加故事，但只要核心节奏不乱，整个系统就不会很快失控。
+                        """, tagsOf(frontendTag, reactTag)),
+                article(admin, tutorialCategory, false, 268, publishAt(2025, 10, 8, 9, 40), "Spring Boot 3.x 新特性解析", "升级到 Spring Boot 3.x 之后，我真正感受到的变化不只是版本号，而是整套基础设施在 Jakarta、AOT 和配置方式上都明显往前走了一步。", cover("spring-layers"), """
+                        # Spring Boot 3.x 新特性解析
+
+                        每次谈框架升级，大家最先问的往往都是“值不值得”。这个问题其实很正常，因为升级从来不只是把版本号改一下，它往往会牵出依赖调整、配置迁移、接口兼容甚至整套部署环境的重新检查。
+
+                        我把博客后端迁到 Spring Boot 3.x 的时候，也不是抱着“越新越好”的心态，而是想看看它到底在真实项目里能不能带来更清晰的工程体验。
+
+                        ## 第一感受：Jakarta 的确是一次断层式变化
+
+                        最明显的变化当然是包名迁移。很多以前熟悉的 javax 相关内容都换到了 jakarta 命名空间下。表面看只是 import 改一下，真正麻烦的地方在于你会连带检查一整串依赖是不是都已经跟上版本。
+
+                        这件事一开始很烦，但真正改完之后，我反而觉得它有一点好处：它逼着你认真清理那些已经过期、却一直留在项目里的东西。很多过去“先跑起来再说”的依赖组合，到这个节点就必须做一次彻底梳理。
+
+                        ## 第二感受：配置方式比以前更规整了
+
+                        Spring Security 在 6.x 之后取消了过去很多老写法，这一开始会让人有点不适应。以前习惯继承配置类的方式突然不能用了，换成了更加组件化的配置写法。
+
+                        但真正用一阵子以后，你会发现这种方式其实更适合中大型项目。每个 Bean 的职责更清晰，安全链路也不再依赖那种藏在继承结构里的魔法。尤其是当你要把 JWT 认证、黑名单过滤、游客接口和后台权限拆开时，新方式明显更容易看懂。
+
+                        ## 第三感受：对原生编译和启动速度的重视更强了
+
+                        我这次虽然没有把博客直接打成 GraalVM 原生镜像，但 Spring Boot 3.x 对这件事的支持已经明显是往主线能力里收了。对很多团队来说，这意味着未来如果真的要追求更快冷启动或者更轻量的部署形态，框架已经把路提前铺出来了。
+
+                        即使暂时不用原生编译，这种方向本身也很重要，因为它说明整个生态开始更认真地面对云环境里的启动成本和资源成本问题了。
+                        """, tagsOf(javaTag, springTag, backendTag)),
+                article(admin, essayCategory, false, 189, publishAt(2025, 10, 26, 18, 25), "廿日乡居惊岁短，一程风露赴金陵", "从乡下住下来的二十天，到重新动身去金陵，那种时间被忽然收紧的感觉，很难用三两句短话讲完，所以我想把它写成一篇慢一点的长文。", null, """
+                        # 廿日乡居惊岁短，一程风露赴金陵
+
+                        在乡下住到第二十天的时候，我忽然觉得日子开始收口了。
+
+                        前些天还觉得时间很宽，早晨可以慢一点起，午后可以随手拿本书坐在窗边，傍晚看天色一点点暗下来，也不急着做什么。可一旦心里知道自己快要动身，所有原本松弛的东西都会变得有边界。哪怕同样是院子里的风、饭后的路、夜里亮着的一盏灯，也会因为“快结束了”而变得格外清楚。
+
+                        我一直觉得，人在一个地方待久了，和它建立联系的方式不是靠景点，而是靠那些看起来完全不值得记下的小事。比如门前那条土路什么时候会起风，厨房窗台上下午几点会照进一块正方形的光，入夜以后远处偶尔传来的狗叫声，会不会打断正在发散的念头。
+
+                        这些细节平时并不显眼，可一旦临近离开，它们就像忽然被擦亮了一样。你会意识到，原来自己已经悄悄适应了这里的秩序，也把一部分心情留在了这种安静的重复里。
+
+                        收拾东西那天，天气不算坏，风却有点硬。院门打开又关上，声音比平时更响。我拎起包时甚至有一点荒唐的念头，觉得自己像是在和一段并不喧闹的生活告别。它没有发生什么轰轰烈烈的故事，也没有给人什么戏剧性的转折，只是用一种很慢的方式，把人往里放了一阵子。
+
+                        去金陵的路上，风露确实重。车窗外的景色不停往后退，树、田、桥、站牌都像被压成了匆匆掠过的影子。那种移动感和前二十天形成了很鲜明的对照：前面是慢慢沉下去的日常，后面是重新被时刻表、路线和目的地牵着往前走。
+
+                        但我也知道，离开不是把前面的生活剪掉，而是把它带进新的阶段里。很多时候，人并不是在某个地方“完成了什么”才离开，而是因为正好到了继续上路的时候。那些留下来的清晨、饭香、风声、灯影，不会真的被丢下，它们会在以后的某个瞬间又突然回到你身边。
+                        """, tagsOf(frontendTag)),
+                article(admin, lifeCategory, false, 247, publishAt(2025, 11, 3, 22, 10), "研究生这一年，我怎么平衡课程、项目和持续输出", "真正有用的平衡，不是把每天安排得满满当当，而是学会让不同类型的事情互相供给，而不是互相打架。", cover("warm-journal"), """
+                        # 研究生这一年，我怎么平衡课程、项目和持续输出
+
+                        研究生这一年里，我最常听到的问题之一就是：你到底是怎么把课程、项目、面试准备、博客更新这些事情同时推进下去的？
+
+                        这个问题每次都让我有点尴尬，因为真实答案远没有听起来那么整齐。我并没有一套近乎完美的时间管理系统，也不是每天都能保持高效率。更多时候，我只是不断试错，最后慢慢摸出了一种自己能长期承受的节奏。
+
+                        ## 先承认一件事：人不可能每天都全能
+
+                        我以前最大的误区，就是总觉得一天里应该把所有重要的事情都照顾到。上午上课，下午做项目，晚上写文章，再抽空运动和复盘，好像只有这样才算“没有浪费时间”。
+
+                        但现实很快证明，这种安排只会把人拉得很散。你每件事都碰了一点，却没有哪件真正推进。到最后最强烈的感受不是充实，而是心里一直悬着一口气。
+
+                        后来我改了思路，不再要求每天什么都推进，而是接受不同的日子有不同的主任务。某些天以输入为主，适合上课、看资料、补知识；某些天以输出为主，适合写代码、写文档、写文章；还有一些天只是用来把前两天散落的东西收起来。
+
+                        ## 我给输出留了一个很低的起步单位
+
+                        很多拖延，其实不是因为懒，而是因为脑子里把一件事想得太完整了。比如写文章，总觉得必须有一整个晚上才能开头；做项目，总觉得必须有完整思路才值得打开编辑器。
+
+                        但真正把事情慢慢做起来以后，我发现更有用的办法是把起步单位压得非常小。写不完一篇，就先写一个段落；做不完整个模块，就先把一个接口打通；整理不出完整思路，就先把关键判断记下来。
+
+                        一旦开始的成本变小，很多事情就不会卡在“我应该找个更好的时机再做”这一步。
+                        """, tagsOf(frontendTag, reactTag)),
+                article(admin, essayCategory, false, 193, publishAt(2025, 11, 18, 20, 30), "AI 时代的普通人写作：为什么我还是坚持把想法写成长文", "在可以快速生成文本的时代，我反而更愿意花时间写长文，因为长文会逼着我对自己的判断负责。", cover("warm-journal"), """
+                        # AI 时代的普通人写作：为什么我还是坚持把想法写成长文
+
+                        这两年写作变得前所未有地容易。你只要给出一个主题、几个关键词，模型就可以在很短时间里吐出一篇结构完整、语言顺滑、看起来像模像样的文章。很多时候，真正困难的部分甚至不再是“写不写得出来”，而是“你到底想说什么”。
+
+                        也正因为这样，我反而越来越愿意把一些想法写成长文。不是为了显得郑重，也不是为了和短内容对着干，而是因为我发现，只有当一件事被写得足够长、足够具体时，我才知道自己是否真的想明白了它。
+
+                        ## 长文逼人面对自己的含糊
+
+                        很多念头在脑子里都是顺的。你觉得自己已经知道观点在哪里，也知道大概要往哪个方向说。可一旦真的把它展开，问题就开始冒出来：这个判断的依据是什么？这个结论是不是跳得太快了？这段话到底是经验，还是情绪？
+
+                        长文最残酷也最有价值的地方，就在这里。它会把那些平时可以靠语气混过去的模糊地带一点点逼出来。你没法一直用漂亮句子掩饰思路上的缺口，也没法靠几个标签把复杂问题省略掉。
+
+                        ## 我不是排斥 AI，我只是更清楚它适合放在哪一层
+
+                        现在我也会用 AI 帮我整理资料、归纳要点、提示结构，甚至在写到一半时拿来检查自己有没有遗漏明显的逻辑断层。这些帮助都很实际，也确实提高了效率。
+
+                        但我始终不太愿意把“最终判断”这件事交出去。尤其是那些和项目取舍、成长体验、阶段观察相关的内容，如果最后只是顺着一套非常流畅的模板写出来，看上去可能很完整，实际却没有真正说出自己在意的东西。
+                        """, tagsOf(frontendTag)),
+                article(admin, techCategory, false, 291, publishAt(2025, 12, 20, 17, 55), "Redis 在高并发场景下的实战方案", "Redis 最容易被低估的地方，不是缓存读写速度，而是它在分布式锁、削峰、限流和排行榜这些场景里提供的工程杠杆。", cover("redis-map"), """
+                        # Redis 在高并发场景下的实战方案
+
+                        一提到 Redis，很多人第一反应还是“缓存”。这当然没错，但如果你只把它当成一个更快的 Key-Value 存储，实际上会错过它在高并发场景里真正有意思的那部分能力。它的价值并不只是把数据库前面加一道挡板，而是让很多本来会让系统变得僵硬的问题，有了更轻巧的处理方式。
+
+                        我在博客项目里真正开始依赖 Redis，是从点赞、浏览量、限流和热门榜这些需求同时出现以后。它们有一个共同点：对一致性有要求，但又没必要把每次变化都立刻硬写进数据库。只要这条边界判断清楚，Redis 的优势就会非常明显。
+
+                        ## 点赞这种小功能，最容易暴露并发问题
+
+                        单看页面，一个点赞按钮没什么特别。但只要用户在短时间里连续点击，或者同一个请求被重试，后端就必须认真面对“到底应该加一次还是多次”这个问题。数据库当然也能处理，但如果每次都靠数据库去做状态判断、写入和回滚，链路会很重。
+
+                        我最后选择的是 Redis + Lua 的组合。原因很简单：它能把“是否已点赞”“执行增减”“返回最新状态”这几步放在同一个原子过程里完成。这样做的好处不是写法更炫，而是边界更干净。业务上你只关心结果，底层的一致性由 Redis 这一侧兜住。
+                        """, tagsOf(javaTag, mysqlTag, backendTag)),
+                article(admin, techCategory, false, 279, publishAt(2026, 1, 7, 19, 20), "低配云服务器上部署 AI 应用，我做了哪些取舍", "真正让人变成熟的不是配置拉满，而是当机器只有那么一点资源时，你还能不能分清哪些东西必须在线，哪些东西可以慢一点。", cover("low-cost-cloud"), """
+                        # 低配云服务器上部署 AI 应用，我做了哪些取舍
+
+                        很多技术方案写出来都很漂亮，真正一落到低配服务器上，就会立刻暴露出它到底是面向展示、面向生产，还是只是面向想象。尤其是这段时间把博客和独立 AI Agent 项目都部署到线上之后，我对“取舍”这件事有了非常具体的体会。
+
+                        一台配置紧巴巴的机器，其实会逼着你把问题看得更清楚。什么必须常驻？什么可以按需启？什么该独立出去？什么不值得为了看起来完整而硬塞进来？这些问题在高配环境里容易被掩盖，在低配环境里却会第一时间跳出来。
+
+                        ## 我先拆的是边界，而不是优化参数
+
+                        一开始最容易犯的错误，是把所有服务都往同一个组合里堆，以为只要部署方式统一，系统就算更“完整”。但真正做下来以后你会发现，资源紧张的时候，统一并不一定比分离更好。
+
+                        所以我没有一开始就把博客和 AI Agent 完全绑死在一起，而是让博客继续保持一套稳定的 Compose 编排，把 AI Agent 先以更独立的形式运行。这样做的代价是入口没有那么统一，换来的好处却非常明确：任何一侧出问题，都不会立刻把另一侧一起带下去。
+                        """, tagsOf(dockerTag, backendTag)),
+                article(admin, techCategory, false, 261, publishAt(2026, 1, 25, 21, 45), "AI 爆火之后，普通开发者应该怎样建立自己的工具箱", "与其追每一个新名词，不如先把那些你会反复用到的能力层稳稳搭起来。工具箱的意义，不是装得多，而是拿出来就能用。", cover("agent-compass"), """
+                        # AI 爆火之后，普通开发者应该怎样建立自己的工具箱
+
+                        过去一年，关于 AI 的新词几乎是按周更新的。Agent、工作流、MCP、知识库、向量检索、模型路由，每次打开信息流都像在看一场不断换题的考试。对普通开发者来说，最容易出现的结果不是落后，而是被这些名词拖进持续性的焦虑里。
+
+                        我自己后来慢慢想明白一件事：普通开发者真正需要建立的，不是“对所有热词都能聊两句”的表面熟悉，而是一套自己真的会反复使用、能讲清楚、能在项目里落下来的工具箱。
+
+                        ## 工具箱不是收藏夹，它是分层能力
+
+                        我现在更愿意把它拆成几层来理解。最底下是模型调用和基本接口层，你至少要知道一次请求是怎么发出去的，流式输出怎么接，错误要怎么处理。再往上一层是产品交互层，涉及结果怎么展示、怎么续问、怎么复制、怎么避免用户等得没耐心。
+
+                        再上去才是工程化层和场景层。比如 API Key 放在哪里、请求失败怎么降级、日志怎么记录、提示词怎么和业务语境结合、什么样的需求适合做成一个真正的工具入口。这些能力不会让你在第一眼看上去特别炫，但它们决定了一个 AI 功能是不是能真正留下来。
+                        """, tagsOf(reactTag, backendTag, dockerTag)),
+                article(admin, techCategory, true, 338, publishAt(2026, 2, 6, 20, 5), "我为什么做了一个航旅稳定性 AI Agent 项目", "如果只是把大模型接进页面里，我很难说服自己那是一个真正成立的作品。这个项目更像是我把博客里那些零散判断收束成系统之后的结果。", cover("agent-compass"), """
+                        # 我为什么做了一个航旅稳定性 AI Agent 项目
+
+                        过去半年里，我越来越清楚一件事：如果简历里只是写“做过 AI 功能”“接过大模型接口”，其实并不能说明太多问题。大家都会接接口，大家都能做一个聊天框，真正拉开差距的，是你有没有把这件事推进成一个边界清楚、可以演示、也能解释得明白的系统。
+
+                        于是我做了航旅稳定性 AI Agent 项目。它不是一个泛用聊天页，也不是把几个提示词拼在一起的概念演示，而是明确围绕航旅预订链路里那些会让人头疼的问题来展开：搜索异常、下单失败、出票延迟、供应商波动、巡检记录、故障复盘。
+
+                        ## 我为什么选了这个题，而不是更“通用”的方向
+
+                        原因很简单。越通用的 AI 产品，越容易做成一句话能说清楚、真正做出来却没有边界的东西。你看起来什么都能答一点，但真正进入具体问题时，系统往往又缺少稳定的任务结构。
+
+                        我更希望这个项目能体现的是：面对一个相对专业、相对具体的业务主题，我怎样把任务拆开，把信息组织起来，再把结果变成可以继续追问和复盘的产物。航旅稳定性正好满足这个条件。它足够专业，能体现建模；又足够真实，不会沦为泛泛而谈。
+                        """, tagsOf(javaTag, backendTag, dockerTag)),
+                article(admin, techCategory, true, 347, publishAt(2026, 2, 24, 19, 50), "从提示词到工作流：我对这波 AI Agent 热潮的几个判断", "Agent 这个词真正有意思的地方，不在于它听起来多新，而在于它迫使开发者同时面对任务拆解、状态管理、流程编排和结果可解释性。", cover("agent-compass"), """
+                        # 从提示词到工作流：我对这波 AI Agent 热潮的几个判断
+
+                        如果把这一轮 AI 热潮的变化概括得更具体一点，我觉得最核心的转折并不是模型突然会做更多事了，而是大家开始不满足于“问一句、回一句”的交互方式，转而期待系统自己完成更长的任务链。这种期待，就是 Agent 重新爆火的土壤。
+
+                        但我越来越觉得，围绕 Agent 的很多讨论其实还停留在概念层，真正值得认真看的，是它把哪些工程问题重新推到了台前。
+
+                        ## 提示词当然重要，但它已经不是全部
+
+                        很多人第一次接触 Agent，会下意识把它理解成“更复杂的提示词”。这并不算错，但只说到这里，几乎等于什么都没说。因为一旦任务开始跨步骤、跨状态、跨上下文，系统面对的就不再只是怎么向模型提问，而是怎么组织流程、如何保存中间结果、失败后是否重试、何时应该把控制权还给用户。
+
+                        也就是说，从这个阶段开始，你真正做的已经不是 prompt 调优，而是工作流设计。
+                        """, tagsOf(javaTag, backendTag, dockerTag)),
+                article(admin, essayCategory, false, 201, publishAt(2026, 3, 4, 21, 0), "从博客到作品集：我怎样把内容线做成可讲述的项目线", "作品集不是把项目链接堆在一起，而是要让别人看见：这些文章、功能、系统和取舍之间，其实连着同一条内容线。", cover("studio-grid"), """
+                        # 从博客到作品集：我怎样把内容线做成可讲述的项目线
+
+                        我以前做项目和写博客时，常常把它们分得很开。文章是文章，系统是系统，作品集是最后整理材料时才临时搭出来的一块拼图。这样做当然也能把东西交出去，但回头看，总觉得少了一点更连贯的叙述感。
+
+                        后来我慢慢意识到，真正有辨识度的作品集不是一堆页面链接，而是一条别人顺着读下去就能理解的内容线。它要让人看见：你为什么会做这个项目，项目里解决了哪些问题，文章里怎样展开这些判断，系统上线后又是如何把这些想法真正落地。
+
+                        ## 我开始把“内容”也当成项目的一部分
+
+                        这件事对我影响很大。以前我总觉得项目才是硬成果，文章只是附属说明。现在我反而更愿意把两者放在同一个叙述系统里看。文章负责把思考过程讲透，项目负责提供运行中的证据，文档负责让人快速理解使用方式和设计边界。
+                        """, tagsOf(frontendTag, reactTag, backendTag)),
+                article(admin, essayCategory, true, 238, publishAt(2025, 9, 6, 8, 30), "欢迎来到我的博客", "这个站点不是为了把所有内容都写得很正式，而是想留下一种长期更新、长期积累、也长期暴露真实取舍的写作方式。", cover("warm-journal"), """
+                        # 欢迎来到我的博客
+
+                        如果把这个博客说成一个“个人网站”，当然也没什么问题，但我更愿意把它理解成一个正在缓慢生长的地方。它不只是拿来展示结果，也不只是为了放项目链接，而是想把一些平时很容易散掉的思考、过程和阶段变化真正留下来。
+
+                        我一直觉得，个人表达最难的地方不是开始，而是持续。你可能会在某个阶段很想记录、很想分享、很想把做过的事情讲出来，但这种冲动很容易被日常琐事打断。真正珍贵的，往往不是一次热情很高的爆发，而是你有没有能力在很多平常的日子里，仍然愿意把想法整理成别人也看得懂的东西。
+
+                        这个博客想做的，就是承接这种持续性。这里会有技术文章，也会有项目复盘，会有生活里的观察，也会有一些不那么急着给结论的长文。它们未必都很完整，未必都很“标准”，但我希望它们至少足够诚实。
+                        """, tagsOf(frontendTag, reactTag))
+        ));
+
+        applyRandomTimeline(articles, publishAt(2025, 9, 1, 8, 0), publishAt(2026, 3, 31, 22, 0));
+
+        articleRepository.saveAll(articles);
+        log.info("✅ 示例文章创建成功 - 共 {} 篇，发布时间跨度覆盖 2025/09 到 2026/03", articleRepository.count());
+    }
+
+    private Article article(User author, Category category, boolean featured, int viewCount, LocalDateTime publishedAt, String title, String summary, String coverImage, String content, List<Tag> tags) {
+        Article article = Article.builder()
                 .title(title)
                 .summary(summary)
                 .content(content)
+                .coverImage(coverImage)
                 .author(author)
                 .category(category)
                 .published(true)
                 .featured(featured)
                 .viewCount(viewCount)
-                .likeCount(0)
-                .publishedAt(LocalDateTime.now().minusDays(daysAgo))
+                .likeCount(Math.max(0, viewCount / 18))
+                .publishedAt(publishedAt)
+                .createdAt(publishedAt)
+                .updatedAt(publishedAt)
                 .build();
-            article.setTags(tags);
-            return article;
-            }
+        article.setTags(tags);
+        return article;
+    }
 
-            private List<Tag> tagsOf(Tag... tags) {
-            List<Tag> result = new ArrayList<>();
-            for (Tag tag : tags) {
-                if (tag != null) {
+    private void applyRandomTimeline(List<Article> articles, LocalDateTime start, LocalDateTime end) {
+        List<YearMonth> monthRange = new ArrayList<>();
+        YearMonth current = YearMonth.from(start);
+        YearMonth endMonth = YearMonth.from(end);
+        while (!current.isAfter(endMonth)) {
+            monthRange.add(current);
+            current = current.plusMonths(1);
+        }
+
+        List<YearMonth> assignedMonths = new ArrayList<>(monthRange);
+        while (assignedMonths.size() < articles.size()) {
+            assignedMonths.add(monthRange.get(ThreadLocalRandom.current().nextInt(monthRange.size())));
+        }
+
+        List<LocalDateTime> timestamps = new ArrayList<>();
+        for (YearMonth month : assignedMonths) {
+            LocalDateTime monthStart = month.atDay(1).atTime(8, 0);
+            LocalDateTime monthEnd = month.atEndOfMonth().atTime(22, 0);
+            LocalDateTime effectiveStart = month.equals(YearMonth.from(start)) ? start : monthStart;
+            LocalDateTime effectiveEnd = month.equals(YearMonth.from(end)) ? end : monthEnd;
+            timestamps.add(randomDateTimeBetween(effectiveStart, effectiveEnd));
+        }
+
+        timestamps.sort(Comparator.reverseOrder());
+
+        for (int index = 0; index < articles.size(); index++) {
+            LocalDateTime timestamp = timestamps.get(index);
+            Article article = articles.get(index);
+            article.setPublishedAt(timestamp);
+            article.setCreatedAt(timestamp);
+            article.setUpdatedAt(timestamp);
+        }
+    }
+
+    private LocalDateTime randomDateTimeBetween(LocalDateTime start, LocalDateTime end) {
+        ZoneId zoneId = ZoneId.of("Asia/Shanghai");
+        long startEpoch = start.atZone(zoneId).toInstant().toEpochMilli();
+        long endEpoch = end.atZone(zoneId).toInstant().toEpochMilli();
+        long randomEpoch = ThreadLocalRandom.current().nextLong(startEpoch, endEpoch + 1);
+        return LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(randomEpoch), zoneId);
+    }
+
+    private LocalDateTime publishAt(int year, int month, int day, int hour, int minute) {
+        return LocalDateTime.of(year, month, day, hour, minute);
+    }
+
+    private String cover(String name) {
+        return "/article-covers/" + name + ".svg";
+    }
+
+    private List<Tag> tagsOf(Tag... tags) {
+        List<Tag> result = new ArrayList<>();
+        for (Tag tag : tags) {
+            if (tag != null) {
                 result.add(tag);
-                }
             }
-            return result;
-            }
+        }
+        return result;
+    }
 }

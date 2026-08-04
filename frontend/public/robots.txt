@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth
+Disallow: /bookmarks
+Disallow: /reading-stats
+
+Sitemap: https://cyruszhang.online/sitemap.xml

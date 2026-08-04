@@ -1,9 +1,8 @@
-// 文章相关类型
-export interface Article {
+// 文章列表摘要
+export interface ArticleSummary {
   id: number;
   title: string;
   summary: string;
-  content: string;
   coverImage?: string;
   author: AuthorInfo;
   category?: CategoryInfo;
@@ -13,9 +12,15 @@ export interface Article {
   commentCount: number;
   published: boolean;
   featured: boolean;
+  readTimeMinutes?: number;
   publishedAt?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+// 文章详情
+export interface Article extends ArticleSummary {
+  content: string;
 }
 
 export interface AuthorInfo {

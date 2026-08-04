@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { AI_AGENT_NAME, AI_AGENT_URL } from '../constants/externalLinks';
 import { articleApi } from '../services';
-import type { Article } from '../types';
+import type { ArticleSummary } from '../types';
 import type { ShortcutAction } from '../hooks/useKeyboardShortcuts';
 import './CommandPalette.css';
 
@@ -32,7 +32,7 @@ interface CommandItem {
 const CommandPalette = ({ isOpen, onClose, theme, onToggleTheme, shortcuts }: CommandPaletteProps) => {
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
-  const [articles, setArticles] = useState<Article[]>([]);
+  const [articles, setArticles] = useState<ArticleSummary[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();

@@ -488,6 +488,272 @@
   font-weight: 600;
 }
 
+.article-comments {
+  margin-top: var(--spacing-3xl);
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(240, 237, 232, 0.7), rgba(248, 248, 248, 0.92));
+  padding: clamp(1.25rem, 2vw, 2rem);
+}
+
+:root[data-theme='dark'] .article-comments {
+  background: linear-gradient(180deg, rgba(31, 33, 36, 0.94), rgba(21, 22, 23, 0.92));
+}
+
+.article-comments__prompt {
+  margin-top: var(--spacing-3xl);
+  border: 1px solid rgba(139, 115, 85, 0.16);
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(248, 244, 238, 0.95), rgba(237, 227, 210, 0.92));
+  padding: clamp(1.2rem, 2vw, 1.8rem);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.article-comments__prompt-eyebrow {
+  color: var(--accent-rust);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  margin-bottom: 8px;
+}
+
+.article-comments__prompt-title {
+  margin: 0;
+  font-size: 1.35rem;
+  color: var(--text-primary);
+}
+
+.article-comments__prompt-text {
+  margin: 10px 0 0;
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+
+.article-comments__prompt-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.article-comments__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.article-comments__eyebrow {
+  color: var(--accent-rust);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+  margin-bottom: 8px;
+}
+
+.article-comments__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.article-comments__summary {
+  margin-bottom: 0;
+}
+
+.article-comments__identity {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.article-comments__identity--link:hover {
+  color: var(--accent-rust);
+}
+
+.article-comments__composer,
+.article-comments__reply-box {
+  border: 1px solid var(--border-light);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.42);
+  padding: 14px;
+}
+
+:root[data-theme='dark'] .article-comments__composer,
+:root[data-theme='dark'] .article-comments__reply-box {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.article-comments__textarea,
+.article-comments__input {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  padding: 12px 14px;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.article-comments__textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.article-comments__textarea:focus,
+.article-comments__input:focus {
+  border-color: var(--accent-rust-light);
+  box-shadow: 0 0 0 4px rgba(139, 115, 85, 0.1);
+}
+
+.article-comments__guest-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.article-comments__submit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.article-comments__hint {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.article-comments__submit,
+.article-comments__ghost,
+.article-comments__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.article-comments__submit {
+  border: 1px solid var(--text-primary);
+  background: var(--text-primary);
+  color: var(--bg-primary);
+}
+
+.article-comments__ghost,
+.article-comments__action {
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+}
+
+.article-comments__action--danger {
+  color: #b7472a;
+}
+
+.article-comments__submit:disabled,
+.article-comments__action:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.article-comments__error,
+.article-comments__empty {
+  margin-top: var(--spacing-md);
+  border-radius: 16px;
+  padding: 12px 14px;
+  font-size: 0.875rem;
+}
+
+.article-comments__error {
+  border: 1px solid rgba(183, 71, 42, 0.24);
+  background: rgba(183, 71, 42, 0.08);
+  color: #b7472a;
+}
+
+.article-comments__empty {
+  border: 1px dashed var(--border-color);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.article-comments__list {
+  margin-top: var(--spacing-lg);
+  display: grid;
+  gap: 14px;
+}
+
+.article-comments__item {
+  border: 1px solid var(--border-light);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.32);
+  padding: 14px;
+}
+
+:root[data-theme='dark'] .article-comments__item {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.article-comments__item--reply {
+  margin-top: 12px;
+  margin-left: 24px;
+}
+
+.article-comments__item-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.article-comments__author {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.article-comments__time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.article-comments__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.article-comments__content {
+  margin: 12px 0 0;
+  white-space: pre-wrap;
+  color: var(--text-secondary);
+}
+
+.article-comments__replies {
+  margin-top: 12px;
+}
+
 /* ===== Article Footer ===== */
 .article-footer {
   margin-top: var(--spacing-3xl);
@@ -717,5 +983,24 @@
 
   .article-toc {
     display: none;
+  }
+
+  .article-comments__header,
+  .article-comments__prompt,
+  .article-comments__submit-row,
+  .article-comments__item-head {
+    flex-direction: column;
+  }
+
+  .article-comments__identity {
+    white-space: normal;
+  }
+
+  .article-comments__guest-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .article-comments__item--reply {
+    margin-left: 12px;
   }
 }

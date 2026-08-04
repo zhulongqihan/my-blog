@@ -41,3 +41,7 @@ logging:
     root: INFO
     com.myblog: DEBUG
     org.springframework.security: DEBUG
+
+blog:
+  demo:
+    reset-content: false

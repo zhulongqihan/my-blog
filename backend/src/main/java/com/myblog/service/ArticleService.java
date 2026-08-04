@@ -6,6 +6,7 @@ import com.myblog.common.redis.CacheClient;
 import com.myblog.dto.ArchiveResponse;
 import com.myblog.dto.ArticleRequest;
 import com.myblog.dto.ArticleResponse;
+import com.myblog.dto.ArticleSummaryResponse;
 import com.myblog.dto.LikeResponseDTO;
 import com.myblog.entity.*;
 import com.myblog.repository.*;
@@ -71,48 +72,48 @@ public class ArticleService {
         LIKE_TOGGLE_SCRIPT.setResultType(resultType);
     }
 
-    public Page<ArticleResponse> getPublishedArticles(Pageable pageable) {
+    public Page<ArticleSummaryResponse> getPublishedArticles(Pageable pageable) {
         return articleRepository.findByPublishedTrue(pageable)
-                .map(this::toResponse);
+                .map(this::toSummaryResponse);
     }
 
-    public Page<ArticleResponse> getArticlesByCategory(Long categoryId, Pageable pageable) {
+    public Page<ArticleSummaryResponse> getArticlesByCategory(Long categoryId, Pageable pageable) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new RuntimeException("分类不存在"));
         return articleRepository.findByPublishedTrueAndCategory(category, pageable)
-                .map(this::toResponse);
+                .map(this::toSummaryResponse);
     }
 
-    public Page<ArticleResponse> getArticlesByTag(Long tagId, Pageable pageable) {
+    public Page<ArticleSummaryResponse> getArticlesByTag(Long tagId, Pageable pageable) {
         return articleRepository.findByTagId(tagId, pageable)
-                .map(this::toResponse);
+                .map(this::toSummaryResponse);
     }
 
-    public Page<ArticleResponse> searchArticles(String keyword, Pageable pageable) {
+    public Page<ArticleSummaryResponse> searchArticles(String keyword, Pageable pageable) {
         return articleRepository.searchByKeyword(keyword, pageable)
-                .map(this::toResponse);
+                .map(this::toSummaryResponse);
     }
 
     /**
      * 获取精选文章（缓存10分钟）
      * 使用 @Cacheable：第一次查询走DB，后续读缓存
      */
-    @Cacheable(value = "featuredArticles", key = "'all'")
-    public List<ArticleResponse> getFeaturedArticles() {
+    @Cacheable(value = "featuredArticleSummaries", key = "'all'")
+    public List<ArticleSummaryResponse> getFeaturedArticles() {
         log.info("[Cache MISS] 精选文章 - 从数据库加载");
         return articleRepository.findByFeaturedTrueAndPublishedTrue().stream()
-                .map(this::toResponse)
+                .map(this::toSummaryResponse)
                 .collect(Collectors.toList());
     }
 
     /**
      * 获取热门文章（缓存10分钟）
      */
-    @Cacheable(value = "popularArticles", key = "#limit")
-    public List<ArticleResponse> getPopularArticles(int limit) {
+    @Cacheable(value = "popularArticleSummaries", key = "#limit")
+    public List<ArticleSummaryResponse> getPopularArticles(int limit) {
         log.info("[Cache MISS] 热门文章(limit={}) - 从数据库加载", limit);
         return articleRepository.findTopByViewCount(Pageable.ofSize(limit)).stream()
-                .map(this::toResponse)
+                .map(this::toSummaryResponse)
                 .collect(Collectors.toList());
     }
 
@@ -204,8 +205,8 @@ public class ArticleService {
      */
     @Transactional
     @Caching(evict = {
-        @CacheEvict(value = "featuredArticles", allEntries = true),
-        @CacheEvict(value = "popularArticles", allEntries = true),
+        @CacheEvict(value = "featuredArticleSummaries", allEntries = true),
+        @CacheEvict(value = "popularArticleSummaries", allEntries = true),
         @CacheEvict(value = "articleArchive", allEntries = true)
     })
     public ArticleResponse createArticle(ArticleRequest request, User author) {
@@ -263,8 +264,8 @@ public class ArticleService {
     @Transactional
     @Caching(evict = {
         @CacheEvict(value = "articleDetail", key = "#id"),
-        @CacheEvict(value = "featuredArticles", allEntries = true),
-        @CacheEvict(value = "popularArticles", allEntries = true),
+        @CacheEvict(value = "featuredArticleSummaries", allEntries = true),
+        @CacheEvict(value = "popularArticleSummaries", allEntries = true),
         @CacheEvict(value = "articleArchive", allEntries = true)
     })
     public ArticleResponse updateArticle(Long id, ArticleRequest request, User currentUser) {
@@ -307,8 +308,8 @@ public class ArticleService {
     @Transactional
     @Caching(evict = {
         @CacheEvict(value = "articleDetail", key = "#id"),
-        @CacheEvict(value = "featuredArticles", allEntries = true),
-        @CacheEvict(value = "popularArticles", allEntries = true),
+        @CacheEvict(value = "featuredArticleSummaries", allEntries = true),
+        @CacheEvict(value = "popularArticleSummaries", allEntries = true),
         @CacheEvict(value = "articleArchive", allEntries = true)
     })
     public void deleteArticle(Long id, User currentUser) {
@@ -373,6 +374,57 @@ public class ArticleService {
                 .commentCount(commentRepository.countByArticle(article))
                 .published(article.getPublished())
                 .featured(article.getFeatured())
+                .publishedAt(article.getPublishedAt())
+                .createdAt(article.getCreatedAt())
+                .updatedAt(article.getUpdatedAt())
+                .build();
+    }
+
+    public ArticleSummaryResponse toSummaryResponse(Article article) {
+        int likeCount = article.getLikeCount();
+        try {
+            String redisCount = stringRedisTemplate.opsForValue().get(
+                    RedisKeyPrefix.ARTICLE_LIKE_COUNT + article.getId()
+            );
+            if (redisCount != null) {
+                likeCount = Integer.parseInt(redisCount);
+            }
+        } catch (Exception e) {
+            // fallback to DB value
+        }
+
+        int contentLength = article.getContent() == null ? 0 : article.getContent().length();
+        int readTimeMinutes = Math.max(1, (int) Math.ceil(contentLength / 300.0));
+
+        return ArticleSummaryResponse.builder()
+                .id(article.getId())
+                .title(article.getTitle())
+                .summary(article.getSummary())
+                .coverImage(article.getCoverImage())
+                .author(article.getAuthor() != null ? ArticleResponse.AuthorInfo.builder()
+                        .id(article.getAuthor().getId())
+                        .username(article.getAuthor().getUsername())
+                        .nickname(article.getAuthor().getNickname())
+                        .avatar(article.getAuthor().getAvatar())
+                        .build() : null)
+                .category(article.getCategory() != null ? ArticleResponse.CategoryInfo.builder()
+                        .id(article.getCategory().getId())
+                        .name(article.getCategory().getName())
+                        .icon(article.getCategory().getIcon())
+                        .build() : null)
+                .tags(article.getTags().stream()
+                        .map(tag -> ArticleResponse.TagInfo.builder()
+                                .id(tag.getId())
+                                .name(tag.getName())
+                                .color(tag.getColor())
+                                .build())
+                        .collect(Collectors.toList()))
+                .viewCount(article.getViewCount())
+                .likeCount(likeCount)
+                .commentCount(commentRepository.countByArticle(article))
+                .published(article.getPublished())
+                .featured(article.getFeatured())
+                .readTimeMinutes(readTimeMinutes)
                 .publishedAt(article.getPublishedAt())
                 .createdAt(article.getCreatedAt())
                 .updatedAt(article.getUpdatedAt())
@@ -516,7 +568,7 @@ public class ArticleService {
     /**
      * 获取本周热门文章（基于 UV 排行）
      */
-    public List<ArticleResponse> getWeeklyHotArticles(int limit) {
+    public List<ArticleSummaryResponse> getWeeklyHotArticles(int limit) {
         Set<ZSetOperations.TypedTuple<String>> tuples = stringRedisTemplate.opsForZSet()
                 .reverseRangeWithScores(RedisKeyPrefix.ARTICLE_HOT_WEEKLY, 0, limit - 1);
 
@@ -525,11 +577,13 @@ public class ArticleService {
             return self.getPopularArticles(limit);
         }
 
-        List<ArticleResponse> result = new ArrayList<>();
+        List<ArticleSummaryResponse> result = new ArrayList<>();
         for (ZSetOperations.TypedTuple<String> tuple : tuples) {
             Long articleId = Long.parseLong(Objects.requireNonNull(tuple.getValue()));
             try {
-                ArticleResponse response = self.getArticle(articleId);
+                ArticleSummaryResponse response = articleRepository.findById(articleId)
+                        .map(this::toSummaryResponse)
+                        .orElseThrow();
                 response.setUvCount(tuple.getScore() != null ? tuple.getScore().longValue() : 0L);
                 result.add(response);
             } catch (Exception e) {

@@ -416,6 +416,9 @@ const PixelSheep: React.FC = () => {
   const [isHidden, setIsHidden] = useState(() => {
     return localStorage.getItem('pixelsheep-hidden') === 'true';
   });
+  const [isDockCollapsed, setIsDockCollapsed] = useState(() => {
+    return localStorage.getItem('pixelsheep-dock-collapsed') === 'true';
+  });
   const [isSuperSaiyan, setIsSuperSaiyan] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isDropping, setIsDropping] = useState(false);
@@ -815,6 +818,7 @@ const PixelSheep: React.FC = () => {
   useEffect(() => { localStorage.setItem('pixelsheep-grass', String(grassCount)); }, [grassCount]);
   useEffect(() => { localStorage.setItem('pixelsheep-fetch-count', String(fetchCount)); }, [fetchCount]);
   useEffect(() => { localStorage.setItem('pixelsheep-groom-count', String(groomCount)); }, [groomCount]);
+  useEffect(() => { localStorage.setItem('pixelsheep-dock-collapsed', String(isDockCollapsed)); }, [isDockCollapsed]);
 
   // Time-of-day greeting
   useEffect(() => {
@@ -870,10 +874,14 @@ const PixelSheep: React.FC = () => {
     return (
       <button
         className="pixel-sheep__toggle pixel-sheep__toggle--show"
-        onClick={() => setIsHidden(false)}
+        onClick={() => {
+          setIsHidden(false);
+          setIsDockCollapsed(false);
+        }}
         title="显示小羊"
       >
-        🐑
+        <span className="pixel-sheep__toggle-emoji">🐑</span>
+        <span className="pixel-sheep__toggle-label">呼出小羊</span>
       </button>
     );
   }
@@ -887,6 +895,36 @@ const PixelSheep: React.FC = () => {
 
   return (
     <>
+      <aside className={`pixel-sheep__dock${isDockCollapsed ? ' pixel-sheep__dock--collapsed' : ''}`}>
+        <button className="pixel-sheep__dock-handle" onClick={() => setIsDockCollapsed(prev => !prev)}>
+          {isDockCollapsed ? '展开小羊面板' : '收起小羊面板'}
+        </button>
+
+        {!isDockCollapsed && (
+          <>
+            <div className="pixel-sheep__dock-head">
+              <div className="pixel-sheep__dock-title">像素小羊牧场</div>
+              <div className="pixel-sheep__dock-subtitle">点一点是互动，长按可拖动，右键能看完整状态。</div>
+            </div>
+
+            <div className="pixel-sheep__dock-stats">
+              <span>心情 {getMoodEmoji(mood)} {mood}</span>
+              <span>鲜草 🌿 {grassCount}</span>
+              <span>玩球 🎾 {fetchCount}</span>
+            </div>
+
+            <div className="pixel-sheep__dock-actions">
+              <button className="pixel-sheep__dock-btn" onClick={feedSheep}>喂草</button>
+              <button className="pixel-sheep__dock-btn" onClick={petSheep}>摸摸</button>
+              <button className="pixel-sheep__dock-btn" onClick={throwBall}>玩球</button>
+              <button className="pixel-sheep__dock-btn" onClick={groomSheep}>梳毛</button>
+              <button className="pixel-sheep__dock-btn" onClick={whistleSheep}>召回</button>
+              <button className="pixel-sheep__dock-btn" onClick={toggleNap}>{sheepState === 'sleep' ? '叫醒' : '小憩'}</button>
+            </div>
+          </>
+        )}
+      </aside>
+
       {/* ── Wool Particles ── */}
       {woolParticles.map(p => (
         <div

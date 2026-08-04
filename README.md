@@ -334,7 +334,7 @@ myblog/
 │   ├── mysql/
 │   │   └── init.sql                  # MySQL 初始化脚本
 │   ├── .env.example                  # 环境变量模板
-│   └── .env                          # 实际环境变量（不上传Git）
+└── .env                              # 实际环境变量（不上传Git）
 ```
 
 ---
@@ -353,6 +353,17 @@ myblog/
 | **npm** | 9 | 10+ | 前端包管理器 |
 
 ### 一键启动（推荐）
+
+Docker Compose 生产启动前，先创建项目根目录的 `.env`：
+
+```bash
+cp docker/.env.example .env
+# 填写 MySQL、Redis、RabbitMQ、JWT 和 DashScope 的真实值
+docker compose config --quiet
+docker compose up -d --build
+```
+
+Compose 会拒绝缺少敏感变量的启动配置，`.env` 不应提交到 Git。
 
 项目提供了自动化启动脚本，可以一键启动前后端服务：
 
@@ -393,6 +404,30 @@ cd frontend
 npm install  # 首次运行需要安装依赖
 npm run dev
 ```
+
+### 重建示例文章时间线
+
+后端现在支持通过配置一次性清空并重建演示文章与评论数据，适合在你想重新铺设归档时间线、封面和示例内容时使用。
+
+**本地 Spring Boot 启动：**
+```bash
+cd backend
+mvn spring-boot:run -Dspring-boot.run.arguments="--blog.demo.reset-content=true"
+```
+
+**Docker Compose 启动：**
+```bash
+# Windows PowerShell
+$env:BLOG_DEMO_RESET_CONTENT="true"
+docker compose up -d --build backend
+
+# 完成一次重建后记得恢复为 false 或移除环境变量
+```
+
+说明：
+1. 该开关会先清空现有文章和评论，再写入新的演示内容。
+2. 新的发布时间跨度覆盖 2025/09 到 2026/03，不再集中在同一天附近。
+3. 如果你线上数据库里有想保留的正式内容，不要开启这个开关。
 
 ### 停止服务
 
