@@ -62,6 +62,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       MYSQL_ROOT_PASSWORD: ci-root-password
+      MYSQL_DATABASE: blogdb
+      MYSQL_USER: ci-bloguser
       MYSQL_PASSWORD: ci-database-password
       REDIS_PASSWORD: ci-redis-password
       RABBITMQ_DEFAULT_USER: ci-rabbitmq
