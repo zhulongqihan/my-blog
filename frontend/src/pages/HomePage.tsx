@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import ArticleCard from '../components/ArticleCard';
 import Typewriter from '../components/Typewriter';
 import AiIdeaLab from '../components/AiIdeaLab';
@@ -37,6 +37,8 @@ const QUOTES = [
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isPortfolioMode = searchParams.get('mode') === 'portfolio';
   const { articles: featuredArticles, isLoading: featuredLoading } = useFeaturedArticles();
   const { articles, isLoading, error, hasMore, loadMore } = useArticles({ size: 10 });
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -133,7 +135,7 @@ const HomePage = () => {
 
   return (
     <motion.div
-      className="page-wrapper home-page"
+      className={`page-wrapper home-page${isPortfolioMode ? ' home-page--portfolio' : ''}`}
       variants={pageVariants}
       initial="initial"
       animate="animate"
@@ -159,24 +161,33 @@ const HomePage = () => {
             </span>
           </h1>
           <p className="home-hero__subtitle">
-            关于编程、技术与生活的个人博客。在这里，我记录学习的点滴，分享技术的思考。
+            {isPortfolioMode ? '一个真实运行在公网的全栈内容基础设施，记录技术判断，也记录系统如何被做出来。' : '关于编程、技术与生活的个人博客。在这里，我记录学习的点滴，分享技术的思考。'}
           </p>
 
-          <div className="home-quote">
+          {!isPortfolioMode && <div className="home-quote">
             <p className="home-quote__text">“{quote}”</p>
             <button className="home-quote__refresh liquid-btn" onClick={() => setQuoteIndex(prev => (prev + 1) % QUOTES.length)}>
               <RefreshCw size={14} />
               换一句
             </button>
-          </div>
+          </div>}
 
-          <div className="home-random-pick">
+          {!isPortfolioMode && <div className="home-random-pick">
             <p className="home-random-pick__text">{rollingTitle}</p>
             <button className="home-random-pick__btn liquid-btn" onClick={pickRandomArticle} disabled={isPickingRandom || regularArticles.length === 0}>
               <Shuffle size={14} />
               {isPickingRandom ? '抽取中...' : '随机文章推荐'}
             </button>
-          </div>
+          </div>}
+
+          {isPortfolioMode && (
+            <div className="home-portfolio-signals">
+              <span><strong>5</strong> services</span>
+              <span><strong>React</strong> + Vue</span>
+              <span><strong>Redis</strong> + MQ</span>
+              <span><strong>LIVE</strong> / HTTPS</span>
+            </div>
+          )}
         </motion.div>
 
         <motion.div
@@ -204,7 +215,7 @@ const HomePage = () => {
         </section>
       )}
 
-      <AiIdeaLab />
+      {!isPortfolioMode && <AiIdeaLab />}
 
       {/* Featured Article */}
       {!featuredLoading && featuredArticle && (

@@ -12,6 +12,7 @@ import { useAuth } from '../hooks/useAuth';
 import { isBookmarked as checkBookmarked, toggleBookmark } from '../services/bookmarks';
 import { unlockGlobalAchievement } from '../components/AchievementHub';
 import ProjectBridge from '../components/ProjectBridge';
+import ArticleReaderAssistant from '../components/ArticleReaderAssistant';
 import type { ArticleSummary, Comment } from '../types';
 import { formatArticleDate } from '../utils/articleDate';
 import './ArticlePage.css';
@@ -1219,6 +1220,8 @@ const ArticlePage = () => {
           toggleCodeCollapse
         )}
       </motion.article>
+
+      {article && <ArticleReaderAssistant article={article} />}
 
       <section className="article-comments__prompt">
         <div>

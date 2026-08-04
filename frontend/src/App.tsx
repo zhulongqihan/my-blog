@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState, useCallback, useMemo } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { AuthProvider } from './contexts/AuthContext';
 import { WebSocketProvider } from './contexts/WebSocketContext';
@@ -22,6 +22,7 @@ const SearchPage = lazy(() => import('./pages/SearchPage'));
 const ReadingStatsPage = lazy(() => import('./pages/ReadingStatsPage'));
 const BookmarksPage = lazy(() => import('./pages/BookmarksPage'));
 const AuthPage = lazy(() => import('./pages/AuthPage'));
+const ShowcasePage = lazy(() => import('./pages/ShowcasePage'));
 import './App.css';
 
 function AppContent() {
@@ -30,7 +31,9 @@ function AppContent() {
     return savedTheme === 'dark' ? 'dark' : 'light';
   });
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const location = useLocation();
   const navigate = useNavigate();
+  const isPortfolioMode = location.pathname === '/' && new URLSearchParams(location.search).get('mode') === 'portfolio';
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -96,13 +99,14 @@ function AppContent() {
               <Route path="/reading-stats" element={<ReadingStatsPage />} />
               <Route path="/bookmarks" element={<BookmarksPage />} />
               <Route path="/auth" element={<AuthPage />} />
+              <Route path="/showcase" element={<ShowcasePage />} />
             </Routes>
           </Suspense>
         </AnimatePresence>
       </main>
       <Footer />
       <ScrollToTop />
-      <PixelSheep />
+      {!isPortfolioMode && <PixelSheep />}
     </div>
   );
 }

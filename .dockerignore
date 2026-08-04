@@ -28,6 +28,8 @@ Thumbs.db
 
 # Docker
 docker/.env
+**/.env
+**/.env.*
 
 # Temp
 *.tmp

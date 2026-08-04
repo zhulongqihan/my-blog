@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Search, Home, Archive, BarChart3, User, BookOpen,
+  Search, Home, Archive, BarChart3, User, BookOpen, BriefcaseBusiness,
   Moon, Sun, Command, Sparkles, Award, Bot
 } from 'lucide-react';
 import { AI_AGENT_NAME, AI_AGENT_URL } from '../constants/externalLinks';
@@ -67,6 +67,11 @@ const CommandPalette = ({ isOpen, onClose, theme, onToggleTheme, shortcuts }: Co
         id: 'nav-home', icon: <Home size={18} />, label: '首页',
         description: '返回首页', category: 'navigation',
         action: () => runAndClose(() => navigate('/')),
+      },
+      {
+        id: 'nav-showcase', icon: <BriefcaseBusiness size={18} />, label: '项目展示',
+        description: '查看系统架构与工程取舍', category: 'navigation',
+        action: () => runAndClose(() => navigate('/showcase')),
       },
       {
         id: 'nav-archive', icon: <Archive size={18} />, label: '归档',

@@ -1,7 +1,7 @@
 # 个人博客系统
 
 > 创建日期：2026年1月27日  
-> 最后更新：2026年3月10日  
+> 最后更新：2026年8月4日
 > 版本：v2.1.2  
 > GitHub: [https://github.com/zhulongqihan/my-blog](https://github.com/zhulongqihan/my-blog)  
 > 网站：http://cyruszhang.online 
@@ -10,9 +10,21 @@
 
 ## 项目简介
 
-这是一个全栈个人博客系统，前后端分离架构。后端使用 Spring Boot 3.x 提供 RESTful API，前台页面使用 React 19 + TypeScript + Vite，后台管理系统使用 Vue 3 + Element Plus + Pinia（双前端框架）。前台设计为大地色系极简风格。
+这是一个真实运行在公网的全栈内容基础设施。它从文章编辑、发布、阅读和评论出发，延伸到缓存、异步通知、实时连接、安全边界和容器化交付；重点不是展示组件数量，而是解释一套内容系统如何长期运行。
 
-**项目亮点**：双前端框架（React + Vue）、**Docker Compose 一键部署**（5 容器编排 + 多阶段构建 + 健康检查）、Markdown 编辑器 + 图片上传、完整的后台管理系统、JWT + RBAC 权限体系、**Redis 多级缓存系统**（Cache Aside + Write-Behind + 缓存预热 + 监控面板）、**Redis 高并发五大特性**（缓存三重防御 + BitMap签到 + 一人一赞 + ZSet Feed流 + HyperLogLog UV统计）、**RabbitMQ 消息队列**（评论邮件通知 + 日志异步化 + 死信队列 + 监控）、**WebSocket 实时通知**（STOMP + SockJS + MQ联动 + 在线人数 + 通知中心）、ECharts 数据可视化、**API 限流与防护系统**（Redis Lua 滑动窗口 + AOP + IP 黑白名单）、**酷炫前端交互**（打字机标题 + 阅读进度条 + 鼠标光晕 + 3D视差卡片 + 光泽动效 + 数字滚动动画 + 暗色模式 + 粒子背景 + 图片灯箱 + 分享卡片 + 命令面板 + 书签系统 + 阅读统计）、**像素羊桌宠系统**（CSS 像素画 + 多状态动画帧 + 拖拽交互 + 玩球/梳毛/召回/小憩）、**AI 创意工坊**（通义千问 qwen-plus + DashScope OpenAI 兼容接口 + SSE 流式结构化方案生成 + Nginx 运行时环境变量注入 Key + SNI/IPv4 代理稳态处理）、**AI Agent 项目联动入口**（底部桥接模块 + 关于页 + 命令面板，把博客内容线自然延伸到独立部署的 AeroFlow Sentinel）。
+**核心亮点**：双前端体验、摘要 DTO 与缓存优化、RabbitMQ 异步副作用、WebSocket 实时通知、JWT/RBAC 安全边界、Docker Compose 线上部署、文章上下文 AI 阅读助手。
+
+## 求职快速入口
+
+- **在线系统**：<http://cyruszhang.online>
+- **作品展示页**：<http://cyruszhang.online/showcase>
+- **作品模式**：<http://cyruszhang.online/?mode=portfolio>
+- **架构说明**：[engineering/architecture.md](engineering/architecture.md)
+- **项目简述**：[engineering/project-brief.md](engineering/project-brief.md)
+- **运行手册**：[engineering/operations.md](engineering/operations.md)
+- **工程决策**：[engineering/adr/0001-why-content-infrastructure.md](engineering/adr/0001-why-content-infrastructure.md)
+
+面试时建议从三个问题展开：为什么不是简单 CRUD、为什么使用消息队列、如何证明系统真实在线运行。完整技术细节和历史功能仍保留在下方，便于按面试深度继续展开。
 
 ### 核心特性
 
