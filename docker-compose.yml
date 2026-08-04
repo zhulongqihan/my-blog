@@ -130,6 +130,8 @@ services:
       # ---- 日志路径（覆盖服务器上硬编码的 /www/my-blog/... 路径）----
       LOGGING_FILE_NAME: /app/logs/backend.log
       BLOG_DEMO_RESET_CONTENT: ${BLOG_DEMO_RESET_CONTENT:-false}
+      # 仅在全新数据库初始化管理员账号时使用，不保存默认值
+      BLOG_ADMIN_INITIAL_PASSWORD: ${BLOG_ADMIN_INITIAL_PASSWORD:-}
       # ---- JVM 参数 ----
       JAVA_OPTS: "-Xms256m -Xmx512m"
       TZ: Asia/Shanghai

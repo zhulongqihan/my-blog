@@ -41,6 +41,9 @@ public class DataInitializer implements CommandLineRunner {
     @Value("${blog.demo.reset-content:false}")
     private boolean resetDemoContent;
 
+    @Value("${blog.admin.initial-password:}")
+    private String initialAdminPassword;
+
     @Override
     @Transactional
     public void run(String... args) {
@@ -62,16 +65,23 @@ public class DataInitializer implements CommandLineRunner {
             return;
         }
 
+        String password = initialAdminPassword == null ? "" : initialAdminPassword.trim();
+        if (password.isEmpty()) {
+            throw new IllegalStateException(
+                    "管理员账号尚未初始化，请通过 BLOG_ADMIN_INITIAL_PASSWORD 提供初始密码"
+            );
+        }
+
         User admin = User.builder()
                 .username("admin")
-                .password(passwordEncoder.encode("admin123"))
+                .password(passwordEncoder.encode(password))
                 .email("admin@myblog.com")
                 .nickname("博主")
                 .bio("记录技术、写作与生活观察的长期主义实践者")
                 .role(User.Role.ADMIN)
                 .build();
         userRepository.save(admin);
-        log.info("✅ 管理员账号创建成功 - 用户名: admin, 密码: admin123");
+        log.info("✅ 管理员账号创建成功 - 用户名: admin");
     }
 
     private void ensureDefaultCategories() {
