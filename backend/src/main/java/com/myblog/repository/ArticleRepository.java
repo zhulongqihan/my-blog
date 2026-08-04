@@ -1,5 +1,6 @@
 package com.myblog.repository;
 
+import com.myblog.dto.ArchiveArticleProjection;
 import com.myblog.entity.Article;
 import com.myblog.entity.Category;
 import com.myblog.entity.User;
@@ -70,6 +71,12 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
      * 获取所有已发布文章（按创建时间倒序），用于归档页
      */
     List<Article> findByPublishedTrueOrderByPublishedAtDesc();
+
+    @Query("SELECT a.id AS id, a.title AS title, a.publishedAt AS publishedAt, " +
+            "a.createdAt AS createdAt, c.name AS categoryName " +
+            "FROM Article a LEFT JOIN a.category c " +
+            "WHERE a.published = true ORDER BY a.publishedAt DESC")
+    List<ArchiveArticleProjection> findPublishedArchiveRows();
 
     // ========== v2.0 新增：Redis 高并发特性 ==========
 
