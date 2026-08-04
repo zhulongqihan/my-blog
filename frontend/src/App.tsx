@@ -34,6 +34,7 @@ function AppContent() {
   const location = useLocation();
   const navigate = useNavigate();
   const isPortfolioMode = location.pathname === '/' && new URLSearchParams(location.search).get('mode') === 'portfolio';
+  const isPresentationMode = isPortfolioMode || location.pathname === '/showcase';
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -106,7 +107,7 @@ function AppContent() {
       </main>
       <Footer />
       <ScrollToTop />
-      {!isPortfolioMode && <PixelSheep />}
+      {!isPresentationMode && <PixelSheep />}
     </div>
   );
 }
