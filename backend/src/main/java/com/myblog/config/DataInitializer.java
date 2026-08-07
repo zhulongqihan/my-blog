@@ -65,6 +65,8 @@ public class DataInitializer implements CommandLineRunner {
             seedArticles();
             syncLongFormContent();
         }
+
+        syncInternshipArticles();
     }
 
     /**
@@ -108,6 +110,69 @@ public class DataInitializer implements CommandLineRunner {
         } catch (IOException exception) {
             throw new IllegalStateException("无法读取文章正文: " + filename, exception);
         }
+    }
+
+    /**
+     * Add the internship timeline independently from the demo seed so existing data is never overwritten.
+     */
+    private void syncInternshipArticles() {
+        User admin = userRepository.findByUsername("admin").orElseThrow();
+        Category techCategory = categoryRepository.findByName("技术").orElse(null);
+        Category essayCategory = categoryRepository.findByName("随笔")
+                .orElseGet(() -> categoryRepository.findByName("生活").orElse(techCategory));
+
+        Tag javaTag = tag("Java");
+        Tag pythonTag = tag("Python");
+        Tag backendTag = tag("后端");
+        Tag dockerTag = tag("Docker");
+
+        List<InternshipDraft> drafts = List.of(
+                new InternshipDraft("我第一次把模型识别结果接进 Java 业务流", "把模型输出接进真实业务时，最难的不是请求成功，而是结果能被正确理解、保存和继续使用。", "internship-01-java-model-flow.md", "/article-covers/spring-layers.svg", techCategory, 612, 41, publishAt(2024, 5, 28, 20, 40), tagsOf(javaTag, backendTag)),
+                new InternshipDraft("500GB 传感器 JSON 为什么会把单线程程序拖到 OOM", "一次从内存峰值 32GB 到多进程预处理的复盘：速度提升之前，先把数据生命周期理清楚。", "internship-02-sensor-oom.md", "/article-covers/studio-grid.svg", techCategory, 534, 36, publishAt(2025, 6, 14, 21, 10), tagsOf(pythonTag, backendTag)),
+                new InternshipDraft("把 MapTracker 装进 FastAPI 之后，我才知道接口不是包装一下", "多帧导出、任务状态和 200ms 级延迟背后，接口真正要解决的是一条可依赖的服务链路。", "internship-03-maptracker-fastapi.md", "/article-covers/low-cost-cloud.svg", techCategory, 438, 27, publishAt(2025, 7, 3, 19, 35), tagsOf(pythonTag, backendTag)),
+                new InternshipDraft("入职第一周，我先学会了不要急着写代码", "从多面试官评价接口到启动环境排查，我第一次感受到兼容性本身就是需求的一部分。", "internship-04-multi-interviewer.md", "/article-covers/studio-grid.svg", techCategory, 287, 21, publishAt(2026, 5, 20, 21, 25), tagsOf(javaTag, backendTag)),
+                new InternshipDraft("我把十个约面 skill，压成了一条能演示的链路", "先启动一轮约面，再读跟踪表、拉候选人、对日历、写回会议状态，MVP 才终于有了终点。", "internship-05-skill-mvp.md", "/article-covers/agent-compass.svg", essayCategory, 251, 17, publishAt(2026, 5, 27, 20, 55), tagsOf(backendTag)),
+                new InternshipDraft("一次校招 AI 面试请求，怎样穿过 Java 服务和工作流", "从安排面试触发到工作流产出，我把“请求成功、产物正确、结果可追踪”拆成了三层。", "internship-06-workflow-trigger.md", "/article-covers/agent-compass.svg", techCategory, 306, 23, publishAt(2026, 6, 18, 22, 5), tagsOf(javaTag, backendTag)),
+                new InternshipDraft("字段名存在，不代表模型真的拿到了数据", "一个家庭信息字段的排查，让我重新理解了代码节点、固定规则和大模型之间应该怎样分工。", "internship-07-field-debugging.md", "/article-covers/agent-compass.svg", techCategory, 278, 19, publishAt(2026, 7, 8, 21, 40), tagsOf(javaTag, backendTag)),
+                new InternshipDraft("第一次把 AI 面试工作流推上线，我最紧张的不是模型", "真正决定上线质量的，往往是字段来源、空结果、异常分支和落库速度这些不够炫的细节。", "internship-08-first-launch.md", "/article-covers/studio-grid.svg", techCategory, 341, 26, publishAt(2026, 7, 11, 22, 20), tagsOf(javaTag, backendTag)),
+                new InternshipDraft("从 HTTP 到 JSF，再到 16 个本体：我重新认识了“接口”", "面试间本体化不是换个协议名称，而是把业务能力拆成系统和 AI 都能理解的边界。", "internship-09-http-jsf-ontology.md", "/article-covers/spring-layers.svg", techCategory, 224, 16, publishAt(2026, 7, 24, 20, 15), tagsOf(javaTag, backendTag)),
+                new InternshipDraft("服务启动卡在 20 秒：这次我没有去改 timeout", "从解析失败、连接失败到网络权限，我把一次启动超时排查成了一个更可靠的判断顺序。", "internship-10-timeout-root-cause.md", "/article-covers/low-cost-cloud.svg", essayCategory, 186, 13, publishAt(2026, 7, 31, 23, 5), tagsOf(javaTag, dockerTag, backendTag))
+        );
+
+        List<Article> existing = articleRepository.findAll();
+        List<Article> additions = new ArrayList<>();
+        for (InternshipDraft draft : drafts) {
+            boolean exists = existing.stream().anyMatch(article -> draft.title().equals(article.getTitle()));
+            if (exists) {
+                continue;
+            }
+
+            Article article = article(admin, draft.category(), false, draft.views(), draft.publishedAt(), draft.title(), draft.summary(), draft.coverImage(), readArticleContent(draft.contentFile()), draft.tags());
+            article.setLikeCount(draft.likes());
+            additions.add(article);
+        }
+
+        if (!additions.isEmpty()) {
+            articleRepository.saveAll(additions);
+            log.info("✅ 实习时间线文章同步完成 - 新增 {} 篇", additions.size());
+        }
+    }
+
+    private Tag tag(String name) {
+        return tagRepository.findByName(name).orElse(null);
+    }
+
+    private record InternshipDraft(
+            String title,
+            String summary,
+            String contentFile,
+            String coverImage,
+            Category category,
+            int views,
+            int likes,
+            LocalDateTime publishedAt,
+            List<Tag> tags
+    ) {
     }
 
     private void ensureAdminUser() {

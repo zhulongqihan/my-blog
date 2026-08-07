@@ -24,6 +24,7 @@ admin-frontend/node_modules/
 logs/
 
 # 临时文件
+tmp/
 *.tmp
 *.temp
 *.swp
