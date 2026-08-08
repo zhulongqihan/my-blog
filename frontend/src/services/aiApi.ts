@@ -1,6 +1,7 @@
 /** AI Gateway 的 SSE 流式客户端。浏览器只访问同源 Backend，不持有模型密钥。 */
 
-const AI_API_URL = import.meta.env.VITE_AI_API_URL || '/api/ai';
+// Blog AI always goes through the same-origin Gateway; provider credentials stay server-side.
+const AI_API_URL = '/api/ai';
 
 interface ChatCompletionChunk {
   choices: Array<{
