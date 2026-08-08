@@ -12,7 +12,7 @@
 
 这是一个真实运行在公网的全栈内容基础设施。它从文章编辑、发布、阅读和评论出发，延伸到缓存、异步通知、实时连接、安全边界和容器化交付；重点不是展示组件数量，而是解释一套内容系统如何长期运行。
 
-**核心亮点**：双前端体验、摘要 DTO 与缓存优化、RabbitMQ 异步副作用、WebSocket 实时通知、JWT/RBAC 安全边界、Docker Compose 线上部署、文章上下文 AI 阅读助手。
+**核心亮点**：双前端体验、摘要 DTO 与缓存优化、RabbitMQ 异步副作用、WebSocket 实时通知、JWT/RBAC 安全边界、Docker Compose 线上部署、AI Gateway + MCP 内容工具 + 可观测阅读助手。
 
 ## 求职快速入口
 
@@ -22,6 +22,7 @@
 - **架构说明**：[engineering/architecture.md](engineering/architecture.md)
 - **项目简述**：[engineering/project-brief.md](engineering/project-brief.md)
 - **运行手册**：[engineering/operations.md](engineering/operations.md)
+- **AI Gateway 设计**：[engineering/ai-gateway.md](engineering/ai-gateway.md)
 - **工程决策**：[engineering/adr/0001-why-content-infrastructure.md](engineering/adr/0001-why-content-infrastructure.md)
 
 面试时建议从三个问题展开：为什么不是简单 CRUD、为什么使用消息队列、如何证明系统真实在线运行。完整技术细节和历史功能仍保留在下方，便于按面试深度继续展开。
@@ -63,7 +64,7 @@
 - **通知中心** - 管理后台铃铛实时红点 + 通知列表 + 系统公告广播
 - **MQ → WebSocket 联动** - 评论消息队列消费后自动推送实时通知
 - **像素羊桌宠系统** - CSS box-shadow 像素画 + 多状态动画帧（行走/休息/进食）+ 拖拽交互 + 玩球/梳毛/召回/小憩等额外交互
-- **AI 创意工坊** - 通义千问（DashScope OpenAI 兼容接口）+ SSE 流式输出，生成结构化前端方案（摘要/步骤/代码要点/验收清单），API Key 由 Nginx 运行时环境变量注入，前端零感知
+- **AI Gateway + MCP 内容工具** - Spring Boot 统一代理 DashScope OpenAI 兼容接口，SSE 流式输出；服务端按文章 ID/关键词做受控上下文检索，Redis 记录 TTFT、总耗时、来源和错误轨迹；通过 MCP `tools/list` / `tools/call` 暴露只读文章搜索工具
 - **AI Agent 项目入口** - 首页与文章页底部桥接模块、关于页与命令面板联动 AeroFlow Sentinel 在线演示入口，博客与独立 AI Agent 项目形成同一条内容线展示
 - **书签收藏系统** - localStorage 持久化，文章页一键收藏，专属书签管理页
 - **阅读统计仪表盘** - 热力图、连续阅读天数、文章完成度、最近阅读列表
@@ -765,7 +766,7 @@ stop.bat
 - [x] 全局快捷键系统（useKeyboardShortcuts hook，Ctrl+K/D//, Ctrl+Shift+H）
 - [x] 书签收藏（文章页收藏按钮 + BookmarksPage 管理页 + localStorage 存储）
 - [x] 阅读统计页（ReadingStatsPage：热力图 35 天 + 连续阅读天数 + 完成度 + 最近阅读）
-- [x] AI 创意工坊升级（DashScope qwen-plus，Nginx 服务端注入 Key，前端零泄露）
+- [x] AI Gateway 升级（Backend 统一代理 DashScope qwen-plus，服务端检索 + SSE + Redis 请求轨迹，前端零密钥）
 - [x] 像素羊桌宠（重绘为羊的外形：垂耳 + 小角 + 暖棕毛色 + 尾巴，5 套状态动画帧）
 - [x] 成就系统扩展（18 个成就，4 分类 4 稀有度，进度条 + Tab 筛选 + 弹出动效）
 - [x] 目录浮动导航 TOC（position:fixed，IntersectionObserver 追踪当前章节）
@@ -797,7 +798,7 @@ stop.bat
 - [x] systemd 服务配置
 - [x] 域名解析配置
 - [x] **生产环境API接口验证成功**
-- [x] DashScope AI 接口通过 Nginx 代理上线（服务端注入 Key，GitHub 仓库中为占位符）
+- [x] DashScope AI 接口通过 Backend Gateway 上线（Nginx 仅透传 SSE，服务端注入 Key，GitHub 仓库中为占位符）
 
 ---
 

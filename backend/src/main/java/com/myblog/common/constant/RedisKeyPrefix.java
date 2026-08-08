@@ -152,4 +152,7 @@ public class RedisKeyPrefix {
 
     /** 本周热门榜 — ZSet (score=UV数, member=articleId) */
     public static final String ARTICLE_HOT_WEEKLY = "article:hot:weekly";
+
+    /** AI Gateway 最近请求轨迹（List，最多保留200条，TTL 7天） */
+    public static final String AI_TRACE_RECENT = "ai:trace:recent";
 }

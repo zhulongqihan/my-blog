@@ -85,6 +85,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/NotificationCenter.vue'),
         meta: { title: '通知中心', icon: 'Bell' },
       },
+      {
+        path: 'ai-observability',
+        name: 'AiObservability',
+        component: () => import('@/views/AiObservability.vue'),
+        meta: { title: 'AI 可观测性', icon: 'DataAnalysis' },
+      },
     ],
   },
 ]

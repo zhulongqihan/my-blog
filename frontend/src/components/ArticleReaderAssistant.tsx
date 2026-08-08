@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { BookOpen, Check, Copy, Loader2, MessageCircleQuestion, Sparkles } from 'lucide-react';
-import { sendChatMessage } from '../services/aiApi';
+import { sendChatMessage, type AiStreamMeta } from '../services/aiApi';
 import type { Article } from '../types';
 import './ArticleReaderAssistant.css';
 
@@ -15,11 +15,6 @@ const actionPrompts: Record<Exclude<ReaderAction, 'ask'>, string> = {
   tradeoffs: '请只基于文章内容，提炼作者做过的工程取舍。按“问题 / 选择 / 放弃了什么 / 为什么”四列结构输出，最多 5 条。',
 };
 
-const buildContext = (article: Article) => {
-  const content = article.content.length > 12000 ? `${article.content.slice(0, 12000)}\n[正文已截取]` : article.content;
-  return `\n\n【文章标题】\n${article.title}\n\n【文章摘要】\n${article.summary || '无'}\n\n【文章正文】\n${content}`;
-};
-
 const ArticleReaderAssistant = ({ article }: ArticleReaderAssistantProps) => {
   const [action, setAction] = useState<ReaderAction>('summary');
   const [question, setQuestion] = useState('');
@@ -27,9 +22,10 @@ const ArticleReaderAssistant = ({ article }: ArticleReaderAssistantProps) => {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [meta, setMeta] = useState<AiStreamMeta | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const systemPrompt = useMemo(() => `你是一个严谨的中文技术阅读助手。你只能根据用户提供的文章上下文回答，不要补造文章没有提到的事实。回答要克制、具体，优先引用文章中的概念和取舍；如果上下文不足，请明确说明。不要输出“作为 AI”之类的套话。${buildContext(article)}`, [article]);
+  const systemPrompt = useMemo(() => '你是一个严谨的中文技术阅读助手。回答要克制、具体，优先引用文章中的概念和取舍；如果上下文不足，请明确说明。不要输出“作为 AI”之类的套话。', []);
 
   const run = () => {
     const query = action === 'ask' ? question.trim() : actionPrompts[action];
@@ -39,11 +35,13 @@ const ArticleReaderAssistant = ({ article }: ArticleReaderAssistantProps) => {
     setAnswer('');
     setError('');
     setCopied(false);
+    setMeta(null);
     setIsRunning(true);
     abortRef.current = sendChatMessage(
-      { systemPrompt, query },
+      { systemPrompt, query, articleId: article.id, mode: 'reader' },
       {
         onChunk: chunk => setAnswer(previous => previous + chunk),
+        onMeta: nextMeta => setMeta(nextMeta),
         onEnd: () => setIsRunning(false),
         onError: message => {
           setError(message);
@@ -103,6 +101,7 @@ const ArticleReaderAssistant = ({ article }: ArticleReaderAssistantProps) => {
         </button>
       </div>
 
+      {meta && <p className="reader-assistant__source"><BookOpen size={13} /> 服务端检索 {meta.sources.length} 篇文章 · {meta.requestId}</p>}
       {error && <p className="reader-assistant__error">{error}</p>}
       {answer && (
         <div className="reader-assistant__answer">

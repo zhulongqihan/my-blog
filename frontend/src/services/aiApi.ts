@@ -1,176 +1,126 @@
-/**
- * AI 创意工坊 — 通义千问 DashScope (OpenAI 兼容接口) SSE 流式服务
- *
- * 使用原生 fetch + ReadableStream 实现 Server-Sent Events 流式传输
- */
+/** AI Gateway 的 SSE 流式客户端。浏览器只访问同源 Backend，不持有模型密钥。 */
 
-const AI_API_URL = import.meta.env.VITE_AI_API_URL || '/ai-api';
-const AI_API_KEY = import.meta.env.VITE_AI_API_KEY || '';
-const AI_MODEL = import.meta.env.VITE_AI_MODEL || 'qwen-plus';
-const IS_DEV = import.meta.env.DEV;
+const AI_API_URL = import.meta.env.VITE_AI_API_URL || '/api/ai';
 
-// ==================== 类型定义 ====================
-
-/** OpenAI 兼容 SSE delta */
 interface ChatCompletionChunk {
-  id: string;
-  object: string;
-  created: number;
-  model: string;
   choices: Array<{
-    index: number;
-    delta: { role?: string; content?: string };
+    delta: { content?: string };
     finish_reason: string | null;
   }>;
 }
 
-/** 流式回调 */
+export interface AiStreamMeta {
+  requestId: string;
+  model: string;
+  mode: string;
+  sources: Array<{ articleId: number; title: string; score: number }>;
+}
+
 export interface StreamCallbacks {
-  /** 每收到一段文本 */
   onChunk: (text: string) => void;
-  /** 流结束 */
   onEnd: () => void;
-  /** 错误 */
   onError: (error: string) => void;
+  onMeta?: (meta: AiStreamMeta) => void;
 }
 
-/** 聊天请求 */
 export interface ChatRequest {
-  /** 系统提示词 */
   systemPrompt?: string;
-  /** 用户消息 */
   query: string;
+  articleId?: number;
+  mode?: string;
 }
-
-// ==================== 用户 ID 管理 ====================
 
 export function getUserId(): string {
   const KEY = 'ai-user-id';
   let id = localStorage.getItem(KEY);
   if (!id) {
-    const uuid =
-      globalThis.crypto?.randomUUID?.() ||
-      `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const uuid = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     id = `blog-visitor-${uuid}`;
     localStorage.setItem(KEY, id);
   }
   return id;
 }
 
-// ==================== 核心 API ====================
-
-/**
- * 发送聊天消息 (SSE 流式)
- * 使用 OpenAI 兼容的 /chat/completions 接口
- */
-export function sendChatMessage(
-  request: ChatRequest,
-  callbacks: StreamCallbacks,
-): AbortController {
+export function sendChatMessage(request: ChatRequest, callbacks: StreamCallbacks): AbortController {
   const controller = new AbortController();
-  const isProxy = AI_API_URL.startsWith('/');
-
-  // 开发环境检查 Key
-  if (!isProxy && !AI_API_KEY) {
-    callbacks.onError('AI 创意工坊尚未配置 API Key');
-    return controller;
-  }
 
   const fetchStream = async () => {
     try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-
-      // 非代理模式（开发环境直连）需要附加 Key
-      if (AI_API_KEY) {
-        headers.Authorization = `Bearer ${AI_API_KEY}`;
-      }
-
-      const messages: Array<{ role: string; content: string }> = [];
-      if (request.systemPrompt) {
-        messages.push({ role: 'system', content: request.systemPrompt });
-      }
-      messages.push({ role: 'user', content: request.query });
-
-      const response = await fetch(`${AI_API_URL}/chat/completions`, {
+      const response = await fetch(`${AI_API_URL}/chat`, {
         method: 'POST',
-        headers,
-        body: JSON.stringify({
-          model: AI_MODEL,
-          messages,
-          stream: true,
-          temperature: 0.7,
-          max_tokens: 2048,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
         signal: controller.signal,
       });
 
       if (!response.ok) {
         const text = await response.text().catch(() => '');
-        let msg = '请求失败';
-        switch (response.status) {
-          case 400: msg = '请求参数错误，请稍后重试'; break;
-          case 401: msg = 'API 密钥无效，请检查配置'; break;
-          case 404: msg = isProxy && IS_DEV ? '本地 AI 代理未命中，请检查 Vite 开发代理配置' : 'AI 服务地址不存在'; break;
-          case 502: msg = isProxy && IS_DEV ? '本地 AI 代理暂时不可用，请检查 VITE_DASHSCOPE_API_KEY 和 Vite 代理配置' : 'AI 服务网关暂时不可用，请稍后重试'; break;
-          case 429: msg = '请求太频繁，请稍后再试'; break;
-          case 500: msg = 'AI 服务暂时不可用，请稍后重试'; break;
-          default:
-            try { msg = JSON.parse(text).error?.message || msg; } catch { msg = `请求失败 (${response.status})`; }
-        }
-        callbacks.onError(msg);
+        const messages: Record<number, string> = {
+          400: '请求参数错误，请稍后重试',
+          401: '认证信息无效，请稍后重试',
+          404: 'AI Gateway 地址不存在',
+          429: '请求太频繁，请稍后再试',
+          500: 'AI 服务暂时不可用，请稍后重试',
+          502: 'AI 服务网关暂时不可用，请稍后重试',
+        };
+        let message = messages[response.status] || `请求失败 (${response.status})`;
+        try { message = JSON.parse(text).message || message; } catch { /* use status fallback */ }
+        callbacks.onError(message);
         return;
       }
 
-      // 读取 SSE 流
       const reader = response.body!.getReader();
       const decoder = new TextDecoder('utf-8');
       let buffer = '';
+      let eventName = '';
+      let dataLines: string[] = [];
+      let ended = false;
+
+      const flushEvent = () => {
+        if (dataLines.length === 0) return;
+        const data = dataLines.join('\n');
+        dataLines = [];
+        if (eventName === 'meta') {
+          try { callbacks.onMeta?.(JSON.parse(data) as AiStreamMeta); } catch { /* ignore malformed metadata */ }
+        } else if (eventName === 'error') {
+          ended = true;
+          try { callbacks.onError(JSON.parse(data).message || 'AI 服务请求失败'); } catch { callbacks.onError('AI 服务请求失败'); }
+        } else if (data === '[DONE]') {
+          ended = true;
+          callbacks.onEnd();
+        } else {
+          try {
+            const chunk = JSON.parse(data) as ChatCompletionChunk;
+            const content = chunk.choices?.[0]?.delta?.content;
+            if (content) callbacks.onChunk(content);
+            if (chunk.choices?.[0]?.finish_reason === 'stop' && !ended) {
+              ended = true;
+              callbacks.onEnd();
+            }
+          } catch { /* ignore malformed provider chunk */ }
+        }
+        eventName = '';
+      };
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
         buffer += decoder.decode(value, { stream: true });
-
-        // 按行解析 SSE
         const lines = buffer.split('\n');
-        buffer = lines.pop() || ''; // 最后一行可能不完整
-
+        buffer = lines.pop() || '';
         for (const line of lines) {
           const trimmed = line.trim();
-          if (!trimmed || trimmed.startsWith(':')) continue; // 空行或注释
-          if (!trimmed.startsWith('data: ')) continue;
-
-          const data = trimmed.slice(6);
-          if (data === '[DONE]') {
-            callbacks.onEnd();
-            return;
-          }
-
-          try {
-            const chunk: ChatCompletionChunk = JSON.parse(data);
-            const content = chunk.choices?.[0]?.delta?.content;
-            if (content) {
-              callbacks.onChunk(content);
-            }
-            if (chunk.choices?.[0]?.finish_reason === 'stop') {
-              callbacks.onEnd();
-              return;
-            }
-          } catch {
-            // 不完整 JSON，跳过
-          }
+          if (!trimmed) { flushEvent(); continue; }
+          if (trimmed.startsWith(':')) continue;
+          if (trimmed.startsWith('event:')) eventName = trimmed.slice(6).trim();
+          if (trimmed.startsWith('data:')) dataLines.push(trimmed.slice(5).trimStart());
         }
       }
-
-      // 流正常结束但没收到 [DONE]
-      callbacks.onEnd();
-    } catch (err: unknown) {
-      if (err instanceof DOMException && err.name === 'AbortError') return;
-      const msg = err instanceof Error ? err.message : '网络连接失败';
-      callbacks.onError(`连接失败: ${msg}`);
+      flushEvent();
+      if (!ended) callbacks.onEnd();
+    } catch (error: unknown) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      callbacks.onError(`连接失败: ${error instanceof Error ? error.message : '网络连接失败'}`);
     }
   };
 

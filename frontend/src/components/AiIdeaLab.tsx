@@ -140,6 +140,7 @@ const AiIdeaLab = () => {
       {
         systemPrompt: activeMode.systemPrompt,
         query: query,
+        mode: `idea-${activeMode.id}`,
       },
       {
         onChunk: chunk => {

@@ -115,3 +115,10 @@ logging:
   level:
     root: INFO
     com.myblog: DEBUG
+
+# AI Gateway：密钥只在后端运行时注入，前端不再直接访问模型供应商
+ai:
+  gateway:
+    base-url: ${AI_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+    api-key: ${DASHSCOPE_API_KEY:}
+    model: ${AI_MODEL:qwen-plus}

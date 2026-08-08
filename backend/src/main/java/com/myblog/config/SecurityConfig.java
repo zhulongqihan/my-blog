@@ -51,6 +51,8 @@ public class SecurityConfig {
                 // 公开接口
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/ai/chat").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/mcp").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()  // WebSocket 端点
                 .requestMatchers("/api/articles/search").permitAll()

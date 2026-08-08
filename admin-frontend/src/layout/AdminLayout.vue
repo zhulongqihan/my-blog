@@ -110,6 +110,7 @@ const menuItems = [
   { path: '/cache', title: '缓存监控', icon: 'Coin' },
   { path: '/mq', title: 'MQ监控', icon: 'Connection' },
   { path: '/notifications', title: '通知中心', icon: 'Bell' },
+  { path: '/ai-observability', title: 'AI 可观测性', icon: 'DataAnalysis' },
 ]
 
 function handleCommand(command: string) {
