@@ -26,7 +26,7 @@ const decisions = [
     number: '03',
     title: '把线上风险显式化',
     description: '容器使用健康检查，Nginx 统一处理安全响应头和代理边界，敏感配置只从运行时环境进入部署。',
-    evidence: '5 services · healthcheck · secret-free repo',
+    evidence: '6 services · healthcheck · secret-free repo',
   },
 ];
 
