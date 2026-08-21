@@ -177,7 +177,7 @@ onUnmounted(() => {
 
 .layout-aside {
   background-color: #304156;
-  transition: width 0.3s;
+  transition: none;
   overflow: hidden;
 }
 
