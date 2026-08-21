@@ -32,7 +32,7 @@ const decisions = [
 
 const signals = [
   ['PUBLIC SYSTEM', 'cyruszhang.online'],
-  ['DEPLOYMENT', 'Docker Compose / 5 services'],
+  ['DEPLOYMENT', 'Docker Compose / 6 services'],
   ['CONTENT PATH', 'Draft → Publish → Read → Discuss'],
   ['REALTIME', 'WebSocket + RabbitMQ'],
 ];
@@ -74,10 +74,17 @@ const ShowcasePage = () => (
       </div>
     </section>
 
-    <section className="showcase-section showcase-section--wide">
+    <nav className="showcase-index" aria-label="系统展示导航">
+      <span className="showcase-index__label">现场目录</span>
+      <a href="#system-map">01 系统地图 <ArrowUpRight size={14} /></a>
+      <a href="#engineering-notes">02 工程取舍 <ArrowUpRight size={14} /></a>
+      <a href="#proof-of-work">03 验证信号 <ArrowUpRight size={14} /></a>
+    </nav>
+
+    <section id="system-map" className="showcase-section showcase-section--wide" aria-labelledby="system-map-title">
       <div className="showcase-section__heading">
         <p className="showcase-kicker">SYSTEM MAP</p>
-        <h2>一条完整的内容生产链路</h2>
+        <h2 id="system-map-title">一条完整的内容生产链路</h2>
         <p>前台负责体验，后台负责秩序，后端负责边界，基础设施负责让这些选择在低配服务器上持续运行。</p>
       </div>
       <div className="showcase-architecture">
@@ -92,10 +99,10 @@ const ShowcasePage = () => (
       </div>
     </section>
 
-    <section className="showcase-section">
+    <section id="engineering-notes" className="showcase-section" aria-labelledby="engineering-notes-title">
       <div className="showcase-section__heading">
         <p className="showcase-kicker">ENGINEERING NOTES</p>
-        <h2>我真正想展示的是取舍</h2>
+        <h2 id="engineering-notes-title">我真正想展示的是取舍</h2>
         <p>技术栈只是表面，能解释为什么这样做、哪里没有这样做，才是项目最有价值的部分。</p>
       </div>
       <div className="showcase-decision-grid">
@@ -110,10 +117,10 @@ const ShowcasePage = () => (
       </div>
     </section>
 
-    <section className="showcase-proof">
+    <section id="proof-of-work" className="showcase-proof" aria-labelledby="proof-of-work-title">
       <div>
         <p className="showcase-kicker">PROOF OF WORK</p>
-        <h2>从功能到可验证的系统</h2>
+        <h2 id="proof-of-work-title">从功能到可验证的系统</h2>
         <p>缓存、队列、实时连接、限流和部署不是孤立的名词，它们共同服务于一条可观测、可恢复的内容链路。</p>
       </div>
       <div className="showcase-proof__list">

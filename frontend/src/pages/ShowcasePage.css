@@ -117,6 +117,50 @@
 .showcase-signal span { color: var(--text-muted); font-family: var(--font-mono); font-size: 0.6rem; }
 .showcase-signal strong { color: var(--text-secondary); font-size: 0.73rem; font-weight: 500; text-align: right; }
 
+.showcase-index {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem 1.2rem;
+  padding: 0.8rem 0;
+  border-top: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.showcase-index__label {
+  color: var(--accent-rust);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+}
+
+.showcase-index a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-decoration: none;
+}
+
+.showcase-index a:hover,
+.showcase-index a:focus-visible {
+  color: var(--accent-rust);
+}
+
+.showcase-index a:focus-visible {
+  outline: 2px solid var(--accent-rust);
+  outline-offset: 4px;
+  border-radius: 3px;
+}
+
+#system-map,
+#engineering-notes,
+#proof-of-work {
+  scroll-margin-top: 96px;
+}
+
 .showcase-section { padding: 4.5rem 0; border-top: 1px solid var(--border-light); }
 .showcase-section__heading { max-width: 660px; }
 .showcase-section h2,
