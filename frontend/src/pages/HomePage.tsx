@@ -112,6 +112,23 @@ const HomePage = () => {
   }, []);
 
   const quote = useMemo(() => QUOTES[quoteIndex], [quoteIndex]);
+  const heroAction = resumeEntry
+    ? {
+        label: '继续阅读',
+        path: resumeEntry.path,
+        hint: `已读 ${resumeEntry.percent}% · 回到上次停下的位置`,
+      }
+    : featuredArticle
+      ? {
+          label: '开始阅读精选文章',
+          path: `/article/${featuredArticle.id}`,
+          hint: '从一篇完整的系统复盘开始',
+        }
+      : {
+          label: '浏览全部文章',
+          path: '/archive',
+          hint: '按时间线找到下一篇想读的内容',
+        };
 
   const pickRandomArticle = () => {
     if (isPickingRandom || regularArticles.length === 0) return;
@@ -162,20 +179,36 @@ const HomePage = () => {
             关于编程、技术与生活的个人博客。在这里，我记录学习的点滴，分享系统实践与思考。
           </p>
 
-          <div className="home-quote">
-            <p className="home-quote__text">“{quote}”</p>
-            <button className="home-quote__refresh liquid-btn" onClick={() => setQuoteIndex(prev => (prev + 1) % QUOTES.length)}>
-              <RefreshCw size={14} />
-              换一句
+          <div className="home-hero__actions" aria-label="开始阅读">
+            <button className="home-hero__primary liquid-btn" onClick={() => navigate(heroAction.path)}>
+              <BookOpenCheck size={16} />
+              <span>
+                <strong>{heroAction.label}</strong>
+                <small>{heroAction.hint}</small>
+              </span>
+              <ArrowRight size={16} />
+            </button>
+            <button className="home-hero__secondary liquid-btn" onClick={() => navigate('/archive')}>
+              查看文章时间线
             </button>
           </div>
 
-          <div className="home-random-pick">
-            <p className="home-random-pick__text">{rollingTitle}</p>
-            <button className="home-random-pick__btn liquid-btn" onClick={pickRandomArticle} disabled={isPickingRandom || regularArticles.length === 0}>
-              <Shuffle size={14} />
-              {isPickingRandom ? '抽取中...' : '随机文章推荐'}
-            </button>
+          <div className="home-hero__tools">
+            <div className="home-quote">
+              <p className="home-quote__text">“{quote}”</p>
+              <button className="home-quote__refresh liquid-btn" onClick={() => setQuoteIndex(prev => (prev + 1) % QUOTES.length)}>
+                <RefreshCw size={14} />
+                换一句
+              </button>
+            </div>
+
+            <div className="home-random-pick">
+              <p className="home-random-pick__text">{rollingTitle}</p>
+              <button className="home-random-pick__btn liquid-btn" onClick={pickRandomArticle} disabled={isPickingRandom || regularArticles.length === 0}>
+                <Shuffle size={14} />
+                {isPickingRandom ? '抽取中...' : '随机文章推荐'}
+              </button>
+            </div>
           </div>
         </motion.div>
 
@@ -245,8 +278,11 @@ const HomePage = () => {
           </div>
         ) : error ? (
           <div className="error-state">
-            <p>{error}</p>
-            <p className="error-hint">请确保后端服务已启动</p>
+            <p>文章暂时加载失败，请稍后重试。</p>
+            <p className="error-hint">如果问题持续存在，可以先打开文章归档。</p>
+            <button className="error-state__action liquid-btn" onClick={() => window.location.reload()}>
+              重新加载
+            </button>
           </div>
         ) : regularArticles.length === 0 ? (
           <div className="empty-state">

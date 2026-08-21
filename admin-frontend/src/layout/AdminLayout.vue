@@ -15,14 +15,13 @@
         active-text-color="#409eff"
         class="aside-menu"
       >
-        <el-menu-item
-          v-for="item in menuItems"
-          :key="item.path"
-          :index="item.path"
-        >
-          <el-icon><component :is="item.icon" /></el-icon>
-          <template #title>{{ item.title }}</template>
-        </el-menu-item>
+        <el-menu-item-group v-for="group in menuGroups" :key="group.key">
+          <template #title>{{ group.title }}</template>
+          <el-menu-item v-for="item in group.items" :key="item.path" :index="item.path">
+            <el-icon><component :is="item.icon" /></el-icon>
+            <template #title>{{ item.title }}</template>
+          </el-menu-item>
+        </el-menu-item-group>
       </el-menu>
     </el-aside>
 
@@ -31,14 +30,15 @@
       <!-- 顶部栏 -->
       <el-header class="layout-header">
         <div class="header-left">
-          <el-icon
+          <el-button
             class="collapse-btn"
-            :size="20"
+            text
+            :aria-label="isCollapse ? '展开侧边栏' : '收起侧边栏'"
+            :aria-expanded="!isCollapse"
             @click="isCollapse = !isCollapse"
           >
-            <Fold v-if="!isCollapse" />
-            <Expand v-else />
-          </el-icon>
+            <el-icon :size="20"><Fold v-if="!isCollapse" /><Expand v-else /></el-icon>
+          </el-button>
           <el-breadcrumb separator="/">
             <el-breadcrumb-item :to="{ path: '/dashboard' }">首页</el-breadcrumb-item>
             <el-breadcrumb-item v-if="currentRoute.meta.title">
@@ -94,24 +94,50 @@ const router = useRouter()
 const userStore = useUserStore()
 const notificationStore = useNotificationStore()
 
-const isCollapse = ref(false)
+const isCollapse = ref(window.innerWidth < 900)
 
 const currentRoute = computed(() => route)
-const activeMenu = computed(() => route.path)
+const activeMenu = computed(() => (route.meta.activeMenu as string) || route.path)
 
-const menuItems = [
-  { path: '/dashboard', title: '仪表盘', icon: 'Odometer' },
-  { path: '/articles', title: '文章管理', icon: 'Document' },
-  { path: '/categories', title: '分类管理', icon: 'Folder' },
-  { path: '/tags', title: '标签管理', icon: 'PriceTag' },
-  { path: '/comments', title: '评论管理', icon: 'ChatDotRound' },
-  { path: '/logs', title: '操作日志', icon: 'Tickets' },
-  { path: '/rate-limit', title: '限流监控', icon: 'Odometer' },
-  { path: '/cache', title: '缓存监控', icon: 'Coin' },
-  { path: '/mq', title: 'MQ监控', icon: 'Connection' },
-  { path: '/notifications', title: '通知中心', icon: 'Bell' },
-  { path: '/ai-observability', title: 'AI 可观测性', icon: 'DataAnalysis' },
+const menuGroups = [
+  {
+    key: 'content',
+    title: '内容管理',
+    items: [
+      { path: '/dashboard', title: '仪表盘', icon: 'Odometer' },
+      { path: '/articles', title: '文章管理', icon: 'Document' },
+      { path: '/categories', title: '分类管理', icon: 'Folder' },
+      { path: '/tags', title: '标签管理', icon: 'PriceTag' },
+    ],
+  },
+  {
+    key: 'interaction',
+    title: '互动管理',
+    items: [
+      { path: '/comments', title: '评论管理', icon: 'ChatDotRound' },
+      { path: '/notifications', title: '通知中心', icon: 'Bell' },
+    ],
+  },
+  {
+    key: 'operations',
+    title: '系统运维',
+    items: [
+      { path: '/logs', title: '操作日志', icon: 'Tickets' },
+      { path: '/rate-limit', title: '限流监控', icon: 'Odometer' },
+      { path: '/cache', title: '缓存监控', icon: 'Coin' },
+      { path: '/mq', title: 'MQ 监控', icon: 'Connection' },
+    ],
+  },
+  {
+    key: 'ai',
+    title: 'AI 能力',
+    items: [{ path: '/ai-observability', title: 'AI 可观测性', icon: 'DataAnalysis' }],
+  },
 ]
+
+const resizeMenu = () => {
+  if (window.innerWidth < 900) isCollapse.value = true
+}
 
 function handleCommand(command: string) {
   if (command === 'logout') {
@@ -133,10 +159,12 @@ function handleCommand(command: string) {
 onMounted(() => {
   notificationStore.connect()
   notificationStore.fetchUnreadCount()
+  window.addEventListener('resize', resizeMenu)
 })
 
 onUnmounted(() => {
   notificationStore.disconnect()
+  window.removeEventListener('resize', resizeMenu)
 })
 </script>
 
@@ -192,8 +220,10 @@ onUnmounted(() => {
 }
 
 .collapse-btn {
-  cursor: pointer;
   color: #333;
+  min-width: 40px;
+  min-height: 40px;
+  cursor: pointer;
 }
 
 .collapse-btn:hover {
@@ -225,5 +255,20 @@ onUnmounted(() => {
   background-color: #f0f2f5;
   padding: 20px;
   overflow-y: auto;
+}
+
+@media (max-width: 900px) {
+  .layout-header {
+    padding: 0 12px;
+  }
+
+  .layout-main {
+    padding: 12px;
+  }
+
+  .username,
+  .online-tag {
+    display: none;
+  }
 }
 </style>

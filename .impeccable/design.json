@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-22T00:00:00+08:00",
+  "title": "Design System: My-blog",
+  "extensions": {
+    "colorMeta": {
+      "primary": {"role": "primary", "displayName": "Quiet Rust", "canonical": "#8b7355"},
+      "secondary": {"role": "secondary", "displayName": "Field Olive", "canonical": "#5c6b4a"},
+      "background": {"role": "background", "displayName": "Clear Gray", "canonical": "#f8f8f8"},
+      "surface": {"role": "surface", "displayName": "Workshop Surface", "canonical": "#f0ede8"}
+    },
+    "motion": [
+      {"name": "ease-standard", "value": "cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Short state transitions without bounce."},
+      {"name": "reduced-motion", "value": "none", "purpose": "Disable decorative motion when requested by the user."}
+    ],
+    "breakpoints": [
+      {"name": "mobile", "value": "390px"},
+      {"name": "tablet", "value": "768px"},
+      {"name": "desktop", "value": "1024px"},
+      {"name": "wide", "value": "1440px"}
+    ]
+  },
+  "narrative": {
+    "northStar": "工程现场的安静入口",
+    "overview": "页面像一个晚上仍亮着灯的工程工作台：信息可靠、路径清楚，边角留有一点像素羊带来的轻松感。",
+    "keyCharacteristics": ["阅读优先", "证据优先", "像素羊作为签名组件"],
+    "rules": [
+      {"name": "The Reading-First Rule", "body": "每个页面首先回答下一步读什么或做什么，再展示低频工具。", "section": "overview"},
+      {"name": "The Evidence-Over-Decoration Rule", "body": "真实内容和可验证状态优先于装饰性数字和重复卡片。", "section": "overview"}
+    ],
+    "dos": ["Do let the first meaningful action lead to a real article.", "Do keep the pixel sheep visible as a quiet, discoverable signature."],
+    "donts": ["Don't build a generic SaaS dashboard as the public homepage.", "Don't let the pixel sheep, AI lab, achievements and random features compete with reading."]
+  }
+}
