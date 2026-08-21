@@ -294,6 +294,7 @@ const ArticlePage = () => {
   const [focusSeconds, setFocusSeconds] = useState(25 * 60);
   const [focusPreset, setFocusPreset] = useState(25);
   const [focusToast, setFocusToast] = useState('');
+  const [isMoreToolsOpen, setIsMoreToolsOpen] = useState(false);
   const [relatedArticles, setRelatedArticles] = useState<ArticleSummary[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -1119,40 +1120,6 @@ const ArticlePage = () => {
 
       <div className="article-page__toolbar" aria-label="文章阅读工具">
         <span className="article-page__progress">阅读进度 {readingProgress}%</span>
-        <div className="article-page__focus-box">
-          <span className="article-page__focus-time">
-            <Timer size={14} />
-            {String(Math.floor(focusSeconds / 60)).padStart(2, '0')}:{String(focusSeconds % 60).padStart(2, '0')}
-          </span>
-          <div className="article-page__focus-presets">
-            {[15, 25, 45].map(item => (
-              <button
-                key={item}
-                className={`article-page__focus-preset ${focusPreset === item ? 'is-active' : ''}`}
-                onClick={() => {
-                  if (isFocusRunning) return;
-                  setFocusPreset(item);
-                  setFocusSeconds(item * 60);
-                }}
-              >
-                {item}m
-              </button>
-            ))}
-          </div>
-          <button className="article-page__reading-toggle liquid-btn" onClick={() => setIsFocusRunning(prev => !prev)}>
-            {isFocusRunning ? <Pause size={14} /> : <Play size={14} />}
-            {isFocusRunning ? '暂停' : '专注'}
-          </button>
-          <button
-            className="article-page__reading-toggle liquid-btn"
-            onClick={() => {
-              setIsFocusRunning(false);
-              setFocusSeconds(focusPreset * 60);
-            }}
-          >
-            <RefreshCw size={14} /> 重置
-          </button>
-        </div>
         {resumePosition && (
           <button className="article-page__reading-toggle liquid-btn" onClick={handleResumeReading}>
             <RotateCcw size={14} />
@@ -1171,28 +1138,74 @@ const ArticlePage = () => {
           <MessageSquareMore size={14} />
           去评论区 {Math.max(commentsTotal, commentCountFromTree)}
         </button>
-        <div className="article-page__font-group" aria-label="调整字号">
-          <button className="article-page__reading-toggle liquid-btn" onClick={() => { setFontScale(0); unlockGlobalAchievement('font-tweaker'); }} disabled={fontScale === 0} aria-label="缩小字号">
-            <Type size={14} /> A-
-          </button>
-          <button className="article-page__reading-toggle liquid-btn" onClick={() => setFontScale(1)} disabled={fontScale === 1} aria-label="标准字号">
-            <Type size={14} /> A
-          </button>
-          <button className="article-page__reading-toggle liquid-btn" onClick={() => { setFontScale(2); unlockGlobalAchievement('font-tweaker'); }} disabled={fontScale === 2} aria-label="放大字号">
-            <Type size={14} /> A+
-          </button>
-        </div>
         <button
-          className="article-page__reading-toggle liquid-btn"
-          onClick={() => { setIsReadingMode(prev => !prev); unlockGlobalAchievement('reading-mode'); }}
+          className="article-page__reading-toggle article-page__more-tools-toggle liquid-btn"
+          onClick={() => setIsMoreToolsOpen(previous => !previous)}
+          aria-expanded={isMoreToolsOpen}
         >
-          {isReadingMode ? <Minimize2 size={14} /> : <BookOpen size={14} />}
-          {isReadingMode ? '退出阅读模式' : '阅读模式'}
+          <ChevronDown size={14} className={isMoreToolsOpen ? 'is-open' : ''} />
+          {isMoreToolsOpen ? '收起工具' : '更多阅读工具'}
         </button>
-        <button className="article-page__reading-toggle liquid-btn" onClick={() => { exportShareCard(); unlockGlobalAchievement('sharer'); }} disabled={isExporting}>
-          <Share2 size={14} />
-          {isExporting ? '导出中...' : '分享卡片'}
-        </button>
+        {isMoreToolsOpen && (
+          <div className="article-page__advanced-tools">
+            <div className="article-page__focus-box">
+              <span className="article-page__focus-time">
+                <Timer size={14} />
+                {String(Math.floor(focusSeconds / 60)).padStart(2, '0')}:{String(focusSeconds % 60).padStart(2, '0')}
+              </span>
+              <div className="article-page__focus-presets">
+                {[15, 25, 45].map(item => (
+                  <button
+                    key={item}
+                    className={`article-page__focus-preset ${focusPreset === item ? 'is-active' : ''}`}
+                    onClick={() => {
+                      if (isFocusRunning) return;
+                      setFocusPreset(item);
+                      setFocusSeconds(item * 60);
+                    }}
+                  >
+                    {item}m
+                  </button>
+                ))}
+              </div>
+              <button className="article-page__reading-toggle liquid-btn" onClick={() => setIsFocusRunning(prev => !prev)}>
+                {isFocusRunning ? <Pause size={14} /> : <Play size={14} />}
+                {isFocusRunning ? '暂停' : '专注'}
+              </button>
+              <button
+                className="article-page__reading-toggle liquid-btn"
+                onClick={() => {
+                  setIsFocusRunning(false);
+                  setFocusSeconds(focusPreset * 60);
+                }}
+              >
+                <RefreshCw size={14} /> 重置
+              </button>
+            </div>
+            <div className="article-page__font-group" aria-label="调整字号">
+              <button className="article-page__reading-toggle liquid-btn" onClick={() => { setFontScale(0); unlockGlobalAchievement('font-tweaker'); }} disabled={fontScale === 0} aria-label="缩小字号">
+                <Type size={14} /> A-
+              </button>
+              <button className="article-page__reading-toggle liquid-btn" onClick={() => setFontScale(1)} disabled={fontScale === 1} aria-label="标准字号">
+                <Type size={14} /> A
+              </button>
+              <button className="article-page__reading-toggle liquid-btn" onClick={() => { setFontScale(2); unlockGlobalAchievement('font-tweaker'); }} disabled={fontScale === 2} aria-label="放大字号">
+                <Type size={14} /> A+
+              </button>
+            </div>
+            <button
+              className="article-page__reading-toggle liquid-btn"
+              onClick={() => { setIsReadingMode(previous => !previous); unlockGlobalAchievement('reading-mode'); }}
+            >
+              {isReadingMode ? <Minimize2 size={14} /> : <BookOpen size={14} />}
+              {isReadingMode ? '退出阅读模式' : '阅读模式'}
+            </button>
+            <button className="article-page__reading-toggle liquid-btn" onClick={() => { exportShareCard(); unlockGlobalAchievement('sharer'); }} disabled={isExporting}>
+              <Share2 size={14} />
+              {isExporting ? '导出中...' : '分享卡片'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Divider */}

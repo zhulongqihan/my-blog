@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { BookOpen, Check, Copy, Loader2, MessageCircleQuestion, Sparkles } from 'lucide-react';
+import { BookOpen, Check, ChevronDown, Copy, Loader2, MessageCircleQuestion, Sparkles } from 'lucide-react';
 import { sendChatMessage, type AiStreamMeta } from '../services/aiApi';
 import type { Article } from '../types';
 import './ArticleReaderAssistant.css';
@@ -23,6 +23,7 @@ const ArticleReaderAssistant = ({ article }: ArticleReaderAssistantProps) => {
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   const [meta, setMeta] = useState<AiStreamMeta | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const systemPrompt = useMemo(() => '你是一个严谨的中文技术阅读助手。回答要克制、具体，优先引用文章中的概念和取舍；如果上下文不足，请明确说明。不要输出“作为 AI”之类的套话。', []);
@@ -32,6 +33,7 @@ const ArticleReaderAssistant = ({ article }: ArticleReaderAssistantProps) => {
     if (!query || isRunning) return;
 
     abortRef.current?.abort();
+    setIsOpen(true);
     setAnswer('');
     setError('');
     setCopied(false);
@@ -60,14 +62,25 @@ const ArticleReaderAssistant = ({ article }: ArticleReaderAssistantProps) => {
 
   return (
     <section className="reader-assistant" aria-label="文章阅读助手">
-      <div className="reader-assistant__header">
+      <button
+        type="button"
+        className="reader-assistant__header"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen(previous => !previous)}
+      >
         <div className="reader-assistant__mark"><Sparkles size={15} /></div>
         <div>
           <p className="reader-assistant__eyebrow">READER&apos;S LAB</p>
           <h2>把这篇文章读得更深一点</h2>
         </div>
         <span className="reader-assistant__source"><BookOpen size={13} /> 当前文章上下文</span>
-      </div>
+        <ChevronDown className={`reader-assistant__chevron${isOpen ? ' is-open' : ''}`} size={17} aria-hidden="true" />
+      </button>
+
+      {!isOpen && <p className="reader-assistant__collapsed-hint">需要时再打开：回答只围绕这篇文章和服务端检索到的已发布内容。</p>}
+
+      {isOpen && <>
+      <p className="reader-assistant__scope">回答只围绕这篇文章和服务端检索到的已发布内容；上下文不足时会明确说明。</p>
 
       <div className="reader-assistant__actions">
         <button className={action === 'summary' ? 'is-active' : ''} onClick={() => setAction('summary')}>
@@ -112,6 +125,7 @@ const ArticleReaderAssistant = ({ article }: ArticleReaderAssistantProps) => {
           <div className="reader-assistant__answer-body">{answer}</div>
         </div>
       )}
+      </>}
     </section>
   );
 };
