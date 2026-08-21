@@ -7,7 +7,7 @@
 .pixel-sheep {
   position: fixed;
   bottom: 12px;
-  z-index: 9999;
+  z-index: 820;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
@@ -21,7 +21,7 @@
 }
 
 .pixel-sheep--dropping {
-  animation: sheep-drop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: sheep-drop 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 /* --- Sprite (box-shadow pixel art) --- */
@@ -44,7 +44,7 @@
 
 /* Walk bounce */
 .pixel-sheep__sprite--walk {
-  animation: sheep-walk-bounce 0.35s ease-in-out infinite;
+  animation: sheep-walk-step 0.35s ease-in-out infinite;
 }
 
 /* Sleep breathing */
@@ -54,7 +54,7 @@
 
 /* Play excited bounce */
 .pixel-sheep__sprite--play {
-  animation: sheep-play-bounce 0.25s ease-in-out infinite;
+  animation: sheep-play-hop 0.25s ease-in-out infinite;
 }
 
 /* Graze subtle bob */
@@ -62,7 +62,7 @@
   animation: sheep-graze-bob 0.6s ease-in-out infinite;
 }
 
-@keyframes sheep-walk-bounce {
+@keyframes sheep-walk-step {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-3px); }
 }
@@ -72,7 +72,7 @@
   50% { transform: scaleY(1.06); }
 }
 
-@keyframes sheep-play-bounce {
+@keyframes sheep-play-hop {
   0%, 100% { transform: translateY(0) rotate(0deg); }
   25% { transform: translateY(-4px) rotate(-2deg); }
   75% { transform: translateY(-2px) rotate(2deg); }
@@ -95,7 +95,7 @@
 /* --- Wool Particles --- */
 .pixel-sheep__wool-particle {
   position: fixed;
-  z-index: 9997;
+  z-index: 817;
   border-radius: 50%;
   background: #FAFAFA;
   box-shadow: 0 0 3px rgba(250, 250, 250, 0.6);
@@ -122,7 +122,7 @@
   transform: translateX(-50%);
   font-size: 14px;
   pointer-events: none;
-  z-index: 10000;
+  z-index: 821;
   animation: mood-float 2s ease-in-out infinite;
   filter: none;
   line-height: 1;
@@ -148,9 +148,9 @@
   white-space: nowrap;
   box-shadow: 0 2px 10px rgba(51, 105, 30, 0.12);
   border: 1.5px solid #C5E1A5;
-  animation: bubble-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: bubble-pop 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   pointer-events: none;
-  z-index: 10000;
+  z-index: 821;
 }
 
 .pixel-sheep__bubble::after {
@@ -193,7 +193,7 @@
   align-items: center;
   justify-content: center;
   padding: 0;
-  z-index: 10001;
+  z-index: 822;
   transition: background 0.15s, transform 0.15s;
 }
 
@@ -211,7 +211,7 @@
   position: fixed;
   bottom: 14px;
   right: 14px;
-  z-index: 9999;
+  z-index: 820;
   min-width: 44px;
   min-height: 44px;
   border-radius: 999px;
@@ -250,7 +250,7 @@
   position: fixed;
   right: 18px;
   bottom: 96px;
-  z-index: 9995;
+  z-index: 810;
   width: min(320px, calc(100vw - 32px));
   border: 1px solid rgba(197, 225, 165, 0.9);
   background: rgba(241, 248, 233, 0.94);
@@ -258,6 +258,8 @@
   box-shadow: 0 16px 30px rgba(51, 105, 30, 0.12);
   backdrop-filter: blur(8px);
   padding: 12px;
+  max-height: min(400px, calc(100vh - 140px));
+  overflow: auto;
 }
 
 .pixel-sheep__dock--collapsed {
@@ -275,6 +277,15 @@
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.pixel-sheep__dock-handle:focus-visible,
+.pixel-sheep__dock-btn:focus-visible,
+.pixel-sheep__panel-btn:focus-visible,
+.pixel-sheep__toggle:focus-visible,
+.pixel-sheep:focus-visible {
+  outline: 2px solid var(--accent-rust, #8b7355);
+  outline-offset: 3px;
 }
 
 .pixel-sheep__dock-head {
@@ -351,7 +362,7 @@
 /* --- Clover (collectible) --- */
 .pixel-sheep__clover {
   position: fixed;
-  z-index: 9998;
+  z-index: 818;
   cursor: pointer;
   animation: clover-fall linear forwards;
   pointer-events: auto;
@@ -404,12 +415,12 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 10002;
+  z-index: 900;
 }
 
 .pixel-sheep__panel {
   position: fixed;
-  z-index: 10003;
+  z-index: 901;
   background: #F1F8E9;
   border: 2px solid #C5E1A5;
   border-radius: 8px;
@@ -419,7 +430,7 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
   color: #33691E;
-  animation: panel-pop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: panel-pop 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes panel-pop {
@@ -468,7 +479,7 @@
 .pixel-sheep__panel-mood-fill {
   height: 100%;
   border-radius: 4px;
-  transition: width 0.3s, background 0.3s;
+  transition: background 0.3s;
 }
 
 .pixel-sheep__panel-actions {
@@ -504,13 +515,13 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  z-index: 9996;
+  z-index: 816;
   border: 2px solid rgba(91, 58, 41, 0.45);
   box-shadow: 0 8px 14px rgba(91, 58, 41, 0.16);
-  animation: sheep-ball-bounce 0.9s ease-in-out infinite;
+  animation: sheep-ball-roll 0.9s ease-in-out infinite;
 }
 
-@keyframes sheep-ball-bounce {
+@keyframes sheep-ball-roll {
   0%, 100% { transform: translateY(0) rotate(0deg); }
   30% { transform: translateY(-10px) rotate(-10deg); }
   60% { transform: translateY(-4px) rotate(10deg); }
@@ -519,15 +530,16 @@
 /* --- Responsive: hide on small screens --- */
 @media (max-width: 600px) {
   .pixel-sheep {
-    transform: scale(0.86);
+    transform: scale(0.82);
     transform-origin: bottom left;
   }
 
   .pixel-sheep__dock {
     right: 10px;
     left: 10px;
-    bottom: 78px;
+    bottom: calc(70px + env(safe-area-inset-bottom));
     width: auto;
+    max-height: min(360px, calc(100vh - 120px));
   }
 
   .pixel-sheep__dock-actions {
@@ -536,6 +548,19 @@
 
   .pixel-sheep__toggle {
     right: 10px;
-    bottom: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pixel-sheep,
+  .pixel-sheep *,
+  .pixel-sheep__toggle,
+  .pixel-sheep__clover,
+  .pixel-sheep__toy-ball,
+  .pixel-sheep__wool-particle {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

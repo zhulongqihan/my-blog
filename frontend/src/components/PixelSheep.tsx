@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import './PixelSheep.css';
 
 // ─── Pixel Art Config ────────────────────────────
@@ -365,11 +366,20 @@ interface ToyBall {
 }
 
 // ─── Component ───────────────────────────────────
+const QUIET_ROUTES = ['/article/', '/archive', '/search', '/reading-stats', '/bookmarks', '/auth'];
+
+function isQuietRoute(pathname: string) {
+  return QUIET_ROUTES.some(route => route.endsWith('/') ? pathname.startsWith(route) : pathname === route);
+}
+
 const PixelSheep: React.FC = () => {
+  const location = useLocation();
+
   // ── Position ──
   const [posX, setPosX] = useState(() => {
     const saved = localStorage.getItem('pixelsheep-posX');
-    return saved ? parseInt(saved, 10) : Math.floor(window.innerWidth / 2);
+    const parsed = saved ? parseInt(saved, 10) : NaN;
+    return Number.isFinite(parsed) ? parsed : Math.floor(window.innerWidth / 2);
   });
   const [posY, setPosY] = useState(12);
 
@@ -417,7 +427,8 @@ const PixelSheep: React.FC = () => {
     return localStorage.getItem('pixelsheep-hidden') === 'true';
   });
   const [isDockCollapsed, setIsDockCollapsed] = useState(() => {
-    return localStorage.getItem('pixelsheep-dock-collapsed') === 'true';
+    const saved = localStorage.getItem('pixelsheep-dock-collapsed-v2');
+    return isQuietRoute(window.location.pathname) || saved === null || saved === 'true';
   });
   const [isSuperSaiyan, setIsSuperSaiyan] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -437,10 +448,27 @@ const PixelSheep: React.FC = () => {
   useEffect(() => { posXRef.current = posX; }, [posX]);
   useEffect(() => { moodRef.current = mood; }, [mood]);
 
+  useEffect(() => {
+    if (isQuietRoute(location.pathname)) setIsDockCollapsed(true);
+  }, [location.pathname]);
+
   // ── Sprite metrics ──
   const currentFrames = FRAMES[sheepState];
   const spriteWidth = currentFrames[0][0].length * PX;
   const spriteHeight = currentFrames[0].length * PX;
+
+  // Keep the sheep reachable after a desktop-to-mobile resize or an old saved position.
+  useEffect(() => {
+    const clampPosition = () => {
+      const maxX = Math.max(8, window.innerWidth - spriteWidth - 8);
+      setPosX(prev => Math.max(8, Math.min(maxX, Number.isFinite(prev) ? prev : maxX / 2)));
+      setPosY(12);
+    };
+
+    clampPosition();
+    window.addEventListener('resize', clampPosition);
+    return () => window.removeEventListener('resize', clampPosition);
+  }, [spriteWidth]);
 
   const currentShadow = useMemo(
     () => frameToBoxShadow(currentFrames[frameIdx % currentFrames.length], direction),
@@ -818,7 +846,7 @@ const PixelSheep: React.FC = () => {
   useEffect(() => { localStorage.setItem('pixelsheep-grass', String(grassCount)); }, [grassCount]);
   useEffect(() => { localStorage.setItem('pixelsheep-fetch-count', String(fetchCount)); }, [fetchCount]);
   useEffect(() => { localStorage.setItem('pixelsheep-groom-count', String(groomCount)); }, [groomCount]);
-  useEffect(() => { localStorage.setItem('pixelsheep-dock-collapsed', String(isDockCollapsed)); }, [isDockCollapsed]);
+  useEffect(() => { localStorage.setItem('pixelsheep-dock-collapsed-v2', String(isDockCollapsed)); }, [isDockCollapsed]);
 
   // Time-of-day greeting
   useEffect(() => {
@@ -835,10 +863,9 @@ const PixelSheep: React.FC = () => {
   // ─────────────────────────────────────────────────
   // CLICK HANDLER
   // ─────────────────────────────────────────────────
-  const handleClick = useCallback((e: React.MouseEvent) => {
+  const handleClick = useCallback(() => {
     if (isDragging) return;
     if (dragRef.current.active) return;
-    e.stopPropagation();
     lastActivityRef.current = Date.now();
     const newCount = clickCount + 1;
     setClickCount(newCount);
@@ -879,6 +906,7 @@ const PixelSheep: React.FC = () => {
           setIsDockCollapsed(false);
         }}
         title="显示小羊"
+        aria-label="显示小羊"
       >
         <span className="pixel-sheep__toggle-emoji">🐑</span>
         <span className="pixel-sheep__toggle-label">呼出小羊</span>
@@ -895,13 +923,22 @@ const PixelSheep: React.FC = () => {
 
   return (
     <>
-      <aside className={`pixel-sheep__dock${isDockCollapsed ? ' pixel-sheep__dock--collapsed' : ''}`}>
-        <button className="pixel-sheep__dock-handle" onClick={() => setIsDockCollapsed(prev => !prev)}>
+      <aside
+        className={`pixel-sheep__dock${isDockCollapsed ? ' pixel-sheep__dock--collapsed' : ''}${isQuietRoute(location.pathname) ? ' pixel-sheep__dock--quiet' : ''}`}
+        aria-label="像素小羊工具面板"
+      >
+        <button
+          type="button"
+          className="pixel-sheep__dock-handle"
+          onClick={() => setIsDockCollapsed(prev => !prev)}
+          aria-expanded={!isDockCollapsed}
+          aria-controls="pixel-sheep-dock-content"
+        >
           {isDockCollapsed ? '展开小羊面板' : '收起小羊面板'}
         </button>
 
         {!isDockCollapsed && (
-          <>
+          <div id="pixel-sheep-dock-content">
             <div className="pixel-sheep__dock-head">
               <div className="pixel-sheep__dock-title">像素小羊牧场</div>
               <div className="pixel-sheep__dock-subtitle">点一点是互动，长按可拖动，右键能看完整状态。</div>
@@ -921,7 +958,7 @@ const PixelSheep: React.FC = () => {
               <button className="pixel-sheep__dock-btn" onClick={whistleSheep}>召回</button>
               <button className="pixel-sheep__dock-btn" onClick={toggleNap}>{sheepState === 'sleep' ? '叫醒' : '小憩'}</button>
             </div>
-          </>
+          </div>
         )}
       </aside>
 
@@ -951,7 +988,16 @@ const PixelSheep: React.FC = () => {
             width: CLOVER_FRAME[0].length * PX + 16,
             height: CLOVER_FRAME.length * PX + 16,
           }}
+          role="button"
+          tabIndex={0}
+          aria-label="收集鲜草"
           onClick={(e) => { e.stopPropagation(); if (!clover.collected) collectClover(clover.id); }}
+          onKeyDown={(e) => {
+            if ((e.key === 'Enter' || e.key === ' ') && !clover.collected) {
+              e.preventDefault();
+              collectClover(clover.id);
+            }
+          }}
         >
           <div
             className="pixel-sheep__clover-sprite"
@@ -975,11 +1021,21 @@ const PixelSheep: React.FC = () => {
           width: spriteWidth,
           height: spriteHeight,
         }}
+        role="button"
+        tabIndex={0}
+        aria-label="像素小羊。点击互动，长按可拖动，右键查看状态"
         onClick={handleClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
         onContextMenu={handleContextMenu}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
       >
         <div className="pixel-sheep__shadow" />
 
@@ -987,7 +1043,7 @@ const PixelSheep: React.FC = () => {
         <div className="pixel-sheep__mood">{getMoodEmoji(mood)}</div>
 
         {/* Speech Bubble */}
-        {message && <div className="pixel-sheep__bubble">{message}</div>}
+        {message && <div className="pixel-sheep__bubble" aria-live="polite">{message}</div>}
 
         {/* Sprite */}
         <div
@@ -1007,6 +1063,7 @@ const PixelSheep: React.FC = () => {
           className="pixel-sheep__hide"
           onClick={(e) => { e.stopPropagation(); setIsHidden(true); setMessage(null); }}
           title="隐藏小羊"
+          aria-label="暂时隐藏小羊"
         >
           ×
         </button>

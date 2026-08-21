@@ -220,6 +220,21 @@
   padding: var(--spacing-lg) 0;
 }
 
+.reading-stats-page__empty p {
+  margin-bottom: var(--spacing-sm);
+}
+
+.reading-stats-page__empty-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  border: 1px solid var(--accent-rust);
+  border-radius: 8px;
+  padding: 0 12px;
+  color: var(--accent-rust);
+  font-size: 0.82rem;
+}
+
 /* 操作按钮 */
 .reading-stats-page__actions {
   text-align: center;

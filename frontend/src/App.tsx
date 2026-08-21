@@ -33,8 +33,7 @@ function AppContent() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const isPortfolioMode = location.pathname === '/' && new URLSearchParams(location.search).get('mode') === 'portfolio';
-  const isPresentationMode = isPortfolioMode || location.pathname === '/showcase';
+  const isPresentationMode = location.pathname === '/showcase';
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -51,7 +50,7 @@ function AppContent() {
 
   const shortcuts = useMemo<ShortcutAction[]>(() => [
     {
-      key: 'k', ctrl: true, description: '打开命令面板',
+      key: 'p', ctrl: true, shift: true, description: '打开命令面板',
       action: () => setCommandPaletteOpen(prev => !prev),
     },
     {

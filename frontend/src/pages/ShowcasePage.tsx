@@ -41,7 +41,7 @@ const ShowcasePage = () => (
   <div className="page-wrapper showcase-page">
     <section className="showcase-hero">
       <div className="showcase-hero__copy">
-        <p className="showcase-kicker">ENGINEERING PORTFOLIO / 2026</p>
+        <p className="showcase-kicker">SYSTEM NOTES / 2026</p>
         <h1>把内容做成一套可以长期运行的系统。</h1>
         <p className="showcase-hero__lead">
           这不是一个只展示文章的页面，而是一套从写作、发布、阅读到运维都真实跑在公网的全栈内容基础设施。
@@ -50,7 +50,7 @@ const ShowcasePage = () => (
           <a className="showcase-primary-action" href="https://github.com/zhulongqihan/my-blog" target="_blank" rel="noreferrer">
             查看源码 <ArrowUpRight size={15} />
           </a>
-          <Link className="showcase-secondary-action" to="/?mode=portfolio">打开作品模式</Link>
+          <Link className="showcase-secondary-action" to="/about">了解系统背景</Link>
           <Link className="showcase-secondary-action" to="/archive">阅读项目文章</Link>
         </div>
       </div>
@@ -128,7 +128,7 @@ const ShowcasePage = () => (
       <div>
         <p className="showcase-kicker">NEXT ITERATION</p>
         <h2>让每一篇文章都成为一次工程复盘</h2>
-        <p>接下来会把实习经历、项目取舍和线上实践整理成可阅读、可验证、可复用的案例。</p>
+        <p>接下来会继续把项目取舍和线上实践整理成可阅读、可验证、可复用的工程记录。</p>
       </div>
       <a href="https://github.com/zhulongqihan/my-blog" target="_blank" rel="noreferrer">GitHub <ExternalLink size={15} /></a>
     </section>

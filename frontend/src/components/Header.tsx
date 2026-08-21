@@ -90,16 +90,21 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
-        searchInputRef.current?.focus();
-        if (keyword.trim().length >= 2) {
-          setShowSuggestions(true);
+        if (window.innerWidth <= 900) {
+          setIsMobileMenuOpen(false);
+          navigate('/search');
+        } else {
+          searchInputRef.current?.focus();
+          if (keyword.trim().length >= 2) {
+            setShowSuggestions(true);
+          }
         }
       }
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [keyword]);
+  }, [keyword, navigate]);
 
   useEffect(() => {
     const query = keyword.trim();
@@ -127,10 +132,9 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
     return () => clearTimeout(timer);
   }, [keyword]);
 
-  const handleSearchSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSearchSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const selected =
-      activeSuggestionIndex >= 0 ? suggestions[activeSuggestionIndex] : suggestions[0];
+    const selected = activeSuggestionIndex >= 0 ? suggestions[activeSuggestionIndex] : null;
 
     if (selected) {
       navigate(`/article/${selected.id}`);
@@ -144,27 +148,15 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
     if (!query) return;
     saveSearchHistory(query);
 
-    try {
-      const response = await articleApi.search(query, 0, 1);
-      const hit = response.data.content?.[0];
-      if (hit) {
-        navigate(`/search?q=${encodeURIComponent(query)}`);
-        setKeyword('');
-        setShowSuggestions(false);
-        setActiveSuggestionIndex(-1);
-      } else {
-        navigate(`/search?q=${encodeURIComponent(query)}`);
-        setShowSuggestions(false);
-      }
-    } catch {
-      navigate(`/search?q=${encodeURIComponent(query)}`);
-      setShowSuggestions(false);
-    }
+    navigate(`/search?q=${encodeURIComponent(query)}`);
+    setKeyword('');
+    setShowSuggestions(false);
+    setActiveSuggestionIndex(-1);
   };
 
   const navLinks = [
     { path: '/', label: '首页' },
-    { path: '/showcase', label: '作品' },
+    { path: '/showcase', label: '系统' },
     { path: '/archive', label: '归档' },
     { path: '/reading-stats', label: '统计' },
     { path: '/bookmarks', label: '书签' },
@@ -212,6 +204,9 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
               type="text"
               className="header__search-input"
               placeholder="搜索文章... (Ctrl/Cmd + K)"
+              aria-label="搜索文章"
+              role="combobox"
+              aria-expanded={showSuggestions}
               value={keyword}
               onChange={e => {
                 setKeyword(e.target.value);
@@ -335,7 +330,9 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
         <button
           className="header__mobile-toggle"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          aria-label="Toggle menu"
+          aria-label={isMobileMenuOpen ? '关闭菜单' : '打开菜单'}
+          aria-expanded={isMobileMenuOpen}
+          aria-controls="mobile-navigation"
         >
           {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
@@ -345,11 +342,26 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
         {isMobileMenuOpen && (
           <motion.div
             className="header__mobile-menu"
+            id="mobile-navigation"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
           >
+            <motion.button
+              type="button"
+              className="header__mobile-search"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0 }}
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                navigate('/search');
+              }}
+            >
+              <span><Search size={16} /> 搜索文章</span>
+              <kbd>Ctrl / ⌘ K</kbd>
+            </motion.button>
             {navLinks.map((link, index) => (
               <motion.div
                 key={link.path}

@@ -9,8 +9,8 @@
   /* Text Colors */
   --text-primary: #2d2d2d;
   --text-secondary: #5c5c5c;
-  --text-muted: #8a8a8a;
-  --text-light: #b0b0b0;
+  --text-muted: #6f6a62;
+  --text-light: #8a847b;
 
   /* Accent Colors - Rust & Deep Olive */
   --accent-rust: #8b7355;
@@ -147,6 +147,23 @@ a:hover {
   color: var(--accent-rust-light);
 }
 
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role='button']:focus-visible {
+  outline: 2px solid var(--accent-rust);
+  outline-offset: 3px;
+}
+
+main,
+section,
+article,
+[id] {
+  scroll-margin-top: 88px;
+}
+
 /* ===== Utility Classes ===== */
 .container {
   width: 100%;
@@ -280,5 +297,20 @@ a:hover {
 
   .container {
     padding: 0 var(--spacing-md);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

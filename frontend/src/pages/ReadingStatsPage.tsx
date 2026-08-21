@@ -149,6 +149,8 @@ export default function ReadingStatsPage() {
               className="reading-stats-page__heat-cell"
               style={{ background: getHeatColor(day.count) }}
               title={`${day.date}: ${day.count} 篇`}
+              role="img"
+              aria-label={`${day.date} 阅读 ${day.count} 篇`}
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: i * 0.015 }}
@@ -187,7 +189,10 @@ export default function ReadingStatsPage() {
       <div className="reading-stats-page__section">
         <h3>最近阅读</h3>
         {stats.recentArticles.length === 0 ? (
-          <p className="reading-stats-page__empty">还没有阅读记录，去看看文章吧！</p>
+          <div className="reading-stats-page__empty">
+            <p>还没有阅读记录。读完或读到一篇文章后，这里会记录进度和连续阅读天数。</p>
+            <Link to="/archive" className="reading-stats-page__empty-link">开始阅读文章</Link>
+          </div>
         ) : (
           <div className="reading-stats-page__recent-list">
             {stats.recentArticles.map((entry, i) => (
@@ -220,11 +225,13 @@ export default function ReadingStatsPage() {
       </div>
 
       {/* 清除数据 */}
-      <div className="reading-stats-page__actions">
-        <button className="reading-stats-page__clear-btn" onClick={clearStats}>
-          <Trash2 size={14} /> 清除所有阅读记录
-        </button>
-      </div>
+      {(stats.totalArticles > 0 || stats.achievementCount > 0) && (
+        <div className="reading-stats-page__actions">
+          <button className="reading-stats-page__clear-btn" onClick={clearStats}>
+            <Trash2 size={14} /> 清除所有阅读记录
+          </button>
+        </div>
+      )}
     </motion.div>
   );
 }

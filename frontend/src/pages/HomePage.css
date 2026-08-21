@@ -53,36 +53,6 @@
   margin-bottom: 0;
 }
 
-.home-page--portfolio .home-hero {
-  padding-top: clamp(2rem, 6vw, 5rem);
-  padding-bottom: clamp(3rem, 8vw, 6rem);
-}
-
-.home-page--portfolio .home-hero__content {
-  max-width: 760px;
-}
-
-.home-page--portfolio .home-hero__title {
-  font-size: clamp(2.8rem, 7vw, 5.6rem);
-}
-
-.home-portfolio-signals {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.25rem;
-  margin-top: var(--spacing-xl);
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.04em;
-}
-
-.home-portfolio-signals strong {
-  color: var(--accent-rust);
-  font-weight: 500;
-}
-
 .home-hero__divider {
   width: 60px;
   height: 1px;

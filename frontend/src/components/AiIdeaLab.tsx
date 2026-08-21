@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Bot, Sparkles, Wand2, Loader2, Copy, Check, PenSquare, Map, GraduationCap, MessageCircleMore } from 'lucide-react';
+import { Bot, Sparkles, Wand2, Loader2, Copy, Check, PenSquare, Map, GraduationCap, MessageCircleMore, ChevronDown, ChevronUp } from 'lucide-react';
 import { sendChatMessage } from '../services/aiApi';
 import './AiIdeaLab.css';
 
@@ -38,7 +38,7 @@ const LAB_MODES: Array<{
     placeholder: '例如：帮我规划 3 天游南京的轻松路线，预算 2500 左右，想兼顾园林、夜景和本地小吃',
     quickPrompts: [
       '周末去杭州，想避开纯打卡路线，给我一个更松弛的两日安排',
-      '帮我整理一次面试异地出行清单，包含证件、着装、电子设备和临时应对预案',
+      '帮我整理一次周末异地出行清单，包含证件、电子设备和临时应对预案',
       '想做一份上海雨天一日路线，重点是室内展览、咖啡馆和地铁衔接',
     ],
     systemPrompt: `你是细致的中文旅行策划助手。请围绕用户的真实出行场景，输出【严格四段】内容：\n[结果速览]\n- 用 2~4 句概括整体策略、适用人群和节奏\n\n[行动建议]\n- 使用 1. 2. 3. 编号，给 4~6 步路线或准备建议\n\n[可直接使用]\n- 给 4~8 条可直接照抄的内容，例如时间表、打包清单、候选地点、对比建议\n\n[补充提醒]\n- 给 4~6 条风险提醒、预算提醒或替代方案\n\n不要输出其他标题。内容使用中文，语气自然，避免空话。`,
@@ -49,7 +49,7 @@ const LAB_MODES: Array<{
     subtitle: '复习拆解、计划节奏、阶段目标',
     icon: GraduationCap,
     actionLabel: '生成学习方案',
-    placeholder: '例如：我想在 6 周内补齐 Spring Boot、Redis 和项目表达，目标是准备 Java 后端实习面试',
+    placeholder: '例如：我想在 6 周内补齐 Spring Boot、Redis 和项目阅读能力，帮我拆解学习节奏',
     quickPrompts: [
       '帮我做一个 14 天的英语复习计划，每天 1.5 小时，重点是口语和听力',
       '我想在一个月内把前端工程化补到能讲项目，帮我拆任务节奏',
@@ -63,9 +63,9 @@ const LAB_MODES: Array<{
     subtitle: '润色、自我介绍、开场白、长文起稿',
     icon: PenSquare,
     actionLabel: '生成表达草案',
-    placeholder: '例如：帮我把一段偏生硬的项目介绍改得自然一点，适合面试自我介绍，时长控制在 90 秒',
+    placeholder: '例如：帮我把一段偏生硬的技术文章开头改得自然一点，保留具体细节',
     quickPrompts: [
-      '帮我写一段更自然的实习投递自我介绍，不要太像模板',
+      '帮我写一段更自然的技术文章开场，不要太像模板',
       '把“我最近很焦虑但又不想放弃写作”扩成一篇真诚一点的博客开头',
       '给我一版适合微信发给老师的请教消息，语气礼貌但不要太拘谨',
     ],
@@ -77,7 +77,7 @@ const LAB_MODES: Array<{
     subtitle: '任务拆分、节奏安排、执行清单',
     icon: MessageCircleMore,
     actionLabel: '生成执行清单',
-    placeholder: '例如：我这周要准备答辩、改项目、投简历，帮我做一个不那么窒息的 7 天安排',
+    placeholder: '例如：我这周要整理文章、改项目、学习新内容，帮我做一个不那么窒息的 7 天安排',
     quickPrompts: [
       '帮我安排一个周末大扫除计划，控制在半天内，按房间分步骤',
       '给我做一个搬宿舍清单，包含打包顺序、断舍离和最后检查项',
@@ -123,6 +123,7 @@ const AiIdeaLab = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [copiedKey, setCopiedKey] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const activeMode = useMemo(() => LAB_MODES.find(item => item.id === mode) || LAB_MODES[0], [mode]);
@@ -131,6 +132,7 @@ const AiIdeaLab = () => {
     const query = (input || goal).trim();
     if (!query || isGenerating) return;
 
+    setIsExpanded(true);
     setError('');
     setRawOutput('');
     setResult(EMPTY_RESULT);
@@ -200,10 +202,20 @@ const AiIdeaLab = () => {
           <Bot size={16} />
           <h3 className="ai-idea-lab__title">AI 生活策划台</h3>
           <span className="ai-idea-lab__badge">Visitor Ready</span>
+          <button
+            type="button"
+            className="ai-idea-lab__expand"
+            onClick={() => setIsExpanded(prev => !prev)}
+            aria-expanded={isExpanded}
+            aria-controls="ai-idea-lab-content"
+          >
+            {isExpanded ? <><ChevronUp size={14} /> 收起</> : <><ChevronDown size={14} /> 打开策划台</>}
+          </button>
         </div>
         <p className="ai-idea-lab__desc">不只给博客内部功能建议，而是把出行、学习、表达和日常安排整理成可以直接拿去用的中文方案。</p>
       </div>
 
+      {isExpanded && <div id="ai-idea-lab-content">
       <div className="ai-idea-lab__mode-grid">
         {LAB_MODES.map(item => {
           const Icon = item.icon;
@@ -318,6 +330,7 @@ const AiIdeaLab = () => {
           </button>
         </div>
       )}
+      </div>}
     </section>
   );
 };

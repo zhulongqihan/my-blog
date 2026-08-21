@@ -91,6 +91,33 @@
   background: var(--bg-primary);
 }
 
+.ai-idea-lab__expand {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: var(--bg-primary);
+  color: var(--accent-rust);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.ai-idea-lab__expand:hover {
+  border-color: var(--accent-rust-light);
+}
+
+.ai-idea-lab__expand:focus-visible,
+.ai-idea-lab__mode-card:focus-visible,
+.ai-idea-lab__btn:focus-visible,
+.ai-idea-lab__quick-item:focus-visible,
+.ai-idea-lab__copy:focus-visible,
+.ai-idea-lab__copy-all:focus-visible {
+  outline: 2px solid var(--accent-rust);
+  outline-offset: 3px;
+}
+
 .ai-idea-lab__desc {
   margin-top: var(--spacing-sm);
   font-size: 0.875rem;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Search, ArrowRight, Loader2 } from 'lucide-react';
@@ -36,8 +36,20 @@ export default function SearchPage() {
   const keyword = (searchParams.get('q') || '').trim();
   const { articles, isLoading, error } = useArticles({ keyword, size: 12 });
   const { tags } = useTags();
+  const [query, setQuery] = useState(keyword);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [sortMode, setSortMode] = useState<'relevance' | 'latest'>('relevance');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setQuery(keyword);
+  }, [keyword]);
+
+  useEffect(() => {
+    if (!keyword && window.matchMedia('(max-width: 900px)').matches) {
+      inputRef.current?.focus();
+    }
+  }, [keyword]);
 
   useEffect(() => {
     try {
@@ -96,6 +108,11 @@ export default function SearchPage() {
     navigate(`/search?q=${encodeURIComponent(normalized)}`);
   };
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    runSearch(query);
+  };
+
   const clearHistory = () => {
     setSearchHistory([]);
     localStorage.removeItem(SEARCH_HISTORY_KEY);
@@ -110,6 +127,19 @@ export default function SearchPage() {
       exit="exit"
       transition={{ duration: 0.45 }}
     >
+      <form className="search-page__form" onSubmit={handleSubmit}>
+        <Search size={18} className="search-page__form-icon" />
+        <input
+          ref={inputRef}
+          value={query}
+          onChange={event => setQuery(event.target.value)}
+          placeholder="搜索标题、摘要或正文关键词"
+          aria-label="搜索文章"
+        />
+        <button type="submit" aria-label="开始搜索" disabled={!query.trim()}>
+          搜索
+        </button>
+      </form>
       <header className="search-page__head">
         <h1 className="search-page__title">{title}</h1>
         <p className="search-page__meta">
@@ -165,7 +195,7 @@ export default function SearchPage() {
       {!keyword && (
         <div className="search-page__empty">
           <Search size={18} />
-          <span>请在顶部搜索框输入关键词（支持 Ctrl/Cmd + K 快捷聚焦）</span>
+          <span>输入关键词开始检索，桌面端也可以使用 Ctrl/Cmd + K 快捷打开搜索。</span>
         </div>
       )}
 

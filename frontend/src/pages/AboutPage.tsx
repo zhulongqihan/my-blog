@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Bot, Code2, Coffee, BookOpen, ExternalLink, GraduationCap, Github, Mail } from 'lucide-react';
 import AnimatedCounter from '../components/AnimatedCounter';
@@ -18,6 +19,7 @@ const pageVariants = {
 
 const AboutPage = () => {
   const [articleCount, setArticleCount] = useState(0);
+  const [articleCountLoaded, setArticleCountLoaded] = useState(false);
   const { tags } = useTags();
 
   useEffect(() => {
@@ -27,6 +29,8 @@ const AboutPage = () => {
         setArticleCount(archive.data.totalCount || 0);
       } catch {
         setArticleCount(0);
+      } finally {
+        setArticleCountLoaded(true);
       }
     };
 
@@ -100,7 +104,11 @@ const AboutPage = () => {
         </div>
         <div className="about-stat">
           <BookOpen size={24} strokeWidth={1.5} className="about-stat__icon" />
-          <AnimatedCounter target={articleCount} suffix="+" className="about-stat__value" />
+          {articleCountLoaded ? (
+            <AnimatedCounter target={articleCount} suffix="+" className="about-stat__value" />
+          ) : (
+            <span className="about-stat__value" aria-label="文章数量加载中">—</span>
+          )}
           <span className="about-stat__label">篇文章</span>
         </div>
         <div className="about-stat">
@@ -118,6 +126,7 @@ const AboutPage = () => {
         transition={{ delay: 0.7 }}
       >
         <h2 className="about-section-title">技术栈</h2>
+        <p className="about-skills__note">以下是基于当前项目实践的自评熟练度，用来说明使用深度，不代表客观能力评分。</p>
         <div className="about-skills__list">
           {PROFILE_SKILLS.map((skill, index) => (
             <motion.div
@@ -155,19 +164,17 @@ const AboutPage = () => {
           {tags.slice(0, 32).map((tag, index) => {
             const level = 0.8 + ((index % 6) * 0.08);
             return (
-              <motion.span
+              <Link
                 key={tag.id}
                 className="about-tags__item"
+                to={`/search?q=${encodeURIComponent(tag.name)}`}
                 style={{
                   fontSize: `${level}rem`,
                   color: index % 2 === 0 ? 'var(--accent-rust)' : 'var(--accent-olive)',
                 }}
-                initial={{ opacity: 0, y: 8, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ delay: 1 + index * 0.03 }}
               >
                 #{tag.name}
-              </motion.span>
+              </Link>
             );
           })}
         </div>
