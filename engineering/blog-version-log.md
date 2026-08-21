@@ -141,7 +141,7 @@
 
 ## 2026-08-22 My-blog v2「工程现场」第五轮独立验收
 
-发布提交：`72b517c fix: polish form accessibility`。
+发布提交：`72b517c fix: polish form accessibility`、`0e97a2e perf: avoid admin sidebar layout animation`。
 
 | 场景 | 结果 | 证据 |
 |------|------|------|
@@ -153,6 +153,8 @@
 | 移动端 | 通过 | 390×844 页面 `scrollWidth=clientWidth=390`，无横向溢出 |
 | 公网 smoke 与安全入口 | 通过 | 首页、robots、sitemap、文章列表、归档、文章详情返回 200；`/.env`、`/actuator` 返回 404；`/admin/login` 返回 200 |
 | 控制台 | 通过 | fresh Chromium 页面控制台错误为 0 |
+
+独立 detector 仍会对既有大地色/Element Plus 后台颜色和少量圆角给出 advisory；唯一的布局属性动画 warning 已修正为即时折叠。该修正已进入 Git 与服务器仓库，但因后台新镜像尚未成功构建，线上后台暂不能以新样式作为验收证据。
 
 本版本没有修改文章数据库、后端业务数据或评论互动数据。后台新镜像仍未完成服务器构建，`/admin/` 的公网可用性由旧兼容容器保持；后台新代码的线上替换是下一次具备更高服务器构建资源后的独立发布事项。
 
