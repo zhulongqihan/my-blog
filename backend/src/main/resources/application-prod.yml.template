@@ -43,4 +43,5 @@ logging:
 
 blog:
   demo:
-    reset-content: false  # 如需重建示例文章，改为 true 并重启一次
+    seed-content: false  # 生产环境不自动创建或修改文章
+    reset-content: false  # 仅开发环境且 seed-content=true 时生效
