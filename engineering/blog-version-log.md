@@ -160,6 +160,24 @@
 
 本轮没有新增后端接口、数据库迁移或线上数据操作；本地只做静态差异检查，前台和后台构建必须在服务器完成。
 
+## 2026-08-22 My-blog v2「工程现场」后台构建闭环
+
+发布提交：`df1d722 perf: narrow admin element-plus entrypoints`。
+
+| 场景 | 结果 | 证据 |
+|------|------|------|
+| 后台依赖图 | 通过 | 页面运行时消息组件改为 Element Plus 组件级入口，类型导入与运行时导入分离；未再使用 Element Plus 总入口承载消息组件 |
+| 服务器构建 | 通过 | 服务器执行 `docker compose build admin`；`vue-tsc` 通过，`3737 modules transformed`，Vite `✓ built in 21m 34s` |
+| 新镜像发布 | 通过 | 生成 `my-blog-admin` 镜像；旧兼容容器改名为 `myblog-admin-legacy` 后停止，新 `myblog-admin` Compose 容器启动并 healthy |
+| 公网后台入口 | 通过 | `http://cyruszhang.online/admin/login` 返回 200，登录页 HTML 使用新构建指纹 `index-Ds2XcNgW.js` |
+| 静态资源 | 通过 | 新入口、Vue vendor、UI vendor、编辑器 vendor、网络 vendor 和 CSS 均返回 200 |
+| 真实浏览器 | 通过 | Chromium 登录页标题、用户名/密码字段和登录按钮正常；控制台 0 errors/warnings；390×844 下无横向溢出 |
+| 数据边界 | 通过 | 未修改文章数据库、后端业务数据、Redis、RabbitMQ 或评论互动数据 |
+
+本次后台构建总耗时约 28 分钟，编辑器与图表仍有既有的大 chunk advisory；它们不影响当前路由和静态资源验收。旧兼容容器没有删除，保留为停止状态的回退对象。
+
+至此，My-blog v2「工程现场」前台与后台均已完成五轮以上的代码迭代、服务器发布和真实浏览器验收；此前第五轮记录中的“后台新镜像未替换”是发布前状态，已由本节的后续构建闭环记录更新。
+
 ## 2026-08-21 线上发布与验收
 
 发布提交：`3f0742d fix: disable production article bootstrap`。
