@@ -7,6 +7,7 @@
         <span v-show="!isCollapse" class="logo-text">博客后台</span>
       </div>
       <el-menu
+        aria-label="后台主导航"
         :default-active="activeMenu"
         router
         :collapse="isCollapse"
@@ -29,6 +30,7 @@
     <el-container>
       <!-- 顶部栏 -->
       <el-header class="layout-header">
+        <a class="skip-link" href="#admin-main">跳到主要内容</a>
         <div class="header-left">
           <el-button
             class="collapse-btn"
@@ -48,17 +50,17 @@
         </div>
         <div class="header-right">
           <el-badge :value="notificationStore.unreadCount" :hidden="!notificationStore.hasUnread" :max="99" class="notification-badge">
-            <el-button :icon="Bell" circle size="small" @click="router.push('/notifications')" />
+            <el-button :icon="Bell" circle size="small" aria-label="打开通知中心" @click="router.push('/notifications')" />
           </el-badge>
           <el-tag v-if="notificationStore.connected" type="success" effect="plain" size="small" class="online-tag">
             {{ notificationStore.onlineCount }} 在线
           </el-tag>
           <el-dropdown @command="handleCommand">
-            <span class="user-info">
+            <button class="user-info" type="button" aria-label="打开用户菜单">
               <el-avatar :size="32" icon="UserFilled" />
               <span class="username">{{ userStore.nickname }}</span>
               <el-icon><ArrowDown /></el-icon>
-            </span>
+            </button>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="home">
@@ -74,7 +76,7 @@
       </el-header>
 
       <!-- 内容区 -->
-      <el-main class="layout-main">
+      <el-main id="admin-main" class="layout-main" tabindex="-1">
         <router-view />
       </el-main>
     </el-container>
@@ -204,6 +206,7 @@ onUnmounted(() => {
 }
 
 .layout-header {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -245,6 +248,34 @@ onUnmounted(() => {
   gap: 8px;
   cursor: pointer;
   color: #333;
+  border: 0;
+  background: transparent;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.user-info:focus-visible,
+.collapse-btn:focus-visible,
+.skip-link:focus-visible {
+  outline: 2px solid #409eff;
+  outline-offset: 3px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -48px;
+  z-index: 10;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #304156;
+  color: #fff;
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 8px;
 }
 
 .username {
