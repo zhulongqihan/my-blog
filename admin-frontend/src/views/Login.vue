@@ -17,6 +17,9 @@
           <el-input
             v-model="loginForm.username"
             placeholder="用户名"
+            name="username"
+            aria-label="用户名"
+            autocomplete="username"
             prefix-icon="User"
           />
         </el-form-item>
@@ -25,6 +28,9 @@
             v-model="loginForm.password"
             type="password"
             placeholder="密码"
+            name="password"
+            aria-label="密码"
+            autocomplete="current-password"
             prefix-icon="Lock"
             show-password
           />

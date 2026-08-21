@@ -202,8 +202,10 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
             <input
               ref={searchInputRef}
               type="text"
+              name="search"
+              autoComplete="off"
               className="header__search-input"
-              placeholder="搜索文章... (Ctrl/Cmd + K)"
+              placeholder="搜索文章…（Ctrl/Cmd + K）"
               aria-label="搜索文章"
               role="combobox"
               aria-expanded={showSuggestions}

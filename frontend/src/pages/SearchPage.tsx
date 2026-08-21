@@ -131,9 +131,11 @@ export default function SearchPage() {
         <Search size={18} className="search-page__form-icon" />
         <input
           ref={inputRef}
+          name="q"
+          autoComplete="off"
           value={query}
           onChange={event => setQuery(event.target.value)}
-          placeholder="搜索标题、摘要或正文关键词"
+          placeholder="搜索标题、摘要或正文关键词…"
           aria-label="搜索文章"
         />
         <button type="submit" aria-label="开始搜索" disabled={!query.trim()}>

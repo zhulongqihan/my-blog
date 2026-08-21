@@ -98,9 +98,11 @@ const ArticleReaderAssistant = ({ article }: ArticleReaderAssistantProps) => {
         <div className="reader-assistant__question">
           <input
             value={question}
+            name="article-question"
+            autoComplete="off"
             onChange={event => setQuestion(event.target.value)}
             onKeyDown={event => { if (event.key === 'Enter') run(); }}
-            placeholder="例如：这篇文章里最值得迁移到其他项目的设计是什么？"
+              placeholder="例如：这篇文章里最值得迁移到其他项目的设计是…"
             aria-label="向文章提问"
           />
         </div>
@@ -115,14 +117,14 @@ const ArticleReaderAssistant = ({ article }: ArticleReaderAssistantProps) => {
       </div>
 
       {meta && <p className="reader-assistant__source"><BookOpen size={13} /> 服务端检索 {meta.sources.length} 篇文章 · {meta.requestId}</p>}
-      {error && <p className="reader-assistant__error">{error}</p>}
+        {error && <p className="reader-assistant__error" role="alert">{error}</p>}
       {answer && (
         <div className="reader-assistant__answer">
           <div className="reader-assistant__answer-head">
             <span>RESPONSE / CONTEXTUAL</span>
             <button onClick={copyAnswer}>{copied ? <Check size={13} /> : <Copy size={13} />} {copied ? '已复制' : '复制'}</button>
           </div>
-          <div className="reader-assistant__answer-body">{answer}</div>
+          <div className="reader-assistant__answer-body" aria-live="polite">{answer}</div>
         </div>
       )}
       </>}

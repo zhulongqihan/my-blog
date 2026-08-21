@@ -795,7 +795,9 @@ const ArticlePage = () => {
           <div className="article-comments__reply-box">
             <textarea
               className="article-comments__textarea"
-              placeholder="写下你的回复..."
+              name={`reply-${comment.id}`}
+              aria-label="回复内容"
+              placeholder="写下你的回复…"
               value={draft.content}
               onChange={event => setReplyDrafts(prev => ({
                 ...prev,
@@ -806,6 +808,9 @@ const ArticlePage = () => {
               <div className="article-comments__guest-grid">
                 <input
                   className="article-comments__input"
+                  name={`replyGuestName-${comment.id}`}
+                  aria-label="回复者昵称"
+                  autoComplete="nickname"
                   placeholder="你的昵称"
                   value={draft.guestName}
                   onChange={event => setReplyDrafts(prev => ({
@@ -816,6 +821,10 @@ const ArticlePage = () => {
                 <input
                   className="article-comments__input"
                   type="email"
+                  name={`replyGuestEmail-${comment.id}`}
+                  aria-label="回复者邮箱地址"
+                  autoComplete="email"
+                  spellCheck={false}
                   placeholder="邮箱地址"
                   value={draft.guestEmail}
                   onChange={event => setReplyDrafts(prev => ({
@@ -1264,10 +1273,12 @@ const ArticlePage = () => {
         </div>
 
         <div className="article-comments__composer">
-          <textarea
-            ref={commentTextareaRef}
-            className="article-comments__textarea"
-            placeholder="写下你的看法、补充或问题..."
+            <textarea
+              ref={commentTextareaRef}
+              className="article-comments__textarea"
+              name="comment"
+              aria-label="评论内容"
+              placeholder="写下你的看法、补充或问题…"
             value={commentDraft.content}
             onChange={event => setCommentDraft(prev => ({ ...prev, content: event.target.value }))}
           />
@@ -1275,6 +1286,9 @@ const ArticlePage = () => {
             <div className="article-comments__guest-grid">
               <input
                 className="article-comments__input"
+                name="guestName"
+                aria-label="你的昵称"
+                autoComplete="nickname"
                 placeholder="你的昵称"
                 value={commentDraft.guestName}
                 onChange={event => setCommentDraft(prev => ({ ...prev, guestName: event.target.value }))}
@@ -1282,6 +1296,10 @@ const ArticlePage = () => {
               <input
                 className="article-comments__input"
                 type="email"
+                name="guestEmail"
+                aria-label="邮箱地址"
+                autoComplete="email"
+                spellCheck={false}
                 placeholder="邮箱地址"
                 value={commentDraft.guestEmail}
                 onChange={event => setCommentDraft(prev => ({ ...prev, guestEmail: event.target.value }))}
@@ -1296,7 +1314,7 @@ const ArticlePage = () => {
           </div>
         </div>
 
-        {commentsError && <div className="article-comments__error">{commentsError}</div>}
+        {commentsError && <div className="article-comments__error" role="alert">{commentsError}</div>}
 
         {commentsLoading ? (
           <div className="article-comments__empty"><Loader2 size={16} className="loading-spinner" /> 正在加载评论...</div>
