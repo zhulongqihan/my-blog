@@ -7,16 +7,7 @@ RUN npm ci --silent
 COPY frontend/ ./
 RUN npm run build
 
-# ========== Stage 2: 构建 Vue 管理后台 ==========
-FROM node:20-alpine AS admin-builder
-
-WORKDIR /build/admin
-COPY admin-frontend/package.json admin-frontend/package-lock.json* ./
-RUN npm ci --silent
-COPY admin-frontend/ ./
-RUN npm run build
-
-# ========== Stage 3: Nginx 运行 ==========
+# ========== Stage 2: Nginx 运行 ==========
 FROM nginx:alpine
 
 LABEL maintainer="zhulongqihan"
@@ -29,11 +20,8 @@ RUN rm -rf /etc/nginx/conf.d/default.conf /usr/share/nginx/html/*
 ENV NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
 COPY docker/nginx/nginx.conf /etc/nginx/templates/nginx.conf.template
 
-# 复制前台构建产物
+# 复制前台构建产物；管理后台由独立 admin 服务构建和提供。
 COPY --from=frontend-builder /build/frontend/dist/ /usr/share/nginx/html/
-
-# 复制管理后台构建产物
-COPY --from=admin-builder /build/admin/dist/ /usr/share/nginx/html/admin/
 
 # 创建上传文件目录
 RUN mkdir -p /usr/share/nginx/uploads

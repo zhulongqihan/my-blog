@@ -158,6 +158,17 @@ services:
       - myblog-network
 
   # ==================== Nginx 前端 + 反向代理 ====================
+  admin:
+    build:
+      context: .
+      dockerfile: docker/nginx/admin.Dockerfile
+    container_name: myblog-admin
+    restart: unless-stopped
+    expose:
+      - "80"
+    networks:
+      - myblog-network
+
   nginx:
     build:
       context: .
@@ -166,6 +177,8 @@ services:
     restart: unless-stopped
     depends_on:
       backend:
+        condition: service_healthy
+      admin:
         condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
