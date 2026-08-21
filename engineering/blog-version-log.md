@@ -8,15 +8,21 @@
 
 | 项目 | 内容 |
 |------|------|
-| 记录时间 | 2026-08-08 |
-| 功能基线 | `188d4fc` |
-| 当前记录提交 | `6e4ba72` |
-| 版本标识 | `blog-release-2026-08-08`，未创建 Git tag |
+| 记录时间 | 2026-08-21 |
+| 功能基线 | `3f0742d` |
+| 当前记录提交 | `3f0742d` |
+| 版本标识 | `blog-release-2026-08-21`，未创建 Git tag |
 | 线上地址 | https://cyruszhang.online/ |
 | 核心主题 | React 博客阅读体验 + Spring Boot 内容服务 + Agent-ready AI Gateway |
-| 发布状态 | 已部署到 `118.31.221.81`，容器健康 |
+| 发布状态 | 已部署到 `118.31.221.81`，backend 与基础设施容器健康 |
 
 ## 当前版本变更
+
+### 文章初始化边界
+
+- 线上 MySQL 是文章事实来源；生产应用启动不再创建、重置或同步文章。
+- 新增 `blog.demo.seed-content` 开关：开发环境显式开启，生产环境默认关闭。
+- 生产发布只重建 backend 容器，不重建 MySQL、Redis、RabbitMQ 数据卷；线上已有文章保持不变。
 
 ### AI Gateway 与阅读助手
 
@@ -33,6 +39,25 @@
 - 已将博客生产配置切换为 `/api/ai`，重新构建前端并发布 Nginx 静态产物。
 - `aiApi.ts` 现在固定使用同源 `/api/ai`，Vite 已删除废弃的 `/ai-api` 直连代理，避免未来环境文件残留导致回归。
 - 该修复只涉及博客前端配置和博客部署静态资源，没有修改航旅 Agent。
+
+## 2026-08-21 线上发布与验收
+
+发布提交：`3f0742d fix: disable production article bootstrap`。
+
+| 场景 | 结果 | 证据 |
+|------|------|------|
+| Git 推送与服务器同步 | 通过 | GitHub `main` 与服务器均为 `3f0742d`；服务器保留原有未跟踪备份文件 |
+| 服务器构建 | 通过 | Docker backend 镜像构建成功；首次依赖下载期间 SSH 会话断开，重试命中服务器构建缓存后完成 |
+| 容器重启 | 通过 | 仅重建 `myblog-backend`；MySQL、Redis、RabbitMQ、Nginx 未重建，五个容器均 healthy |
+| 生产初始化行为 | 通过 | prod 配置未设置 `BLOG_DEMO_SEED_CONTENT`，使用默认关闭值；启动日志没有文章 seed、同步或重置记录 |
+| 文章数量 | 通过 | `/api/articles/archive` 返回 `totalCount=23`；分页接口 `totalElements=23` |
+| 文章详情 | 通过 | `/api/articles/54` 返回 200，标题为“博客系统技术架构全解析” |
+| 公网主页 | 通过 | `http://cyruszhang.online/` 页面标题为 `My Blog | 个人技术博客` |
+| 浏览器控制台 | 通过 | 真实 Chromium 验收，0 errors、0 warnings |
+| MCP | 通过 | `/api/mcp` 初始化返回协议 `2025-06-18` |
+| 安全入口 | 通过 | `/.env` 与 `/actuator` 返回 404，`/admin/` 进入管理员登录页 |
+
+本次没有修改线上文章数据。线上仍保留的面试主题文章、AI 提示词和页脚联系方式属于未纳入本次发布的既有公开内容清理事项。
 
 ## 2026-08-08 线上浏览器验收
 
