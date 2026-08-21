@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import { ElConfigProvider } from 'element-plus'
+import ElConfigProvider from 'element-plus/es/components/config-provider'
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 
 const locale = zhCn
