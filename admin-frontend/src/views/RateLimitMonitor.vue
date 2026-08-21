@@ -216,7 +216,10 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import * as echarts from 'echarts'
+import { graphic, init, use, type ECharts } from 'echarts/core'
+import { BarChart } from 'echarts/charts'
+import { GridComponent, TooltipComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
 import {
   getRateLimitStats,
   getRecentEvents,
@@ -240,11 +243,13 @@ const stats = reactive<RateLimitStats>({
 
 // ==================== 图表 ====================
 const chartRef = ref<HTMLDivElement>()
-let chartInstance: echarts.ECharts | null = null
+let chartInstance: ECharts | null = null
+
+use([BarChart, GridComponent, TooltipComponent, CanvasRenderer])
 
 function initChart() {
   if (!chartRef.value) return
-  chartInstance = echarts.init(chartRef.value)
+  chartInstance = init(chartRef.value)
   updateChart()
 }
 
@@ -275,7 +280,7 @@ function updateChart() {
         type: 'bar',
         data: counts,
         itemStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: '#ff6b6b' },
             { offset: 1, color: '#ee5a24' },
           ]),

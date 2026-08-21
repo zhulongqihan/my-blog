@@ -165,7 +165,10 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import * as echarts from 'echarts'
+import { init, use, type ECharts } from 'echarts/core'
+import { PieChart } from 'echarts/charts'
+import { LegendComponent, TooltipComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
 import { getCacheStats, evictCache, evictAllCaches } from '@/api/cache'
 import type { RedisInfo, CacheSpaceStat } from '@/api/cache'
 
@@ -174,8 +177,10 @@ const cacheSpaces = ref<CacheSpaceStat[]>([])
 
 const hitRateChartRef = ref<HTMLDivElement>()
 const spaceChartRef = ref<HTMLDivElement>()
-let hitRateChart: echarts.ECharts | null = null
-let spaceChart: echarts.ECharts | null = null
+let hitRateChart: ECharts | null = null
+let spaceChart: ECharts | null = null
+
+use([PieChart, LegendComponent, TooltipComponent, CanvasRenderer])
 
 // Spring Cache 缓存空间（可清除的）
 const springCacheNames = ['articleDetail', 'featuredArticles', 'popularArticles', 'categories', 'tags', 'dashboardStats']
@@ -234,7 +239,7 @@ function renderCharts() {
 function renderHitRateChart() {
   if (!hitRateChartRef.value) return
   if (!hitRateChart) {
-    hitRateChart = echarts.init(hitRateChartRef.value)
+    hitRateChart = init(hitRateChartRef.value)
   }
 
   const hits = redisInfo.value.keyspaceHits || 0
@@ -260,7 +265,7 @@ function renderHitRateChart() {
 function renderSpaceChart() {
   if (!spaceChartRef.value) return
   if (!spaceChart) {
-    spaceChart = echarts.init(spaceChartRef.value)
+    spaceChart = init(spaceChartRef.value)
   }
 
   const data = cacheSpaces.value
