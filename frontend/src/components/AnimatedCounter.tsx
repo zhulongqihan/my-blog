@@ -34,7 +34,7 @@ const AnimatedCounter = ({ target, suffix = '', duration = 2000, className }: An
 
   return (
     <span ref={ref} className={className}>
-      {count}{suffix}
+      {isInView ? `${count}${suffix}` : '—'}
     </span>
   );
 };
