@@ -200,7 +200,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage } from 'element-plus/es/components/message/index'
 import { Refresh, Connection, Message, Switch, Box, ChatDotRound, Tickets } from '@element-plus/icons-vue'
 import { getMQStats, sendTestMessage } from '@/api/mq'
 import type { QueueInfo, ExchangeInfo } from '@/api/mq'

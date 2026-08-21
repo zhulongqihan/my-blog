@@ -162,7 +162,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage } from 'element-plus/es/components/message/index'
 import { useNotificationStore } from '@/stores/notification'
 import { 
   getNotifications, markAsRead, markAllAsRead, sendBroadcast,
