@@ -42,7 +42,7 @@
               <div class="stat-label">受保护接口</div>
               <div class="stat-value">{{ stats.apiStats.length }}</div>
             </div>
-            <el-icon :size="40" class="stat-icon"><Shield /></el-icon>
+            <el-icon :size="40" class="stat-icon"><Lock /></el-icon>
           </div>
         </el-card>
       </el-col>
