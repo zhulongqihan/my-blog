@@ -1,7 +1,52 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import ElementPlus from 'element-plus'
-import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
+import {
+  ElAside,
+  ElAvatar,
+  ElBadge,
+  ElBreadcrumb,
+  ElBreadcrumbItem,
+  ElButton,
+  ElCard,
+  ElCheckbox,
+  ElCheckboxGroup,
+  ElCol,
+  ElColorPicker,
+  ElContainer,
+  ElDescriptions,
+  ElDescriptionsItem,
+  ElDialog,
+  ElDropdown,
+  ElDropdownItem,
+  ElDropdownMenu,
+  ElEmpty,
+  ElForm,
+  ElFormItem,
+  ElHeader,
+  ElIcon,
+  ElImage,
+  ElInput,
+  ElInputNumber,
+  ElMain,
+  ElMenu,
+  ElMenuItem,
+  ElMenuItemGroup,
+  ElOption,
+  ElPagination,
+  ElPopconfirm,
+  ElProgress,
+  ElRow,
+  ElSelect,
+  ElSpace,
+  ElStep,
+  ElSteps,
+  ElSwitch,
+  ElTable,
+  ElTableColumn,
+  ElTag,
+  ElText,
+  ElUpload,
+} from 'element-plus'
 import 'element-plus/dist/index.css'
 import {
   ArrowDown,
@@ -91,6 +136,57 @@ for (const [key, component] of Object.entries(adminIcons)) {
 
 app.use(createPinia())
 app.use(router)
-app.use(ElementPlus, { locale: zhCn })
+
+const adminComponents = [
+  ElAside,
+  ElAvatar,
+  ElBadge,
+  ElBreadcrumb,
+  ElBreadcrumbItem,
+  ElButton,
+  ElCard,
+  ElCheckbox,
+  ElCheckboxGroup,
+  ElCol,
+  ElColorPicker,
+  ElContainer,
+  ElDescriptions,
+  ElDescriptionsItem,
+  ElDialog,
+  ElDropdown,
+  ElDropdownItem,
+  ElDropdownMenu,
+  ElEmpty,
+  ElForm,
+  ElFormItem,
+  ElHeader,
+  ElIcon,
+  ElImage,
+  ElInput,
+  ElInputNumber,
+  ElMain,
+  ElMenu,
+  ElMenuItem,
+  ElMenuItemGroup,
+  ElOption,
+  ElPagination,
+  ElPopconfirm,
+  ElProgress,
+  ElRow,
+  ElSelect,
+  ElSpace,
+  ElStep,
+  ElSteps,
+  ElSwitch,
+  ElTable,
+  ElTableColumn,
+  ElTag,
+  ElText,
+  ElUpload,
+]
+
+for (const component of adminComponents) {
+  app.use(component)
+}
 
 app.mount('#app')
