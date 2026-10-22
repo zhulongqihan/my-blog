@@ -8,6 +8,7 @@ import com.myblog.dto.ArchiveResponse;
 import com.myblog.dto.ArticleRequest;
 import com.myblog.dto.ArticleResponse;
 import com.myblog.dto.ArticleSummaryResponse;
+import com.myblog.dto.ArticlePublicationVersion;
 import com.myblog.dto.LikeResponseDTO;
 import com.myblog.entity.*;
 import com.myblog.repository.*;
@@ -17,9 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBloomFilter;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +29,9 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.DigestUtils;
 
@@ -53,6 +55,7 @@ public class ArticleService {
     private final StringRedisTemplate stringRedisTemplate;
     private final CacheClient cacheClient;
     private final RedissonClient redissonClient;
+    private final ApplicationEventPublisher publicationEvents;
 
     @org.springframework.beans.factory.annotation.Autowired
     @org.springframework.context.annotation.Lazy
@@ -99,8 +102,14 @@ public class ArticleService {
      * 获取精选文章（缓存10分钟）
      * 使用 @Cacheable：第一次查询走DB，后续读缓存
      */
-    @Cacheable(value = "featuredArticleSummaries", key = "'all'")
+    @Transactional(readOnly = true)
     public List<ArticleSummaryResponse> getFeaturedArticles() {
+        return onlyPublished(self.getFeaturedArticlesCached()).stream()
+                .filter(summary -> Boolean.TRUE.equals(summary.getFeatured())).toList();
+    }
+
+    @Cacheable(value = "featuredArticleSummaries", key = "'all'")
+    public List<ArticleSummaryResponse> getFeaturedArticlesCached() {
         log.info("[Cache MISS] 精选文章 - 从数据库加载");
         return articleRepository.findByFeaturedTrueAndPublishedTrue().stream()
                 .map(this::toSummaryResponse)
@@ -110,8 +119,13 @@ public class ArticleService {
     /**
      * 获取热门文章（缓存10分钟）
      */
-    @Cacheable(value = "popularArticleSummaries", key = "#limit")
+    @Transactional(readOnly = true)
     public List<ArticleSummaryResponse> getPopularArticles(int limit) {
+        return onlyPublished(self.getPopularArticlesCached(limit));
+    }
+
+    @Cacheable(value = "popularArticleSummaries", key = "#limit")
+    public List<ArticleSummaryResponse> getPopularArticlesCached(int limit) {
         log.info("[Cache MISS] 热门文章(limit={}) - 从数据库加载", limit);
         return articleRepository.findTopByViewCount(Pageable.ofSize(limit)).stream()
                 .map(this::toSummaryResponse)
@@ -126,30 +140,64 @@ public class ArticleService {
      * ② 普通文章 → 布隆过滤器 + 互斥锁方案（强一致性）
      */
     public ArticleResponse getArticle(Long id) {
+        ArticlePublicationVersion version = articleRepository.findPublishedVersion(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在"));
         // 先尝试逻辑过期方案（精选/热门文章已预热）
         ArticleResponse result = cacheClient.queryWithLogicalExpire(
                 RedisKeyPrefix.ARTICLE_DETAIL_LOGIC, id, ArticleResponse.class,
                 this::getArticleFromDb, 30L, TimeUnit.MINUTES
         );
-        if (result != null) return result;
+        if (result != null) return currentVersionOrDatabase(id, version, result);
 
-        // 普通文章走布隆过滤器 + 互斥锁方案
-        result = cacheClient.queryWithBloomFilter(
+        // 普通文章在数据库可见性检查之后使用互斥锁缓存。
+        // Publication was checked against the database; a stale Bloom filter must not hide a newly published article.
+        result = cacheClient.queryWithMutex(
                 RedisKeyPrefix.ARTICLE_DETAIL, id, ArticleResponse.class,
                 this::getArticleFromDb, 30L, TimeUnit.MINUTES
         );
 
         if (result == null) {
-            throw new RuntimeException("文章不存在: " + id);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在");
         }
-        return result;
+        return currentVersionOrDatabase(id, version, result);
+    }
+
+    private ArticleResponse currentVersionOrDatabase(Long id, ArticlePublicationVersion version, ArticleResponse cached) {
+        if (Boolean.TRUE.equals(cached.getPublished()) && version.updatedAt() != null
+                && version.updatedAt().equals(cached.getUpdatedAt())) return cached;
+        // A late rebuild or a failed invalidation must never revive the previous publication.
+        try { cacheClient.evictArticle(id); }
+        catch (org.springframework.dao.DataAccessException exception) { log.warn("Cannot evict stale article cache, using database"); }
+        ArticleResponse current = self.loadPublishedArticleFromDb(id);
+        if (current == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在");
+        return current;
     }
 
     /** 从 DB 加载文章详情（供 CacheClient 回调使用） */
     private ArticleResponse getArticleFromDb(Long id) {
-        return articleRepository.findById(id)
+        return self.loadPublishedArticleFromDb(id);
+    }
+
+    @Transactional(readOnly = true)
+    public ArticleResponse loadPublishedArticleFromDb(Long id) {
+        return articleRepository.findByIdAndPublishedTrue(id)
                 .map(this::toResponse)
                 .orElse(null);
+    }
+
+    @Transactional(readOnly = true)
+    public ArticleResponse getAdminArticle(Long id) {
+        return articleRepository.findById(id).map(this::toResponse)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在"));
+    }
+
+    private List<ArticleSummaryResponse> onlyPublished(List<ArticleSummaryResponse> summaries) {
+        Map<Long, java.time.LocalDateTime> versions = articleRepository.findAllPublishedVersions().stream()
+                .collect(HashMap::new, (map, version) -> map.put(version.id(), version.updatedAt()), HashMap::putAll);
+        return summaries.stream().filter(summary -> versions.containsKey(summary.getId()))
+                .map(summary -> versions.get(summary.getId()) != null && Objects.equals(versions.get(summary.getId()), summary.getUpdatedAt()) ? summary
+                        : articleRepository.findByIdAndPublishedTrue(summary.getId()).map(this::toSummaryResponse).orElse(null))
+                .filter(Objects::nonNull).toList();
     }
 
     /**
@@ -159,6 +207,8 @@ public class ArticleService {
      * UV：HyperLogLog PFADD（概率去重，12KB/文章）
      */
     public ArticleResponse getArticleAndIncrementView(Long id, HttpServletRequest request) {
+        ArticleResponse response = getArticle(id);
+        if ("HEAD".equalsIgnoreCase(request.getMethod())) return response;
         // ① PV: 浏览量在Redis中累加
         String viewKey = RedisKeyPrefix.ARTICLE_VIEW_COUNT + id;
         redisTemplate.opsForValue().increment(viewKey);
@@ -180,7 +230,6 @@ public class ArticleService {
         );
 
         // ④ 获取文章详情
-        ArticleResponse response = self.getArticle(id);
 
         // ⑤ 附加 UV 数
         Long uvCount = stringRedisTemplate.opsForHyperLogLog().size(
@@ -193,23 +242,19 @@ public class ArticleService {
 
     /** 向下兼容：无 request 参数的 getArticleAndIncrementView */
     public ArticleResponse getArticleAndIncrementView(Long id) {
+        ArticleResponse response = getArticle(id);
         String viewKey = RedisKeyPrefix.ARTICLE_VIEW_COUNT + id;
         redisTemplate.opsForValue().increment(viewKey);
         String todayKey = RedisKeyPrefix.DAILY_VIEW_COUNT
                 + LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
         redisTemplate.opsForValue().increment(todayKey);
-        return self.getArticle(id);
+        return response;
     }
 
     /**
      * 创建文章 → 清除列表缓存（精选/热门可能变化）
      */
     @Transactional
-    @Caching(evict = {
-        @CacheEvict(value = "featuredArticleSummaries", allEntries = true),
-        @CacheEvict(value = "popularArticleSummaries", allEntries = true),
-        @CacheEvict(value = "articleArchiveSummary", allEntries = true)
-    })
     public ArticleResponse createArticle(ArticleRequest request, User author) {
         Article article = Article.builder()
                 .title(request.getTitle())
@@ -238,22 +283,7 @@ public class ArticleService {
 
         Article savedArticle = articleRepository.save(article);
 
-        // 同步布隆过滤器
-        if (Boolean.TRUE.equals(savedArticle.getPublished())) {
-            try {
-                RBloomFilter<Long> bloomFilter = redissonClient.getBloomFilter(RedisKeyPrefix.BLOOM_ARTICLE_ID);
-                bloomFilter.add(savedArticle.getId());
-            } catch (Exception e) {
-                log.warn("布隆过滤器同步失败: {}", e.getMessage());
-            }
-
-            // 推送到关注者 Feed
-            try {
-                feedService.pushToFollowers(savedArticle);
-            } catch (Exception e) {
-                log.warn("Feed 推送失败: {}", e.getMessage());
-            }
-        }
+        publicationEvents.publishEvent(new ArticlePublicationChanged(savedArticle, false, false));
 
         return toResponse(savedArticle);
     }
@@ -263,12 +293,6 @@ public class ArticleService {
      * @CacheEvict 保证缓存一致性（Cache Aside 写策略：先更新DB，再删缓存）
      */
     @Transactional
-    @Caching(evict = {
-        @CacheEvict(value = "articleDetail", key = "#id"),
-        @CacheEvict(value = "featuredArticleSummaries", allEntries = true),
-        @CacheEvict(value = "popularArticleSummaries", allEntries = true),
-        @CacheEvict(value = "articleArchiveSummary", allEntries = true)
-    })
     public ArticleResponse updateArticle(Long id, ArticleRequest request, User currentUser) {
         Article article = articleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("文章不存在"));
@@ -278,6 +302,7 @@ public class ArticleService {
             throw new RuntimeException("无权修改此文章");
         }
 
+        boolean previouslyPublished = Boolean.TRUE.equals(article.getPublished());
         article.setTitle(request.getTitle());
         article.setSummary(request.getSummary());
         article.setContent(request.getContent());
@@ -300,19 +325,15 @@ public class ArticleService {
             article.setPublishedAt(LocalDateTime.now());
         }
 
-        return toResponse(articleRepository.save(article));
+        Article savedArticle = articleRepository.save(article);
+        publicationEvents.publishEvent(new ArticlePublicationChanged(savedArticle, previouslyPublished, false));
+        return toResponse(savedArticle);
     }
 
     /**
      * 删除文章 → 清除所有相关缓存
      */
     @Transactional
-    @Caching(evict = {
-        @CacheEvict(value = "articleDetail", key = "#id"),
-        @CacheEvict(value = "featuredArticleSummaries", allEntries = true),
-        @CacheEvict(value = "popularArticleSummaries", allEntries = true),
-        @CacheEvict(value = "articleArchiveSummary", allEntries = true)
-    })
     public void deleteArticle(Long id, User currentUser) {
         Article article = articleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("文章不存在"));
@@ -323,13 +344,7 @@ public class ArticleService {
         }
 
         articleRepository.delete(article);
-
-        // 清理 Redis 相关 Key
-        stringRedisTemplate.delete(RedisKeyPrefix.ARTICLE_LIKED + id);
-        stringRedisTemplate.delete(RedisKeyPrefix.ARTICLE_LIKE_COUNT + id);
-        stringRedisTemplate.delete(RedisKeyPrefix.ARTICLE_UV + id);
-        stringRedisTemplate.delete(RedisKeyPrefix.ARTICLE_DETAIL + id);
-        stringRedisTemplate.delete(RedisKeyPrefix.ARTICLE_DETAIL_LOGIC + id);
+        publicationEvents.publishEvent(new ArticlePublicationChanged(article, Boolean.TRUE.equals(article.getPublished()), true));
     }
 
     public ArticleResponse toResponse(Article article) {
@@ -424,9 +439,13 @@ public class ArticleService {
      * 获取文章归档（按年-月分组）
      * 只返回已发布文章，按时间倒序
      */
-    @Cacheable(value = "articleArchiveSummary", key = "'all'")
     public ArchiveResponse getArchive() {
-        log.info("[Cache MISS] 文章归档 - 从数据库加载");
+        // The archive projection is small and authoritative; do not revive old titles after withdrawal/republication.
+        return buildArchive();
+    }
+
+    private ArchiveResponse buildArchive() {
+        log.debug("加载已发布文章归档");
         List<ArchiveArticleProjection> articles = articleRepository.findPublishedArchiveRows();
 
         String[] monthNames = {"", "一月", "二月", "三月", "四月", "五月", "六月",
@@ -571,6 +590,7 @@ public class ArticleService {
             Long articleId = Long.parseLong(Objects.requireNonNull(tuple.getValue()));
             try {
                 ArticleSummaryResponse response = articleRepository.findById(articleId)
+                        .filter(article -> Boolean.TRUE.equals(article.getPublished()))
                         .map(this::toSummaryResponse)
                         .orElseThrow();
                 response.setUvCount(tuple.getScore() != null ? tuple.getScore().longValue() : 0L);

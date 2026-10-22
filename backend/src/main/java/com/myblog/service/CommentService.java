@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -103,12 +104,17 @@ public class CommentService {
 
     @Transactional
     public void deleteComment(Long id, User currentUser) {
+        if (currentUser == null) {
+            throw new AccessDeniedException("请先登录");
+        }
         Comment comment = commentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("评论不存在"));
 
-        if (comment.getUser() != null && !comment.getUser().getId().equals(currentUser.getId()) 
-            && currentUser.getRole() != User.Role.ADMIN) {
-            throw new RuntimeException("无权删除此评论");
+        boolean administrator = currentUser.getRole() == User.Role.ADMIN;
+        boolean owner = comment.getUser() != null
+                && comment.getUser().getId().equals(currentUser.getId());
+        if (!administrator && !owner) {
+            throw new AccessDeniedException("无权删除此评论");
         }
 
         commentRepository.delete(comment);

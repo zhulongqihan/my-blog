@@ -56,8 +56,8 @@ public class NotificationService {
         notification = notificationRepository.save(notification);
         NotificationResponse response = NotificationResponse.fromEntity(notification);
 
-        // 通过 WebSocket 广播到 /topic/notifications（管理员订阅）
-        messagingTemplate.convertAndSend("/topic/notifications", response);
+        // Administrator comments are separate from public system announcements.
+        messagingTemplate.convertAndSend("/topic/admin/notifications", response);
         log.info("[通知] 评论通知已推送: article={}, commenter={}", articleTitle, commenterName);
     }
 

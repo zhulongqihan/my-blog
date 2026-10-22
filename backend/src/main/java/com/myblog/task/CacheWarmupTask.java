@@ -1,8 +1,7 @@
 package com.myblog.task;
 
-import cn.hutool.json.JSONUtil;
 import com.myblog.common.constant.RedisKeyPrefix;
-import com.myblog.common.redis.RedisData;
+import com.myblog.common.redis.CacheClient;
 import com.myblog.entity.Article;
 import com.myblog.entity.UserTagFollow;
 import com.myblog.repository.ArticleRepository;
@@ -10,7 +9,7 @@ import com.myblog.repository.UserTagFollowRepository;
 import com.myblog.service.ArticleService;
 import com.myblog.service.CategoryService;
 import com.myblog.service.TagService;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBloomFilter;
 import org.redisson.api.RedissonClient;
@@ -19,8 +18,8 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 缓存预热任务
@@ -33,7 +32,6 @@ import java.util.List;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class CacheWarmupTask implements ApplicationRunner {
 
     private final CategoryService categoryService;
@@ -42,7 +40,24 @@ public class CacheWarmupTask implements ApplicationRunner {
     private final ArticleRepository articleRepository;
     private final RedissonClient redissonClient;
     private final StringRedisTemplate stringRedisTemplate;
+    private final CacheClient cacheClient;
     private final UserTagFollowRepository followRepository;
+
+    public CacheWarmupTask(CategoryService categoryService, TagService tagService,
+            ArticleService articleService, ArticleRepository articleRepository,
+            RedissonClient redissonClient,
+            @Qualifier("stringRedisTemplate") StringRedisTemplate stringRedisTemplate,
+            CacheClient cacheClient,
+            UserTagFollowRepository followRepository) {
+        this.categoryService = categoryService;
+        this.tagService = tagService;
+        this.articleService = articleService;
+        this.articleRepository = articleRepository;
+        this.redissonClient = redissonClient;
+        this.stringRedisTemplate = stringRedisTemplate;
+        this.cacheClient = cacheClient;
+        this.followRepository = followRepository;
+    }
 
     @Override
     public void run(ApplicationArguments args) {
@@ -107,12 +122,9 @@ public class CacheWarmupTask implements ApplicationRunner {
         try {
             List<Article> featured = articleRepository.findByFeaturedTrueAndPublishedTrue();
             for (Article article : featured) {
-                RedisData rd = new RedisData();
-                rd.setData(articleService.toResponse(article));
-                rd.setExpireTime(LocalDateTime.now().plusMinutes(30));
-                stringRedisTemplate.opsForValue().set(
+                cacheClient.setWithLogicalExpire(
                         RedisKeyPrefix.ARTICLE_DETAIL_LOGIC + article.getId(),
-                        JSONUtil.toJsonStr(rd)
+                        articleService.toResponse(article), 30L, TimeUnit.MINUTES
                 );
             }
             log.info("[CacheWarmup] ✓ 逻辑过期缓存预热完成，加载 {} 篇精选文章", featured.size());

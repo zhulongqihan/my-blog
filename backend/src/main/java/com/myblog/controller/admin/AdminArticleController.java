@@ -58,7 +58,7 @@ public class AdminArticleController {
      */
     @GetMapping("/{id}")
     public Result<ArticleResponse> getDetail(@PathVariable Long id) {
-        return Result.success(articleService.getArticle(id));
+        return Result.success(articleService.getAdminArticle(id));
     }
 
     /**

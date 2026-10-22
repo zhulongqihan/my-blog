@@ -16,6 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@org.hibernate.annotations.DynamicUpdate
 @Table(name = "articles")
 public class Article {
 

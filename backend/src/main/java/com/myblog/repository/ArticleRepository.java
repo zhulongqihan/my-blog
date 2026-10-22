@@ -13,9 +13,32 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 
 @Repository
 public interface ArticleRepository extends JpaRepository<Article, Long> {
+    @Query("SELECT new com.myblog.dto.ArticlePublicationVersion(a.id, a.updatedAt) " +
+            "FROM Article a WHERE a.id = :id AND a.published = true")
+    Optional<com.myblog.dto.ArticlePublicationVersion> findPublishedVersion(@Param("id") Long id);
+
+    @Query("SELECT new com.myblog.dto.ArticlePublicationVersion(a.id, a.updatedAt) " +
+            "FROM Article a WHERE a.published = true")
+    List<com.myblog.dto.ArticlePublicationVersion> findAllPublishedVersions();
+
+    boolean existsByIdAndPublishedTrue(Long id);
+
+    Optional<Article> findByIdAndPublishedTrue(Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT a FROM Article a WHERE a.id = :id")
+    Optional<Article> findByIdForUpdate(@Param("id") Long id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Article a SET a.viewCount = COALESCE(a.viewCount, 0) + :delta WHERE a.id = :id")
+    int incrementViewCount(@Param("id") Long id, @Param("delta") int delta);
     
     Page<Article> findByPublishedTrue(Pageable pageable);
     

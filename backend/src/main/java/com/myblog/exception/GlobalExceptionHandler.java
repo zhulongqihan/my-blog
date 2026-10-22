@@ -6,7 +6,7 @@ import com.myblog.common.result.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -30,6 +30,12 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public org.springframework.http.ResponseEntity<Result<?>> handleStatusException(
+            org.springframework.web.server.ResponseStatusException exception) {
+        return org.springframework.http.ResponseEntity.status(exception.getStatusCode())
+                .body(Result.error(exception.getStatusCode().value(), exception.getReason()));
+    }
     
     /**
      * 业务异常处理
@@ -86,9 +92,9 @@ public class GlobalExceptionHandler {
      * 认证失败异常
      * 场景：用户名或密码错误
      */
-    @ExceptionHandler(BadCredentialsException.class)
+    @ExceptionHandler(AuthenticationException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
-    public Result<?> handleBadCredentialsException(BadCredentialsException e) {
+    public Result<?> handleBadCredentialsException(AuthenticationException e) {
         log.warn("认证失败：{}", e.getMessage());
         return Result.error(ErrorCode.USERNAME_OR_PASSWORD_ERROR.getCode(), 
                            ErrorCode.USERNAME_OR_PASSWORD_ERROR.getMessage());

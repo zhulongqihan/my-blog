@@ -9,12 +9,21 @@ import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cache.annotation.CachingConfigurer;
+import org.springframework.cache.interceptor.CacheErrorHandler;
+import org.springframework.cache.Cache;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
+import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
+import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
@@ -36,7 +45,57 @@ import java.util.Map;
  */
 @Configuration
 @EnableCaching
-public class RedisConfig {
+public class RedisConfig implements CachingConfigurer {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RedisConfig.class);
+
+    @Bean(destroyMethod = "close")
+    public CacheRedisConnection cacheRedisConnection(RedisConnectionFactory connectionFactory,
+            @Value("${blog.cache.redis.enabled:false}") boolean enabled,
+            @Value("${blog.cache.redis.host:localhost}") String host,
+            @Value("${blog.cache.redis.port:6380}") int port,
+            @Value("${blog.cache.redis.password:}") String password) {
+        if (!enabled) {
+            return new CacheRedisConnection(connectionFactory, false);
+        }
+        RedisStandaloneConfiguration server = new RedisStandaloneConfiguration(host, port);
+        if (password != null && !password.isBlank()) server.setPassword(password);
+        LettuceClientConfiguration client = LettuceClientConfiguration.builder()
+                .commandTimeout(Duration.ofSeconds(2)).shutdownTimeout(Duration.ofMillis(100)).build();
+        LettuceConnectionFactory cacheFactory = new LettuceConnectionFactory(server, client);
+        cacheFactory.afterPropertiesSet();
+        return new CacheRedisConnection(cacheFactory, true);
+    }
+
+    @Bean
+    @Primary
+    public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory connectionFactory) {
+        return new StringRedisTemplate(connectionFactory);
+    }
+
+    @Bean
+    public StringRedisTemplate cacheStringRedisTemplate(CacheRedisConnection connection) {
+        return new StringRedisTemplate(connection.factory());
+    }
+
+    @Bean
+    public RedisTemplate<String, Object> cacheRedisTemplate(CacheRedisConnection connection) {
+        return createTemplate(connection.factory());
+    }
+
+    @Override
+    public CacheErrorHandler errorHandler() {
+        return new CacheErrorHandler() {
+            public void handleCacheGetError(RuntimeException error, Cache cache, Object key) {
+                log.warn("Cache read unavailable: {}", cache.getName());
+            }
+            public void handleCachePutError(RuntimeException error, Cache cache, Object key, Object value) {
+                log.warn("Cache write unavailable: {}", cache.getName());
+            }
+            public void handleCacheEvictError(RuntimeException error, Cache cache, Object key) { throw error; }
+            public void handleCacheClearError(RuntimeException error, Cache cache) { throw error; }
+        };
+    }
 
     /**
      * 创建配置完整的JSON序列化器
@@ -74,7 +133,12 @@ public class RedisConfig {
      * 配置RedisTemplate
      */
     @Bean
+    @Primary
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
+        return createTemplate(connectionFactory);
+    }
+
+    private RedisTemplate<String, Object> createTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
         
@@ -107,7 +171,7 @@ public class RedisConfig {
      *   dashboardStats    - 仪表盘统计（5分钟）
      */
     @Bean
-    public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+    public CacheManager cacheManager(CacheRedisConnection connection) {
         GenericJackson2JsonRedisSerializer serializer = createJsonSerializer();
         
         // 默认缓存配置（1小时兜底）
@@ -122,11 +186,13 @@ public class RedisConfig {
         cacheConfigs.put("articleDetail", defaultConfig.entryTtl(Duration.ofMinutes(30)));
         cacheConfigs.put("featuredArticles", defaultConfig.entryTtl(Duration.ofMinutes(10)));
         cacheConfigs.put("popularArticles", defaultConfig.entryTtl(Duration.ofMinutes(10)));
+        cacheConfigs.put("featuredArticleSummaries", defaultConfig.entryTtl(Duration.ofMinutes(10)));
+        cacheConfigs.put("popularArticleSummaries", defaultConfig.entryTtl(Duration.ofMinutes(10)));
         cacheConfigs.put("categories", defaultConfig.entryTtl(Duration.ofHours(2)));
         cacheConfigs.put("tags", defaultConfig.entryTtl(Duration.ofHours(2)));
         cacheConfigs.put("dashboardStats", defaultConfig.entryTtl(Duration.ofMinutes(5)));
         
-        return RedisCacheManager.builder(connectionFactory)
+        return RedisCacheManager.builder(connection.factory())
                 .cacheDefaults(defaultConfig)
                 .withInitialCacheConfigurations(cacheConfigs)
                 .build();

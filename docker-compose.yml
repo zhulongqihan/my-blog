@@ -4,12 +4,19 @@
 # 架构：Nginx + Backend + MySQL + Redis + RabbitMQ
 # =============================================================
 
+x-logging: &bounded-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
 
   # ==================== MySQL 8.0 ====================
   mysql:
     image: mysql:8.0
     container_name: myblog-mysql
+    logging: *bounded-logging
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}
@@ -40,9 +47,11 @@ services:
   redis:
     image: redis:7-alpine
     container_name: myblog-redis
+    logging: *bounded-logging
     restart: unless-stopped
     command: >-
-      redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru
+      redis-server --maxmemory 48mb --maxmemory-policy noeviction
+      --appendonly yes --appendfsync always
       --requirepass "${REDIS_PASSWORD:?REDIS_PASSWORD must be set}"
     volumes:
       - redis_data:/data
@@ -56,7 +65,29 @@ services:
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: 96M
+    networks:
+      - myblog-network
+
+  # 可丢缓存与撤销令牌/计数/去重状态必须使用不同实例，不能只换 database。
+  redis-cache:
+    image: redis:7-alpine
+    container_name: myblog-redis-cache
+    logging: *bounded-logging
+    restart: unless-stopped
+    command: >-
+      redis-server --maxmemory 32mb --maxmemory-policy allkeys-lru
+      --save "" --appendonly no
+      --requirepass "${REDIS_PASSWORD:?REDIS_PASSWORD must be set}"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:?REDIS_PASSWORD must be set}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 64M
     networks:
       - myblog-network
 
@@ -64,6 +95,7 @@ services:
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
     container_name: myblog-rabbitmq
+    logging: *bounded-logging
     restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:?RABBITMQ_DEFAULT_USER must be set}
@@ -92,11 +124,14 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: myblog-backend
+    logging: *bounded-logging
     restart: unless-stopped
     depends_on:
       mysql:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      redis-cache:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
@@ -106,10 +141,24 @@ services:
       SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/blogdb?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:?MYSQL_USER must be set}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD must be set}
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+      # A release without a private profile must never inherit H2/create-drop defaults.
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQLDialect
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_JPA_SHOW_SQL: "false"
+      SPRING_H2_CONSOLE_ENABLED: "false"
       # ---- Redis：覆盖 spring.data.redis.* (Spring Boot 3.x) ----
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: "6379"
       SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+      BLOG_CACHE_REDIS_ENABLED: "true"
+      BLOG_CACHE_REDIS_HOST: redis-cache
+      BLOG_CACHE_REDIS_PORT: "6379"
+      BLOG_CACHE_REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+      SERVER_TOMCAT_THREADS_MAX: "32"
+      SERVER_TOMCAT_THREADS_MIN_SPARE: "4"
+      SERVER_TOMCAT_ACCEPT_COUNT: "32"
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: "5"
       # 兼容旧命名空间 spring.redis.*
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: "6379"
@@ -129,6 +178,9 @@ services:
       FILE_ACCESSURL: /uploads
       # ---- 日志路径（覆盖服务器上硬编码的 /www/my-blog/... 路径）----
       LOGGING_FILE_NAME: /app/logs/backend.log
+      LOGGING_LOGBACK_ROLLINGPOLICY_MAX_FILE_SIZE: 10MB
+      LOGGING_LOGBACK_ROLLINGPOLICY_MAX_HISTORY: "7"
+      LOGGING_LOGBACK_ROLLINGPOLICY_TOTAL_SIZE_CAP: 70MB
       BLOG_DEMO_RESET_CONTENT: ${BLOG_DEMO_RESET_CONTENT:-false}
       # AI Gateway：由 Backend 统一代理模型调用，前端和 Nginx 不持有密钥
       DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:?DASHSCOPE_API_KEY must be set}
@@ -137,7 +189,7 @@ services:
       # 仅在全新数据库初始化管理员账号时使用，不保存默认值
       BLOG_ADMIN_INITIAL_PASSWORD: ${BLOG_ADMIN_INITIAL_PASSWORD:-}
       # ---- JVM 参数 ----
-      JAVA_OPTS: "-Xms256m -Xmx512m"
+      JAVA_OPTS: "-Xms96m -Xmx384m -Xss512k -XX:MaxDirectMemorySize=64m"
       TZ: Asia/Shanghai
     volumes:
       - uploads_data:/app/uploads
@@ -153,7 +205,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1280M
+          memory: 768M
+          cpus: "1.0"
     networks:
       - myblog-network
 
@@ -163,9 +216,14 @@ services:
       context: .
       dockerfile: docker/nginx/admin.Dockerfile
     container_name: myblog-admin
+    logging: *bounded-logging
     restart: unless-stopped
     expose:
       - "80"
+    deploy:
+      resources:
+        limits:
+          memory: 32M
     networks:
       - myblog-network
 
@@ -174,6 +232,7 @@ services:
       context: .
       dockerfile: docker/nginx/Dockerfile
     container_name: myblog-nginx
+    logging: *bounded-logging
     restart: unless-stopped
     depends_on:
       backend:

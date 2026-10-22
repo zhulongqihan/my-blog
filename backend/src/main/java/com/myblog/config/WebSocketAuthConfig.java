@@ -36,41 +36,19 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @RequiredArgsConstructor
 public class WebSocketAuthConfig implements WebSocketMessageBrokerConfigurer {
 
-    private final JwtUtils jwtUtils;
-    private final UserDetailsService userDetailsService;
+    private final com.myblog.security.StompAuthorizationInterceptor authorizationInterceptor;
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
+        registration.interceptors(authorizationInterceptor);
+    }
+
+    @Override
+    public void configureClientOutboundChannel(ChannelRegistration registration) {
         registration.interceptors(new ChannelInterceptor() {
             @Override
             public Message<?> preSend(Message<?> message, MessageChannel channel) {
-                StompHeaderAccessor accessor = MessageHeaderAccessor
-                        .getAccessor(message, StompHeaderAccessor.class);
-                
-                if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
-                    // 从 STOMP CONNECT 帧的 header 中提取 JWT Token
-                    String authHeader = accessor.getFirstNativeHeader("Authorization");
-                    
-                    if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                        String token = authHeader.substring(7);
-                        try {
-                            if (jwtUtils.validateToken(token)) {
-                                String username = jwtUtils.getUsernameFromToken(token);
-                                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                                UsernamePasswordAuthenticationToken auth = 
-                                        new UsernamePasswordAuthenticationToken(
-                                                userDetails, null, userDetails.getAuthorities());
-                                accessor.setUser(auth);
-                                log.info("[WebSocket] 用户认证成功: {}", username);
-                            }
-                        } catch (Exception e) {
-                            log.warn("[WebSocket] JWT认证失败: {}", e.getMessage());
-                        }
-                    } else {
-                        log.debug("[WebSocket] 匿名用户连接（无JWT）");
-                    }
-                }
-                return message;
+                return authorizationInterceptor.preSendOutbound(message);
             }
         });
     }

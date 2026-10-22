@@ -1,0 +1,24 @@
+[Unit]
+Description=AeroFlow Sentinel Demo
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/root/apps/superbizagent/SuperBizAgent-release-2026-01-02
+# Keep deployment credentials in the existing local file; never commit it.
+EnvironmentFile=-/etc/aeroflow-sentinel/runtime.env
+Environment="JAVA_TOOL_OPTIONS=-Xms64m -Xmx256m -Xss512k -XX:MaxDirectMemorySize=32m"
+ExecStart=/usr/bin/java -jar target/aeroflow-sentinel-1.0-SNAPSHOT.jar --spring.profiles.active=demo --server.tomcat.threads.max=24 --server.tomcat.threads.min-spare=4 --server.tomcat.accept-count=24 --logging.file.name=logs/agent.log --logging.logback.rollingpolicy.max-file-size=10MB --logging.logback.rollingpolicy.max-history=7 --logging.logback.rollingpolicy.total-size-cap=70MB
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=25
+MemoryMax=512M
+TasksMax=192
+CPUQuota=75%
+NoNewPrivileges=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

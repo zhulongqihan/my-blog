@@ -115,7 +115,7 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return Integer.valueOf(1).equals(status) && !Integer.valueOf(1).equals(isDeleted);
     }
 
     public enum Role {

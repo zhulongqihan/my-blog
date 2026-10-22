@@ -1,7 +1,7 @@
 package com.myblog.service;
 
 import com.myblog.common.constant.RedisKeyPrefix;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.CacheManager;
 import org.springframework.data.redis.core.RedisCallback;
@@ -26,11 +26,19 @@ import java.util.*;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class CacheService {
 
     private final RedisTemplate<String, Object> redisTemplate;
+    private final RedisTemplate<String, Object> cacheRedisTemplate;
     private final CacheManager cacheManager;
+
+    public CacheService(@Qualifier("redisTemplate") RedisTemplate<String, Object> redisTemplate,
+                        @Qualifier("cacheRedisTemplate") RedisTemplate<String, Object> cacheRedisTemplate,
+                        CacheManager cacheManager) {
+        this.redisTemplate = redisTemplate;
+        this.cacheRedisTemplate = cacheRedisTemplate;
+        this.cacheManager = cacheManager;
+    }
 
     /**
      * 获取 Redis 服务器信息
@@ -39,7 +47,7 @@ public class CacheService {
         Map<String, Object> info = new LinkedHashMap<>();
         
         try {
-            Properties redisInfo = redisTemplate.execute((RedisCallback<Properties>) connection -> 
+            Properties redisInfo = cacheRedisTemplate.execute((RedisCallback<Properties>) connection ->
                     connection.serverCommands().info());
             
             if (redisInfo != null) {
@@ -89,7 +97,7 @@ public class CacheService {
             
             // 统计该空间下的Key数量
             String pattern = entry.getKey() + "::*";
-            Set<String> keys = redisTemplate.keys(pattern);
+            Set<String> keys = cacheRedisTemplate.keys(pattern);
             spaceStat.put("keyCount", keys != null ? keys.size() : 0);
             
             stats.add(spaceStat);
@@ -142,7 +150,7 @@ public class CacheService {
      */
     private long getTotalKeyCount() {
         try {
-            Long size = redisTemplate.execute((RedisCallback<Long>) connection -> 
+            Long size = cacheRedisTemplate.execute((RedisCallback<Long>) connection ->
                     connection.serverCommands().dbSize());
             return size != null ? size : 0L;
         } catch (Exception e) {

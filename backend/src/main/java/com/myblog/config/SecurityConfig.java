@@ -50,6 +50,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // 公开接口
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers("/api/auth/me", "/api/auth/logout", "/api/tags/followed").authenticated()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/ai/chat").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/mcp").permitAll()
@@ -73,6 +74,11 @@ public class SecurityConfig {
                 // 需要认证的接口
                 .anyRequest().authenticated()
             )
+            .exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, exception) -> {
+                response.setStatus(401);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write("{\"code\":401,\"message\":\"请先登录\",\"data\":null}");
+            }))
             .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(ipBlacklistFilter, UsernamePasswordAuthenticationFilter.class)

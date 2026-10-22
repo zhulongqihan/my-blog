@@ -52,14 +52,16 @@ export const useNotificationStore = defineStore('notification', () => {
         } catch (e) { /* ignore */ }
       })
 
-      // 订阅通知（管理员接收所有通知）
-      stompClient.subscribe('/topic/notifications', (message) => {
+      // 系统广播与仅管理员可见的评论通知分别授权。
+      const receiveNotification = (message: { body: string }) => {
         try {
           const notification: NotificationItem = JSON.parse(message.body)
           recentNotifications.value = [notification, ...recentNotifications.value].slice(0, 20)
           unreadCount.value++
         } catch (e) { /* ignore */ }
-      })
+      }
+      stompClient.subscribe('/topic/notifications', receiveNotification)
+      stompClient.subscribe('/topic/admin/notifications', receiveNotification)
     }
 
     stompClient.onDisconnect = () => {
