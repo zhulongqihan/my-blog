@@ -6,10 +6,20 @@
         <h3>{{ isEdit ? '编辑文章' : '新建文章' }}</h3>
         <div class="actions">
           <el-button @click="handleBack">返回</el-button>
-          <el-button type="info" @click="handleSaveDraft" :loading="saving">存为草稿</el-button>
-          <el-button type="primary" @click="handlePublish" :loading="saving">发布文章</el-button>
+          <el-button type="info" @click="handleSaveDraft" :loading="saving" :disabled="!canSave">存为草稿</el-button>
+          <el-button type="primary" @click="handlePublish" :loading="saving" :disabled="!canSave">发布文章</el-button>
         </div>
       </div>
+
+      <div v-if="articleError" class="load-error" role="alert">
+        <span>文章加载失败，请重试后再编辑。</span>
+        <el-button @click="loadArticle()" :loading="pageLoading">重新加载文章</el-button>
+      </div>
+      <div v-if="optionsError" class="load-error" role="alert">
+        <span>分类或标签加载失败，已保留正文；重试成功后可以保存。</span>
+        <el-button @click="loadOptions()" :loading="optionsLoading">重新加载分类和标签</el-button>
+      </div>
+      <p v-if="optionsLoading && articleLoaded" role="status">正在加载分类和标签，完成后即可保存。</p>
 
       <el-form
         ref="formRef"
@@ -17,6 +27,9 @@
         :rules="rules"
         label-width="80px"
         v-loading="pageLoading"
+        element-loading-text="正在加载文章…"
+        :aria-busy="pageLoading"
+        :disabled="pageLoading || !articleLoaded || saving"
       >
         <!-- 标题 -->
         <el-form-item label="标题" prop="title">
@@ -32,7 +45,7 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="分类" prop="categoryId">
-              <el-select v-model="form.categoryId" placeholder="选择分类" clearable style="width: 100%">
+              <el-select v-model="form.categoryId" placeholder="选择分类" clearable style="width: 100%" :loading="optionsLoading" :disabled="!optionsLoaded">
                 <el-option
                   v-for="cat in categories"
                   :key="cat.id"
@@ -49,6 +62,8 @@
                 multiple
                 placeholder="选择标签（可多选）"
                 style="width: 100%"
+                :loading="optionsLoading"
+                :disabled="!optionsLoaded"
               >
                 <el-option
                   v-for="tag in tags"
@@ -107,6 +122,7 @@
         <!-- Markdown 编辑器 -->
         <el-form-item label="正文" prop="content" class="editor-item">
           <MdEditor
+            v-if="articleLoaded"
             v-model="form.content"
             :theme="editorTheme"
             language="zh-CN"
@@ -123,7 +139,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus/es/components/message/index'
 import type { FormInstance, FormRules, UploadRawFile } from 'element-plus'
@@ -138,7 +154,14 @@ const route = useRoute()
 const router = useRouter()
 const formRef = ref<FormInstance>()
 const saving = ref(false)
-const pageLoading = ref(false)
+const pageLoading = ref(true)
+const optionsLoading = ref(true)
+const articleLoaded = ref(false)
+const optionsLoaded = ref(false)
+const articleError = ref(false)
+const optionsError = ref(false)
+let loadGeneration = 0
+const canSave = computed(() => articleLoaded.value && optionsLoaded.value && !pageLoading.value && !optionsLoading.value && !saving.value)
 
 const isEdit = computed(() => !!route.params.id)
 const articleId = computed(() => Number(route.params.id))
@@ -235,7 +258,10 @@ async function handleEditorUpload(files: File[], callback: (urls: string[]) => v
  * 保存为草稿
  */
 async function handleSaveDraft() {
+  if (!canSave.value) return
+  const generation = loadGeneration
   await formRef.value?.validate()
+  if (generation !== loadGeneration || !canSave.value) return
   form.published = false
   await saveArticle()
 }
@@ -244,7 +270,10 @@ async function handleSaveDraft() {
  * 发布文章
  */
 async function handlePublish() {
+  if (!canSave.value) return
+  const generation = loadGeneration
   await formRef.value?.validate()
+  if (generation !== loadGeneration || !canSave.value) return
   form.published = true
   await saveArticle()
 }
@@ -291,24 +320,37 @@ function handleBack() {
 /**
  * 加载分类和标签
  */
-async function loadOptions() {
+async function loadOptions(generation = loadGeneration) {
+  optionsLoading.value = true
+  optionsLoaded.value = false
+  optionsError.value = false
   try {
     const [catRes, tagRes] = await Promise.all([getCategories(), getTags()])
+    if (generation !== loadGeneration) return
     categories.value = catRes.data
     tags.value = tagRes.data
+    optionsLoaded.value = true
   } catch {
-    ElMessage.error('加载分类/标签失败')
+    if (generation === loadGeneration) optionsError.value = true
+  } finally {
+    if (generation === loadGeneration) optionsLoading.value = false
   }
 }
 
 /**
  * 编辑模式：加载文章数据回显
  */
-async function loadArticle() {
-  if (!isEdit.value) return
+async function loadArticle(generation = loadGeneration) {
+  articleError.value = false
+  articleLoaded.value = !isEdit.value
+  if (!isEdit.value) {
+    pageLoading.value = false
+    return
+  }
   pageLoading.value = true
   try {
     const res = await getArticleDetail(articleId.value)
+    if (generation !== loadGeneration) return
     const article = res.data
     form.title = article.title
     form.summary = article.summary || ''
@@ -318,18 +360,23 @@ async function loadArticle() {
     form.tagIds = article.tags?.map(t => t.id) ?? []
     form.published = article.published
     form.featured = article.featured
+    articleLoaded.value = true
   } catch {
-    ElMessage.error('加载文章失败')
-    router.push('/articles')
+    if (generation === loadGeneration) articleError.value = true
   } finally {
-    pageLoading.value = false
+    if (generation === loadGeneration) pageLoading.value = false
   }
 }
 
-onMounted(async () => {
-  await loadOptions()
-  await loadArticle()
-})
+watch(() => route.params.id, () => {
+  const generation = ++loadGeneration
+  Object.assign(form, { title: '', summary: '', content: '', coverImage: '', categoryId: null, tagIds: [], published: false, featured: false })
+  // Independent reads start together. Metadata must not delay the article body.
+  void loadOptions(generation)
+  void loadArticle(generation)
+}, { immediate: true })
+
+onBeforeUnmount(() => { loadGeneration++ })
 </script>
 
 <style scoped>
@@ -352,6 +399,18 @@ onMounted(async () => {
 .actions {
   display: flex;
   gap: 8px;
+}
+
+.load-error {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px;
+  margin-bottom: 16px;
+  background: #fdf6ec;
+  color: #8a5b1d;
+  border-radius: 4px;
 }
 
 .cover-upload {

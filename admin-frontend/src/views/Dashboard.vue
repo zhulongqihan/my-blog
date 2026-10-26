@@ -1,5 +1,9 @@
 <template>
-  <div class="dashboard">
+  <div class="dashboard" v-loading="loading" element-loading-text="正在加载统计…" :aria-busy="loading">
+    <div v-if="loadError" class="load-error" role="alert">
+      <span>统计加载失败，请重新加载。</span>
+      <el-button @click="loadStats" :loading="loading">重新加载</el-button>
+    </div>
     <!-- 统计卡片 -->
     <el-row :gutter="20" class="stat-cards">
       <el-col :xs="12" :sm="6" v-for="card in statCards" :key="card.title">
@@ -14,7 +18,7 @@
             </el-icon>
           </div>
           <div class="stat-footer">
-            今日: <span :style="{ color: card.color }">+{{ card.today }}</span>
+            今日: <span :style="{ color: card.color }">{{ card.today === '—' ? '—' : `+${card.today}` }}</span>
           </div>
         </el-card>
       </el-col>
@@ -98,12 +102,13 @@ use([CanvasRenderer, LineChart, PieChart, TitleComponent, TooltipComponent, Lege
 
 const stats = ref<DashboardStats | null>(null)
 const loading = ref(true)
+const loadError = ref(false)
 
 const statCards = computed(() => [
-  { title: '文章总数', value: stats.value?.totalArticles ?? 0, today: stats.value?.todayArticles ?? 0, icon: 'Document', color: '#409eff' },
-  { title: '评论总数', value: stats.value?.totalComments ?? 0, today: stats.value?.todayComments ?? 0, icon: 'ChatDotRound', color: '#67c23a' },
-  { title: '访问总量', value: stats.value?.totalViews ?? 0, today: stats.value?.todayViews ?? 0, icon: 'View', color: '#e6a23c' },
-  { title: '用户总数', value: stats.value?.totalUsers ?? 0, today: stats.value?.todayUsers ?? 0, icon: 'User', color: '#f56c6c' },
+  { title: '文章总数', value: stats.value?.totalArticles ?? '—', today: stats.value?.todayArticles ?? '—', icon: 'Document', color: '#409eff' },
+  { title: '评论总数', value: stats.value?.totalComments ?? '—', today: stats.value?.todayComments ?? '—', icon: 'ChatDotRound', color: '#67c23a' },
+  { title: '访问总量', value: stats.value?.totalViews ?? '—', today: stats.value?.todayViews ?? '—', icon: 'View', color: '#e6a23c' },
+  { title: '用户总数', value: stats.value?.totalUsers ?? '—', today: stats.value?.todayUsers ?? '—', icon: 'User', color: '#f56c6c' },
 ])
 
 const trendChartOption = computed(() => ({
@@ -155,14 +160,20 @@ const categoryChartOption = computed(() => ({
   ],
 }))
 
-onMounted(async () => {
+async function loadStats() {
+  loading.value = true
+  loadError.value = false
   try {
     const res = await getStats()
     stats.value = res.data
+  } catch {
+    loadError.value = true
   } finally {
     loading.value = false
   }
-})
+}
+
+onMounted(loadStats)
 </script>
 
 <style scoped>
@@ -170,6 +181,16 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.load-error {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #fdf6ec;
+  color: #8a5b1d;
+  border-radius: 4px;
 }
 
 .stat-card {

@@ -18,6 +18,7 @@ import ElIcon from 'element-plus/es/components/icon/index'
 import ElImage from 'element-plus/es/components/image/index'
 import ElInput from 'element-plus/es/components/input/index'
 import ElInputNumber from 'element-plus/es/components/input-number/index'
+import ElLoading from 'element-plus/es/components/loading/index'
 import { ElMenu, ElMenuItem, ElMenuItemGroup } from 'element-plus/es/components/menu/index'
 import { ElOption } from 'element-plus/es/components/select/index'
 import ElPagination from 'element-plus/es/components/pagination/index'
@@ -121,6 +122,7 @@ for (const [key, component] of Object.entries(adminIcons)) {
 
 app.use(createPinia())
 app.use(router)
+app.use(ElLoading)
 
 const adminComponents = [
   ElAside,

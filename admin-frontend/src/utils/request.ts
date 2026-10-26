@@ -59,6 +59,8 @@ request.interceptors.response.use(
         default:
           ElMessage.error(error.response.data?.message || '请求失败')
       }
+    } else if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+      ElMessage.error('请求超时，服务器响应较慢，请稍后重试')
     } else {
       ElMessage.error('网络连接失败，请检查网络')
     }
