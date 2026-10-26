@@ -12,6 +12,7 @@ import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
 import java.time.ZoneId;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -35,13 +36,19 @@ public class FeedService {
      */
     public void pushToFollowers(Article article) {
         List<Tag> tags = article.getTags();
-        if (tags == null || tags.isEmpty()) return;
+        pushToFollowers(article.getId(), article.getPublishedAt(),
+                tags == null ? List.of() : tags.stream().map(Tag::getId).toList());
+    }
+
+    /** The publication worker receives values captured before the persistence context closes. */
+    public void pushToFollowers(Long id, LocalDateTime publishedAt, List<Long> tagIds) {
+        if (tagIds == null || tagIds.isEmpty()) return;
 
         // 收集所有关注了这些标签的用户（去重）
         Set<String> allFollowers = new HashSet<>();
-        for (Tag tag : tags) {
+        for (Long tagId : tagIds) {
             Set<String> followers = stringRedisTemplate.opsForSet().members(
-                    RedisKeyPrefix.TAG_FOLLOWERS + tag.getId()
+                    RedisKeyPrefix.TAG_FOLLOWERS + tagId
             );
             if (followers != null) {
                 allFollowers.addAll(followers);
@@ -51,11 +58,11 @@ public class FeedService {
         if (allFollowers.isEmpty()) return;
 
         // 批量 ZADD 到每个用户的 Feed ZSet
-        long timestamp = article.getPublishedAt() != null
-                ? article.getPublishedAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        long timestamp = publishedAt != null
+                ? publishedAt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
                 : System.currentTimeMillis();
 
-        String articleId = article.getId().toString();
+        String articleId = id.toString();
 
         for (String userId : allFollowers) {
             stringRedisTemplate.opsForZSet().add(
@@ -65,7 +72,7 @@ public class FeedService {
             );
         }
 
-        log.info("[Feed] 推送完成: 文章[{}] → {} 位用户", article.getId(), allFollowers.size());
+        log.info("[Feed] 推送完成: 文章[{}] → {} 位用户", id, allFollowers.size());
     }
 
     /**

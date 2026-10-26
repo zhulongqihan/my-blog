@@ -20,6 +20,7 @@
         <el-button @click="loadOptions()" :loading="optionsLoading">重新加载分类和标签</el-button>
       </div>
       <p v-if="optionsLoading && articleLoaded" role="status">正在加载分类和标签，完成后即可保存。</p>
+      <p v-if="saveNotice" class="save-notice" role="status">{{ saveNotice }}</p>
 
       <el-form
         ref="formRef"
@@ -45,7 +46,7 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="分类" prop="categoryId">
-              <el-select v-model="form.categoryId" placeholder="选择分类" clearable style="width: 100%" :loading="optionsLoading" :disabled="!optionsLoaded">
+              <el-select v-model="form.categoryId" placeholder="选择分类" clearable :value-on-clear="null" style="width: 100%" :loading="optionsLoading" :disabled="!optionsLoaded">
                 <el-option
                   v-for="cat in categories"
                   :key="cat.id"
@@ -149,6 +150,7 @@ import { getArticleDetail, createArticle, updateArticle, uploadImage } from '@/a
 import { getCategories } from '@/api/category'
 import { getTags } from '@/api/tag'
 import type { Category, Tag, ArticleForm } from '@/types'
+import { ArticleCreateSession, DraftRecoveryError, articleSaveOwner } from '@/utils/article-create-session'
 
 const route = useRoute()
 const router = useRouter()
@@ -160,8 +162,11 @@ const articleLoaded = ref(false)
 const optionsLoaded = ref(false)
 const articleError = ref(false)
 const optionsError = ref(false)
+const saveNotice = ref('')
+const recoveryBlocked = ref(false)
+let createSession: ArticleCreateSession | undefined
 let loadGeneration = 0
-const canSave = computed(() => articleLoaded.value && optionsLoaded.value && !pageLoading.value && !optionsLoading.value && !saving.value)
+const canSave = computed(() => articleLoaded.value && optionsLoaded.value && !pageLoading.value && !optionsLoading.value && !saving.value && !recoveryBlocked.value)
 
 const isEdit = computed(() => !!route.params.id)
 const articleId = computed(() => Number(route.params.id))
@@ -283,9 +288,12 @@ async function handlePublish() {
  */
 async function saveArticle() {
   saving.value = true
+  const generation = loadGeneration
+  const session = createSession
+  const draft = JSON.parse(JSON.stringify(form)) as ArticleForm
   try {
     // 自动生成摘要
-    const submitData: ArticleForm = { ...form }
+    const submitData: ArticleForm = { ...draft, tagIds: [...draft.tagIds] }
     if (!submitData.summary && submitData.content) {
       // 去除 Markdown 标记，截取前 200 字
       const plainText = submitData.content
@@ -297,16 +305,41 @@ async function saveArticle() {
 
     if (isEdit.value) {
       await updateArticle(articleId.value, submitData)
-      ElMessage.success('文章更新成功')
     } else {
-      await createArticle(submitData)
-      ElMessage.success('文章创建成功')
+      if (!session || session.owner !== articleSaveOwner()) {
+        throw new DraftRecoveryError('登录账号已变化，请刷新后再保存；当前输入已保留。')
+      }
+      if (session.pending) saveNotice.value = '正在确认上次保存的结果，完成后继续保存当前修改。'
+      await session.save(submitData, draft, createArticle, updateArticle)
     }
-    router.push('/articles')
+    if (generation !== loadGeneration) return
+    session?.checkOwner()
+    ElMessage.success('文章保存成功')
+    if (JSON.stringify(form) !== JSON.stringify(draft)) {
+      saveNotice.value = '本次保存已完成，当前还有新修改；已保留输入，请再次保存。'
+      return
+    }
+    const navigationFailure = await router.push('/articles')
+    if (!navigationFailure) {
+      session?.clear()
+    } else {
+      saveNotice.value = '文章已保存，页面跳转未完成；再次保存会更新同一篇文章。'
+    }
   } catch (e: any) {
-    // 错误已由 request 拦截器处理
+    if (generation !== loadGeneration) return
+    if (e instanceof DraftRecoveryError) {
+      saveNotice.value = e.message
+      ElMessage.error(e.message)
+    } else {
+      saveNotice.value = !isEdit.value && !session?.pending && !session?.articleId && e?.response
+        ? '本次保存未完成，当前输入已保留；请修正错误后再保存。'
+        : isEdit.value || session?.articleId
+        ? '本次保存结果待确认，已保留输入；再次保存会更新同一篇文章。'
+        : '保存结果待确认，文章可能已保存。已保留输入；再次保存会先确认原操作。'
+      ElMessage.warning(saveNotice.value)
+    }
   } finally {
-    saving.value = false
+    if (generation === loadGeneration) saving.value = false
   }
 }
 
@@ -370,13 +403,38 @@ async function loadArticle(generation = loadGeneration) {
 
 watch(() => route.params.id, () => {
   const generation = ++loadGeneration
+  createSession?.deactivate()
+  createSession = undefined
+  recoveryBlocked.value = false
+  saveNotice.value = ''
+  saving.value = false
   Object.assign(form, { title: '', summary: '', content: '', coverImage: '', categoryId: null, tagIds: [], published: false, featured: false })
+  if (!isEdit.value) {
+    try {
+      createSession = new ArticleCreateSession(articleSaveOwner(), sessionStorage)
+      if (createSession.draft) {
+        Object.assign(form, createSession.draft)
+        saveNotice.value = createSession.articleId
+          ? '已恢复未完成的文章保存；再次保存会更新同一篇文章。'
+          : '已恢复输入，原保存结果待确认；再次保存会先确认原操作。'
+      }
+    } catch (error) {
+      recoveryBlocked.value = true
+      saveNotice.value = error instanceof Error ? error.message : '无法读取恢复记录，请保留输入并刷新后重试。'
+    }
+  }
   // Independent reads start together. Metadata must not delay the article body.
   void loadOptions(generation)
   void loadArticle(generation)
 }, { immediate: true })
 
-onBeforeUnmount(() => { loadGeneration++ })
+watch(form, () => {
+  try { createSession?.rememberDraft(form) } catch (error) {
+    saveNotice.value = error instanceof Error ? error.message : '无法保存恢复记录，请保留当前输入。'
+  }
+}, { deep: true, flush: 'sync' })
+
+onBeforeUnmount(() => { loadGeneration++; createSession?.deactivate() })
 </script>
 
 <style scoped>
@@ -417,6 +475,13 @@ onBeforeUnmount(() => { loadGeneration++ })
   display: flex;
   align-items: center;
   width: 100%;
+}
+
+.save-notice {
+  padding: 12px;
+  background: #fdf6ec;
+  color: #8a5b1d;
+  border-radius: 4px;
 }
 
 .editor-item :deep(.el-form-item__content) {

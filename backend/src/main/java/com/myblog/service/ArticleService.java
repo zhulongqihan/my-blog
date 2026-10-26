@@ -48,6 +48,8 @@ import java.util.stream.Collectors;
 public class ArticleService {
 
     private final ArticleRepository articleRepository;
+    private final UserRepository userRepository;
+    private final ArticleCreationRequestRepository creationRequests;
     private final CategoryRepository categoryRepository;
     private final TagRepository tagRepository;
     private final CommentRepository commentRepository;
@@ -187,7 +189,7 @@ public class ArticleService {
 
     @Transactional(readOnly = true)
     public ArticleResponse getAdminArticle(Long id) {
-        return articleRepository.findById(id).map(this::toResponse)
+        return articleRepository.findById(id).map(this::toAdminResponse)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在"));
     }
 
@@ -256,6 +258,32 @@ public class ArticleService {
      */
     @Transactional
     public ArticleResponse createArticle(ArticleRequest request, User author) {
+        return createArticle(request, author, null);
+    }
+
+    /** Stable UUID identifies one logical creation, including retries after a lost response. */
+    @Transactional
+    public ArticleResponse createArticle(ArticleRequest request, User author, String creationKey) {
+        String requestHash = null;
+        if (creationKey != null) {
+            try {
+                if (!java.util.UUID.fromString(creationKey).toString().equals(creationKey)) throw new IllegalArgumentException();
+            } catch (IllegalArgumentException invalid) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "创建请求标识无效");
+            }
+            requestHash = ArticleCreationFingerprint.of(request);
+            // Serialize keyed creates for this author across processes; never rely on a Redis lock.
+            userRepository.findByIdForUpdate(author.getId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "账号不可用"));
+            var receipt = creationRequests.findByAuthorIdAndRequestKey(author.getId(), creationKey);
+            if (receipt.isPresent()) {
+                if (!Objects.equals(requestHash, receipt.get().getRequestHash()))
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "同一次创建请求的内容不一致");
+                Article existing = articleRepository.findById(receipt.get().getArticleId())
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.GONE, "该创建请求对应的文章已删除"));
+                return toAdminResponse(existing);
+            }
+        }
         Article article = Article.builder()
                 .title(request.getTitle())
                 .summary(request.getSummary())
@@ -281,11 +309,13 @@ public class ArticleService {
             article.setPublishedAt(LocalDateTime.now());
         }
 
-        Article savedArticle = articleRepository.save(article);
+        Article savedArticle = articleRepository.saveAndFlush(article);
 
+        if (creationKey != null) {
+            creationRequests.saveAndFlush(new ArticleCreationRequest(null, author.getId(), creationKey, requestHash, savedArticle.getId()));
+        }
         publicationEvents.publishEvent(new ArticlePublicationChanged(savedArticle, false, false));
-
-        return toResponse(savedArticle);
+        return toAdminResponse(savedArticle);
     }
 
     /**
@@ -325,9 +355,9 @@ public class ArticleService {
             article.setPublishedAt(LocalDateTime.now());
         }
 
-        Article savedArticle = articleRepository.save(article);
+        Article savedArticle = articleRepository.saveAndFlush(article);
         publicationEvents.publishEvent(new ArticlePublicationChanged(savedArticle, previouslyPublished, false));
-        return toResponse(savedArticle);
+        return toAdminResponse(savedArticle);
     }
 
     /**
@@ -361,6 +391,15 @@ public class ArticleService {
             // fallback to DB value
         }
 
+        return buildResponse(article, likeCount);
+    }
+
+    /** Editor data must not wait for optional live counters in Redis. */
+    private ArticleResponse toAdminResponse(Article article) {
+        return buildResponse(article, article.getLikeCount());
+    }
+
+    private ArticleResponse buildResponse(Article article, int likeCount) {
         return ArticleResponse.builder()
                 .id(article.getId())
                 .title(article.getTitle())

@@ -17,6 +17,8 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     Page<Comment> findByArticleAndParentIsNullAndApprovedTrue(Article article, Pageable pageable);
     List<Comment> findByParentAndApprovedTrue(Comment parent);
     long countByArticle(Article article);
+    @Query("SELECT c.article.id, COUNT(c) FROM Comment c WHERE c.article.id IN :ids GROUP BY c.article.id")
+    List<Object[]> countForArticles(@Param("ids") List<Long> ids);
 
     // ========== 管理后台统计查询 ==========
 

@@ -12,8 +12,8 @@ import com.myblog.service.MQProducerService;
 import com.myblog.service.OperationLogService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -27,6 +27,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 /**
@@ -50,11 +51,18 @@ import java.util.stream.Collectors;
 @Slf4j
 @Aspect
 @Component
-@RequiredArgsConstructor
 public class LogAspect {
     
     private final OperationLogService operationLogService;
     private final MQProducerService mqProducerService;
+    private final Executor audits;
+
+    public LogAspect(OperationLogService operationLogService, MQProducerService mqProducerService,
+            @Qualifier("operationAuditExecutor") Executor audits) {
+        this.operationLogService = operationLogService;
+        this.mqProducerService = mqProducerService;
+        this.audits = audits;
+    }
     
     /**
      * 环绕通知：拦截标记了@Log注解的方法
@@ -169,11 +177,21 @@ public class LogAspect {
                         .errorMessage(operationLog.getErrorMsg())
                         .operationTime(operationLog.getCreatedAt())
                         .build();
-                mqProducerService.sendLogMessage(logMessage);
-            } catch (Exception mqException) {
-                // MQ发送失败则降级为直接异步保存
-                log.warn("MQ发送日志失败，降级为直接保存", mqException);
-                operationLogService.saveLog(operationLog);
+                audits.execute(() -> {
+                    try {
+                        mqProducerService.sendLogMessageOrThrow(logMessage);
+                    } catch (RuntimeException mqException) {
+                        log.warn("MQ发送日志失败，后台降级为直接保存", mqException);
+                        try {
+                            operationLogService.saveLog(operationLog);
+                        } catch (RuntimeException fallbackException) {
+                            log.error("后台操作日志保存失败", fallbackException);
+                        }
+                    }
+                });
+            } catch (RuntimeException rejected) {
+                // Auditing is best effort: a full or stopped queue must not alter the business result.
+                log.warn("操作日志队列不可用，业务结果保持不变", rejected);
             }
         }
     }

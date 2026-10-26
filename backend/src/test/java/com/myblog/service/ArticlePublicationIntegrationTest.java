@@ -13,6 +13,7 @@ import com.myblog.service.admin.AdminArticleService;
 import org.junit.jupiter.api.*;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -28,6 +29,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
+import java.util.concurrent.*;
 
 @DataJpaTest(
         properties = {"spring.jpa.hibernate.ddl-auto=create-drop", "spring.jpa.show-sql=false"})
@@ -46,6 +48,11 @@ class ArticlePublicationIntegrationTest {
         CacheManager cacheManager() {
             return new ConcurrentMapCacheManager();
         }
+
+        @Bean(destroyMethod = "shutdownNow")
+        ExecutorService articleProjectionExecutor() {
+            return Executors.newSingleThreadExecutor();
+        }
     }
 
     @Autowired ArticleRepository articles;
@@ -54,6 +61,7 @@ class ArticlePublicationIntegrationTest {
     @Autowired AdminArticleService admin;
     @Autowired CacheManager caches;
     @Autowired PlatformTransactionManager transactions;
+    @Autowired @Qualifier("articleProjectionExecutor") ExecutorService projections;
     @MockBean CacheClient cache;
     @MockBean RedisTemplate<String, Object> redis;
     @MockBean StringRedisTemplate strings;
@@ -63,6 +71,7 @@ class ArticlePublicationIntegrationTest {
 
     @BeforeEach
     void setup() {
+        awaitProjections();
         articles.deleteAll();
         users.deleteAll();
         for (String name : caches.getCacheNames()) caches.getCache(name).clear();
@@ -82,7 +91,41 @@ class ArticlePublicationIntegrationTest {
         request.setContent("draft body");
         request.setPublished(false);
         request.setFeatured(true);
-        return service.createArticle(request, author).getId();
+        Long id = service.createArticle(request, author).getId();
+        awaitProjections();
+        return id;
+    }
+
+    private void awaitProjections() {
+        try {
+            projections.submit(() -> {}).get(3, TimeUnit.SECONDS);
+        } catch (Exception error) {
+            throw new AssertionError("Article projections did not finish", error);
+        }
+    }
+
+    @Test
+    void committedDraftIsReadableWhileItsCacheProjectionIsBlocked() throws Exception {
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        doAnswer(invocation -> { entered.countDown(); release.await(5, TimeUnit.SECONDS); return null; })
+                .when(cache).evictArticle(anyLong());
+        ArticleRequest request = new ArticleRequest();
+        request.setTitle("saved while cache is unavailable");
+        request.setContent("test1 test2 test3");
+        ExecutorService http = Executors.newSingleThreadExecutor();
+        try {
+            Future<ArticleResponse> result = http.submit(() -> service.createArticle(request, author));
+            assertThat(entered.await(2, TimeUnit.SECONDS)).isTrue();
+            Long id = result.get(1, TimeUnit.SECONDS).getId();
+            Article committed = articles.findById(id).orElseThrow();
+            assertThat(committed.getContent()).isEqualTo("test1 test2 test3");
+            assertThat(committed.getPublished()).isFalse();
+        } finally {
+            release.countDown();
+            http.shutdownNow();
+            awaitProjections();
+        }
     }
 
     @Test
@@ -99,6 +142,7 @@ class ArticlePublicationIntegrationTest {
     void withdrawBlocksStaleBodyAndEveryCachedPublicIndex() {
         Long id = draft();
         admin.togglePublish(id, true);
+        awaitProjections();
         assertThat(articles.findById(id).orElseThrow().getPublishedAt()).isNotNull();
         new TransactionTemplate(transactions)
                 .execute(
@@ -109,6 +153,7 @@ class ArticlePublicationIntegrationTest {
                         });
         assertThat(caches.getCache("featuredArticleSummaries").get("all")).isNotNull();
         admin.togglePublish(id, false);
+        awaitProjections();
         assertThat(caches.getCache("featuredArticleSummaries").get("all")).isNull();
         assertThat(caches.getCache("articleArchiveSummary").get("all")).isNull();
         clearInvocations(cache);
@@ -138,13 +183,16 @@ class ArticlePublicationIntegrationTest {
     void publishAfterWithdrawalInvalidatesOldBodyAndKeepsNewContent() {
         Long id = draft();
         admin.togglePublish(id, true);
+        awaitProjections();
         admin.togglePublish(id, false);
+        awaitProjections();
         var edit = new ArticleRequest();
         edit.setTitle("new edition");
         edit.setContent("new edition body");
         edit.setFeatured(true);
         edit.setPublished(false);
         service.updateArticle(id, edit, author);
+        awaitProjections();
         clearInvocations(cache);
         doThrow(
                         new org.springframework.data.redis.RedisConnectionFailureException(
@@ -152,6 +200,7 @@ class ArticlePublicationIntegrationTest {
                 .when(cache)
                 .evictArticle(id);
         admin.togglePublish(id, true);
+        awaitProjections();
         verify(cache).evictArticle(id);
         when(cache.queryWithLogicalExpire(
                         anyString(), eq(id), eq(ArticleResponse.class), any(), anyLong(), any()))
@@ -189,6 +238,7 @@ class ArticlePublicationIntegrationTest {
     void rolledBackWithdrawalLeavesDatabaseAndCachesPublished() {
         Long id = draft();
         admin.togglePublish(id, true);
+        awaitProjections();
         caches.getCache("featuredArticleSummaries").put("all", List.of());
         clearInvocations(cache);
         new TransactionTemplate(transactions)
@@ -198,6 +248,7 @@ class ArticlePublicationIntegrationTest {
                             status.setRollbackOnly();
                             return null;
                         });
+        awaitProjections();
         assertThat(articles.existsByIdAndPublishedTrue(id)).isTrue();
         verify(cache, never()).evictArticle(id);
         assertThat(caches.getCache("featuredArticleSummaries").get("all")).isNotNull();

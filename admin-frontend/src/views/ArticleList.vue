@@ -47,6 +47,7 @@
       <!-- 文章表格 -->
       <el-table
         :data="articles"
+        row-key="id"
         v-loading="loading"
         @selection-change="handleSelectionChange"
         stripe
@@ -143,8 +144,7 @@
           :page-sizes="[10, 20, 50]"
           :total="total"
           layout="total, sizes, prev, pager, next, jumper"
-          @size-change="fetchArticles"
-          @current-change="fetchArticles"
+          @change="fetchArticles"
         />
       </div>
     </el-card>
@@ -152,7 +152,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus/es/components/message/index'
 import { ElMessageBox } from 'element-plus/es/components/message-box/index'
@@ -173,6 +173,7 @@ const articles = ref<ArticleAdminResponse[]>([])
 const categories = ref<Category[]>([])
 const total = ref(0)
 const selectedIds = ref<number[]>([])
+let queryGeneration = 0
 
 const queryParams = reactive<ArticleQueryParams>({
   page: 1,
@@ -185,13 +186,17 @@ const queryParams = reactive<ArticleQueryParams>({
 })
 
 async function fetchArticles() {
+  const generation = ++queryGeneration
   loading.value = true
   try {
-    const res = await getArticles(queryParams)
+    const res = await getArticles({ ...queryParams })
+    if (generation !== queryGeneration) return
     articles.value = res.data.records
     total.value = res.data.total
+  } catch {
+    // The request interceptor reports failures; retain the last completed page.
   } finally {
-    loading.value = false
+    if (generation === queryGeneration) loading.value = false
   }
 }
 
@@ -279,6 +284,8 @@ onMounted(() => {
   fetchArticles()
   fetchCategories()
 })
+
+onBeforeUnmount(() => { queryGeneration++ })
 </script>
 
 <style scoped>

@@ -20,6 +20,11 @@ import org.springframework.data.jpa.repository.Modifying;
 
 @Repository
 public interface ArticleRepository extends JpaRepository<Article, Long> {
+    // Fetch collections only after pagination so Hibernate never paginates a collection join in memory.
+    @Query("SELECT DISTINCT a FROM Article a LEFT JOIN FETCH a.author LEFT JOIN FETCH a.category "
+            + "LEFT JOIN FETCH a.tags WHERE a.id IN :ids")
+    List<Article> findAdminRows(@Param("ids") List<Long> ids);
+
     @Query("SELECT new com.myblog.dto.ArticlePublicationVersion(a.id, a.updatedAt) " +
             "FROM Article a WHERE a.id = :id AND a.published = true")
     Optional<com.myblog.dto.ArticlePublicationVersion> findPublishedVersion(@Param("id") Long id);
@@ -27,6 +32,9 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     @Query("SELECT new com.myblog.dto.ArticlePublicationVersion(a.id, a.updatedAt) " +
             "FROM Article a WHERE a.published = true")
     List<com.myblog.dto.ArticlePublicationVersion> findAllPublishedVersions();
+
+    @Query("SELECT t.id FROM Article a JOIN a.tags t WHERE a.id = :id AND a.published = true")
+    List<Long> findPublishedTagIds(@Param("id") Long id);
 
     boolean existsByIdAndPublishedTrue(Long id);
 

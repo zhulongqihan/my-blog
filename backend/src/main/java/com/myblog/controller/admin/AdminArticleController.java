@@ -69,8 +69,9 @@ public class AdminArticleController {
     @Log(module = "文章管理", operationType = "CREATE", description = "创建文章")
     public Result<ArticleResponse> create(
             @Valid @RequestBody ArticleRequest request,
-            @AuthenticationPrincipal User currentUser) {
-        return Result.success(articleService.createArticle(request, currentUser));
+            @AuthenticationPrincipal User currentUser,
+            @RequestHeader(value = "Idempotency-Key", required = false) String creationKey) {
+        return Result.success(articleService.createArticle(request, currentUser, creationKey));
     }
 
     /**

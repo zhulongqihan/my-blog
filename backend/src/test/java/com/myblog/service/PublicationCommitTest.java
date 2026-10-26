@@ -5,10 +5,12 @@ import static org.mockito.Mockito.*;
 
 import com.myblog.common.redis.CacheClient;
 import com.myblog.entity.Article;
+import com.myblog.repository.ArticleRepository;
 
 import org.junit.jupiter.api.*;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.context.*;
@@ -18,6 +20,7 @@ import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.transaction.*;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.support.*;
+import java.util.concurrent.*;
 
 @SpringJUnitConfig(PublicationCommitTest.Config.class)
 class PublicationCommitTest {
@@ -51,6 +54,16 @@ class PublicationCommitTest {
         }
 
         @Bean
+        ArticleRepository articles() {
+            return mock(ArticleRepository.class);
+        }
+
+        @Bean(destroyMethod = "shutdownNow")
+        ExecutorService articleProjectionExecutor() {
+            return Executors.newSingleThreadExecutor();
+        }
+
+        @Bean
         PlatformTransactionManager transactions() {
             return new AbstractPlatformTransactionManager() {
                 protected Object doGetTransaction() {
@@ -70,16 +83,18 @@ class PublicationCommitTest {
     @Autowired CacheClient cache;
     @Autowired CacheManager caches;
     @Autowired PlatformTransactionManager transactions;
+    @Autowired @Qualifier("articleProjectionExecutor") ExecutorService projections;
 
     @BeforeEach
-    void clear() {
+    void clear() throws Exception {
+        projections.submit(() -> {}).get(2, TimeUnit.SECONDS);
         reset(cache);
         caches.getCache("featuredArticleSummaries").clear();
         caches.getCache("articleArchiveSummary").clear();
     }
 
     @Test
-    void allPublicProjectionsAreInvalidatedAfterCommitNotBefore() {
+    void allPublicProjectionsAreInvalidatedAfterCommitNotBefore() throws Exception {
         caches.getCache("featuredArticleSummaries").put("all", "stale");
         caches.getCache("articleArchiveSummary").put("all", "stale");
         new TransactionTemplate(transactions)
@@ -95,13 +110,14 @@ class PublicationCommitTest {
                                     .isNotNull();
                             return null;
                         });
+        projections.submit(() -> {}).get(2, TimeUnit.SECONDS);
         verify(cache).evictArticle(7L);
         assertThat(caches.getCache("featuredArticleSummaries").get("all")).isNull();
         assertThat(caches.getCache("articleArchiveSummary").get("all")).isNull();
     }
 
     @Test
-    void rollbackDoesNotEvictOrPushPublication() {
+    void rollbackDoesNotEvictOrPushPublication() throws Exception {
         new TransactionTemplate(transactions)
                 .execute(
                         status -> {
@@ -113,6 +129,7 @@ class PublicationCommitTest {
                             status.setRollbackOnly();
                             return null;
                         });
+        projections.submit(() -> {}).get(2, TimeUnit.SECONDS);
         verifyNoInteractions(cache);
     }
 }

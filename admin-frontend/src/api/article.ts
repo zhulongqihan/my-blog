@@ -9,8 +9,8 @@ export function getArticleDetail(id: number): Promise<Result<ArticleDetail>> {
   return request.get(`/admin/articles/${id}`)
 }
 
-export function createArticle(data: ArticleForm): Promise<Result<ArticleDetail>> {
-  return request.post('/admin/articles', data)
+export function createArticle(data: ArticleForm, idempotencyKey?: string): Promise<Result<ArticleDetail>> {
+  return request.post('/admin/articles', data, idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : undefined)
 }
 
 export function updateArticle(id: number, data: ArticleForm): Promise<Result<ArticleDetail>> {

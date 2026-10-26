@@ -2,11 +2,12 @@ package com.myblog.service;
 
 import com.myblog.common.constant.RedisKeyPrefix;
 import com.myblog.common.redis.CacheClient;
+import com.myblog.repository.ArticleRepository;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -15,9 +16,9 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.util.List;
+import java.util.concurrent.Executor;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class ArticlePublicationListener {
     private final CacheClient cacheClient;
@@ -25,10 +26,34 @@ public class ArticlePublicationListener {
     private final StringRedisTemplate stringRedisTemplate;
     private final RedissonClient redissonClient;
     private final FeedService feedService;
+    private final ArticleRepository articleRepository;
+    private final Executor projections;
+
+    public ArticlePublicationListener(CacheClient cacheClient, CacheManager cacheManager,
+            StringRedisTemplate stringRedisTemplate, RedissonClient redissonClient,
+            FeedService feedService, ArticleRepository articleRepository,
+            @Qualifier("articleProjectionExecutor") Executor projections) {
+        this.cacheClient = cacheClient;
+        this.cacheManager = cacheManager;
+        this.stringRedisTemplate = stringRedisTemplate;
+        this.redissonClient = redissonClient;
+        this.feedService = feedService;
+        this.articleRepository = articleRepository;
+        this.projections = projections;
+    }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void afterCommit(ArticlePublicationChanged change) {
-        Long id = change.article().getId();
+        try {
+            projections.execute(() -> attempt(() -> updateProjections(change)));
+        } catch (RuntimeException rejected) {
+            // This bounded, in-memory queue is best effort. Public reads independently verify DB state.
+            log.warn("Article projection queue unavailable; committed article {} remains saved", change.articleId(), rejected);
+        }
+    }
+
+    private void updateProjections(ArticlePublicationChanged change) {
+        Long id = change.articleId();
         attempt(() -> cacheClient.evictArticle(id));
         for (String name :
                 List.of(
@@ -45,7 +70,8 @@ public class ArticlePublicationListener {
                         if (cache != null) cache.clear();
                     });
         }
-        if (change.deleted() || !Boolean.TRUE.equals(change.article().getPublished())) {
+        if ((change.deleted() || !change.published())
+                && !articleRepository.existsByIdAndPublishedTrue(id)) {
             attempt(
                     () ->
                             stringRedisTemplate
@@ -60,14 +86,14 @@ public class ArticlePublicationListener {
                                             RedisKeyPrefix.ARTICLE_LIKED + id,
                                             RedisKeyPrefix.ARTICLE_LIKE_COUNT + id,
                                             RedisKeyPrefix.ARTICLE_UV + id)));
-        } else if (Boolean.TRUE.equals(change.article().getPublished())
-                && !change.previouslyPublished()) {
+        } else if (change.published() && !change.previouslyPublished()
+                && articleRepository.existsByIdAndPublishedTrue(id)) {
             attempt(
                     () ->
                             redissonClient
                                     .<Long>getBloomFilter(RedisKeyPrefix.BLOOM_ARTICLE_ID)
                                     .add(id));
-            attempt(() -> feedService.pushToFollowers(change.article()));
+            attempt(() -> feedService.pushToFollowers(id, change.publishedAt(), articleRepository.findPublishedTagIds(id)));
         }
     }
 

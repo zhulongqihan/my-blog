@@ -35,6 +35,7 @@ public class AdminArticleService {
     /**
      * 分页查询文章列表（管理端，可见全部文章含草稿）
      */
+    @Transactional(readOnly = true)
     public PageResult<ArticleAdminResponse> getArticles(ArticleQueryRequest request) {
         Sort sort = Sort.by(
                 "desc".equalsIgnoreCase(request.getSortOrder())
@@ -52,8 +53,15 @@ public class AdminArticleService {
             articlePage = articleRepository.findAll(pageable);
         }
 
-        List<ArticleAdminResponse> records = articlePage.getContent().stream()
-                .map(this::toAdminResponse)
+        List<Long> ids = articlePage.getContent().stream().map(Article::getId).toList();
+        java.util.Map<Long, Article> rows = ids.isEmpty() ? java.util.Map.of()
+                : articleRepository.findAdminRows(ids).stream().collect(Collectors.toMap(Article::getId, a -> a));
+        java.util.Map<Long, Long> commentCounts = new java.util.HashMap<>();
+        if (!ids.isEmpty()) for (Object[] count : commentRepository.countForArticles(ids)) {
+            commentCounts.put(((Number) count[0]).longValue(), ((Number) count[1]).longValue());
+        }
+        List<ArticleAdminResponse> records = ids.stream()
+                .map(id -> toAdminResponse(rows.get(id), commentCounts.getOrDefault(id, 0L)))
                 .collect(Collectors.toList());
 
         return new PageResult<>(
@@ -77,7 +85,7 @@ public class AdminArticleService {
         boolean previouslyPublished = Boolean.TRUE.equals(article.getPublished());
         article.setPublished(publish);
         if (publish && article.getPublishedAt() == null) article.setPublishedAt(LocalDateTime.now());
-        articleRepository.save(article);
+        articleRepository.saveAndFlush(article);
         publicationEvents.publishEvent(new ArticlePublicationChanged(article, previouslyPublished, false));
     }
 
@@ -92,7 +100,7 @@ public class AdminArticleService {
         Article article = articleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("文章不存在，id=" + id));
         article.setFeatured(featured);
-        articleRepository.save(article);
+        articleRepository.saveAndFlush(article);
         publicationEvents.publishEvent(new ArticlePublicationChanged(article, Boolean.TRUE.equals(article.getPublished()), false));
     }
 
@@ -111,7 +119,7 @@ public class AdminArticleService {
 
     // ---- 私有辅助方法 ----
 
-    private ArticleAdminResponse toAdminResponse(Article article) {
+    private ArticleAdminResponse toAdminResponse(Article article, long commentCount) {
         return ArticleAdminResponse.builder()
                 .id(article.getId())
                 .title(article.getTitle())
@@ -122,7 +130,7 @@ public class AdminArticleService {
                         .collect(Collectors.toList()))
                 .authorName(article.getAuthor() != null ? article.getAuthor().getNickname() : "未知")
                 .viewCount(article.getViewCount())
-                .commentCount(commentRepository.countByArticle(article))
+                .commentCount(commentCount)
                 .published(article.getPublished())
                 .featured(article.getFeatured())
                 .createdAt(article.getCreatedAt())

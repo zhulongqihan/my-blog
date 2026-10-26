@@ -58,6 +58,15 @@ public class MQProducerService {
      * @param message 操作日志消息
      */
     public void sendLogMessage(LogMessage message) {
+        try {
+            sendLogMessageOrThrow(message);
+        } catch (Exception e) {
+            log.error("[MQ生产者] 操作日志消息发送失败: messageId={}", message.getMessageId(), e);
+        }
+    }
+
+    /** Used by the background audit dispatcher so transport failures reach its database fallback. */
+    public void sendLogMessageOrThrow(LogMessage message) {
         if (message.getMessageId() == null) {
             message.setMessageId(UUID.randomUUID().toString());
         }
@@ -65,14 +74,10 @@ public class MQProducerService {
         log.info("[MQ生产者] 发送操作日志消息: messageId={}, module={}, operation={}", 
                 message.getMessageId(), message.getModule(), message.getDescription());
         
-        try {
-            rabbitTemplate.convertAndSend(
-                    RabbitMQConfig.LOG_EXCHANGE,
-                    RabbitMQConfig.LOG_ROUTING_KEY,
-                    message
-            );
-        } catch (Exception e) {
-            log.error("[MQ生产者] 操作日志消息发送失败: messageId={}", message.getMessageId(), e);
-        }
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.LOG_EXCHANGE,
+                RabbitMQConfig.LOG_ROUTING_KEY,
+                message
+        );
     }
 }
