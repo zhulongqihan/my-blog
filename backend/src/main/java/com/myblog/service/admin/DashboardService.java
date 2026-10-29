@@ -2,8 +2,6 @@ package com.myblog.service.admin;
 
 import com.myblog.common.constant.RedisKeyPrefix;
 import com.myblog.dto.admin.DashboardStatsDTO;
-import com.myblog.entity.Article;
-import com.myblog.entity.Comment;
 import com.myblog.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +9,8 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.RedisOperations;
+import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
  * 
  * 缓存策略：
  *   - 统计数据缓存5分钟（dashboardStats）
- *   - 今日访问量通过Redis实时累计（不缓存）
+ *   - 今日访问量读取Redis日计数，与统计快照一起缓存
  *   - 访问趋势使用Redis记录的日访问量
  */
 @Slf4j
@@ -48,8 +48,9 @@ public class DashboardService {
     @Cacheable(value = "dashboardStats", key = "'overview'")
     public DashboardStatsDTO getStats() {
         log.info("[Cache MISS] 仪表盘统计 - 从数据库加载");
-        LocalDateTime todayStart = LocalDateTime.of(LocalDate.now(), LocalTime.MIN);
-        LocalDateTime todayEnd = LocalDateTime.of(LocalDate.now(), LocalTime.MAX);
+        LocalDate today = LocalDate.now();
+        LocalDateTime todayStart = LocalDateTime.of(today, LocalTime.MIN);
+        LocalDateTime todayEnd = LocalDateTime.of(today, LocalTime.MAX);
 
         // 总计统计
         long totalArticles = articleRepository.count();
@@ -58,14 +59,14 @@ public class DashboardService {
         long totalViews = getTotalViews();
 
         // 今日统计
-        long todayArticles = articleRepository.countByCreatedAtBetween(todayStart, todayEnd);
         long todayComments = commentRepository.countByCreatedAtBetween(todayStart, todayEnd);
         long todayUsers = userRepository.countByCreatedAtBetween(todayStart, todayEnd);
-        long todayViews = getTodayViews();
 
         // 趋势数据（最近7天）
-        List<DashboardStatsDTO.TrendItem> viewTrend = getViewTrend(7);
-        List<DashboardStatsDTO.TrendItem> articleTrend = getArticleTrend(7);
+        List<DashboardStatsDTO.TrendItem> viewTrend = getViewTrend(today, 7);
+        List<DashboardStatsDTO.TrendItem> articleTrend = getArticleTrend(today, 7);
+        long todayViews = viewTrend.get(viewTrend.size() - 1).getCount();
+        long todayArticles = articleTrend.get(articleTrend.size() - 1).getCount();
 
         // 热门文章
         List<DashboardStatsDTO.PopularArticle> popularArticles = getPopularArticles(5);
@@ -102,30 +103,36 @@ public class DashboardService {
     }
 
     /**
-     * 获取今日访问量（从Redis读取，实时数据）
-     * 由 ArticleService.getArticleAndIncrementView() 每次访问时累加
-     */
-    private long getTodayViews() {
-        String todayKey = RedisKeyPrefix.DAILY_VIEW_COUNT 
-                + LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
-        Object value = redisTemplate.opsForValue().get(todayKey);
-        return value != null ? ((Number) value).longValue() : 0L;
-    }
-
-    /**
      * 获取访问趋势（从Redis日访问量读取，7天数据）
      */
-    private List<DashboardStatsDTO.TrendItem> getViewTrend(int days) {
+    private List<DashboardStatsDTO.TrendItem> getViewTrend(LocalDate today, int days) {
         List<DashboardStatsDTO.TrendItem> trend = new ArrayList<>();
         DateTimeFormatter displayFormatter = DateTimeFormatter.ofPattern("MM-dd");
+        List<LocalDate> dates = new ArrayList<>();
+        List<String> keys = new ArrayList<>();
         for (int i = days - 1; i >= 0; i--) {
-            LocalDate date = LocalDate.now().minusDays(i);
-            String key = RedisKeyPrefix.DAILY_VIEW_COUNT 
-                    + date.format(DateTimeFormatter.ISO_LOCAL_DATE);
-            Object value = redisTemplate.opsForValue().get(key);
+            LocalDate date = today.minusDays(i);
+            dates.add(date);
+            keys.add(RedisKeyPrefix.DAILY_VIEW_COUNT + date.format(DateTimeFormatter.ISO_LOCAL_DATE));
+        }
+        // Pipeline GET instead of MGET: retain WRONGTYPE errors rather than presenting corrupt counters as zero.
+        // SessionCallback keeps this template's existing key and JSON value serializers.
+        List<Object> values = redisTemplate.executePipelined(new SessionCallback<Object>() {
+            @Override
+            @SuppressWarnings("unchecked")
+            public <K, V> Object execute(RedisOperations<K, V> operations) {
+                for (String key : keys) operations.opsForValue().get((K) key);
+                return null;
+            }
+        });
+        if (values == null || values.size() != days) {
+            throw new IllegalStateException("Daily view counts unavailable");
+        }
+        for (int i = 0; i < dates.size(); i++) {
+            Object value = values.get(i);
             long count = value != null ? ((Number) value).longValue() : 0L;
             trend.add(DashboardStatsDTO.TrendItem.builder()
-                    .date(date.format(displayFormatter))
+                    .date(dates.get(i).format(displayFormatter))
                     .count(count)
                     .build());
         }
@@ -133,18 +140,18 @@ public class DashboardService {
     }
 
     /**
-     * 获取文章发布趋势
+     * 获取文章创建趋势（保留包含草稿的统计口径）
      */
-    private List<DashboardStatsDTO.TrendItem> getArticleTrend(int days) {
+    private List<DashboardStatsDTO.TrendItem> getArticleTrend(LocalDate today, int days) {
         List<DashboardStatsDTO.TrendItem> trend = new ArrayList<>();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-dd");
-        
+        Map<LocalDate, Long> counts = new HashMap<>();
+        articleRepository.countDashboardDays(today.minusDays(days - 1).atStartOfDay(),
+                today.plusDays(1).atStartOfDay()).forEach(row -> counts.put(row.getDay(), row.getCount()));
+
         for (int i = days - 1; i >= 0; i--) {
-            LocalDate date = LocalDate.now().minusDays(i);
-            LocalDateTime startOfDay = date.atStartOfDay();
-            LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
-            
-            long count = articleRepository.countByCreatedAtBetween(startOfDay, endOfDay);
+            LocalDate date = today.minusDays(i);
+            long count = counts.getOrDefault(date, 0L);
             trend.add(DashboardStatsDTO.TrendItem.builder()
                     .date(date.format(formatter))
                     .count(count)
@@ -158,12 +165,17 @@ public class DashboardService {
      */
     private List<DashboardStatsDTO.PopularArticle> getPopularArticles(int limit) {
         Pageable pageable = PageRequest.of(0, limit);
-        List<Article> articles = articleRepository.findTopByViewCount(pageable);
-        
+        var articles = articleRepository.findDashboardPopular(pageable);
+        Map<Long, Long> commentCounts = new HashMap<>();
+        if (!articles.isEmpty()) for (Object[] count : commentRepository.countForArticles(
+                articles.stream().map(com.myblog.dto.admin.DashboardReadRows.PopularArticle::getId).toList())) {
+            commentCounts.put(((Number) count[0]).longValue(), ((Number) count[1]).longValue());
+        }
+
         return articles.stream()
                 .map(article -> {
                     // 获取文章评论数
-                    long commentCount = commentRepository.countByArticle(article);
+                    long commentCount = commentCounts.getOrDefault(article.getId(), 0L);
                     return DashboardStatsDTO.PopularArticle.builder()
                             .id(article.getId())
                             .title(article.getTitle())
@@ -180,20 +192,20 @@ public class DashboardService {
     private List<DashboardStatsDTO.RecentComment> getRecentComments(int limit) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
         Pageable pageable = PageRequest.of(0, limit);
-        List<Comment> comments = commentRepository.findAllByOrderByCreatedAtDesc(pageable).getContent();
+        var comments = commentRepository.findDashboardRecent(pageable);
         
         return comments.stream()
                 .map(comment -> {
                     // 获取评论作者名称（注册用户或游客）
-                    String authorName = comment.getUser() != null 
-                            ? comment.getUser().getNickname() 
+                    String authorName = comment.getUserId() != null
+                            ? comment.getNickname()
                             : comment.getGuestName();
                     
                     return DashboardStatsDTO.RecentComment.builder()
                             .id(comment.getId())
                             .content(truncateContent(comment.getContent(), 50))
                             .authorName(authorName != null ? authorName : "匿名")
-                            .articleTitle(comment.getArticle().getTitle())
+                            .articleTitle(comment.getArticleTitle())
                             .createdAt(comment.getCreatedAt().format(formatter))
                             .build();
                 })
@@ -204,10 +216,10 @@ public class DashboardService {
      * 获取分类统计
      */
     private List<DashboardStatsDTO.CategoryStats> getCategoryStats() {
-        return categoryRepository.findAll().stream()
+        return categoryRepository.countDashboardArticles().stream()
                 .map(category -> {
                     // 统计该分类下的文章数量
-                    long articleCount = articleRepository.countByCategoryId(category.getId());
+                    long articleCount = category.getArticleCount();
                     return DashboardStatsDTO.CategoryStats.builder()
                             .id(category.getId())
                             .name(category.getName())

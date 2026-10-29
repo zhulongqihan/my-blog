@@ -8,11 +8,25 @@ const request = axios.create({
   timeout: 15000,
 })
 
+const reportedErrors = new WeakSet<object>()
+
+export function isRequestErrorReported(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && reportedErrors.has(error)
+}
+
+function rejectReportedError(error: Error) {
+  reportedErrors.add(error)
+  return Promise.reject(error)
+}
+
 // 请求拦截器：自动附加 JWT Token
 request.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('admin_token')
-    if (token) {
+    // 登录本身不需要旧凭据，避免过期 Token 触发无关的认证依赖。
+    if (config.url === '/auth/login') {
+      config.headers.delete('Authorization')
+    } else if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
     return config
@@ -31,11 +45,11 @@ request.interceptors.response.use(
     // 限流错误特殊处理
     if (data.code === 7001 || data.code === 7002) {
       ElMessage.warning(data.message || '请求过于频繁，请稍后再试')
-      return Promise.reject(new Error(data.message || '请求被限流'))
+      return rejectReportedError(new Error(data.message || '请求被限流'))
     }
     // 业务逻辑错误
     ElMessage.error(data.message || '请求失败')
-    return Promise.reject(new Error(data.message || '请求失败'))
+    return rejectReportedError(new Error(data.message || '请求失败'))
   },
   (error) => {
     if (error.response) {
@@ -64,7 +78,7 @@ request.interceptors.response.use(
     } else {
       ElMessage.error('网络连接失败，请检查网络')
     }
-    return Promise.reject(error)
+    return rejectReportedError(error)
   }
 )
 

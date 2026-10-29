@@ -4,6 +4,8 @@ import com.myblog.common.constant.RedisKeyPrefix;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -36,6 +38,11 @@ public class IpBlacklistService {
     private static final String BLACKLIST_TEMP_PREFIX = RedisKeyPrefix.RATE_LIMIT + "blacklist:temp:";
     private static final String WHITELIST_KEY = RedisKeyPrefix.RATE_LIMIT + "whitelist";
     private static final String BLACKLIST_LOG_KEY = RedisKeyPrefix.RATE_LIMIT + "blacklist:log";
+    private static final DefaultRedisScript<Long> IP_DECISION = new DefaultRedisScript<>();
+    static {
+        IP_DECISION.setLocation(new ClassPathResource("scripts/ip_blacklist_check.lua"));
+        IP_DECISION.setResultType(Long.class);
+    }
     
     /**
      * 检查IP是否在黑名单中
@@ -43,16 +50,13 @@ public class IpBlacklistService {
     public boolean isBlacklisted(String ip) {
         if (ip == null) return false;
         
-        // 先检查白名单（白名单优先级最高）
-        if (isWhitelisted(ip)) return false;
-        
-        // 检查永久黑名单
-        Boolean isPermanent = redisTemplate.opsForSet().isMember(BLACKLIST_KEY, ip);
-        if (Boolean.TRUE.equals(isPermanent)) return true;
-        
-        // 检查临时黑名单
-        Boolean isTemp = redisTemplate.hasKey(BLACKLIST_TEMP_PREFIX + ip);
-        return Boolean.TRUE.equals(isTemp);
+        // One fresh atomic decision, using the same value serializer as existing SET members.
+        Long decision = redisTemplate.execute(IP_DECISION,
+                List.of(WHITELIST_KEY, BLACKLIST_KEY, BLACKLIST_TEMP_PREFIX + ip), ip);
+        if (decision == null || (decision != 0L && decision != 1L)) {
+            throw new IllegalStateException("IP blacklist decision unavailable");
+        }
+        return decision == 1L;
     }
     
     /**

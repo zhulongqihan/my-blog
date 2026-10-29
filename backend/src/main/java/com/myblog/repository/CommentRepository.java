@@ -14,6 +14,11 @@ import java.util.List;
 
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, Long> {
+    @Query("SELECT c.id AS id, u.id AS userId, c.content AS content, u.nickname AS nickname, c.guestName AS guestName, "
+            + "a.title AS articleTitle, c.createdAt AS createdAt FROM Comment c "
+            + "LEFT JOIN c.user u LEFT JOIN c.article a ORDER BY c.createdAt DESC")
+    List<com.myblog.dto.admin.DashboardReadRows.RecentComment> findDashboardRecent(Pageable pageable);
+
     Page<Comment> findByArticleAndParentIsNullAndApprovedTrue(Article article, Pageable pageable);
     List<Comment> findByParentAndApprovedTrue(Comment parent);
     long countByArticle(Article article);

@@ -54,6 +54,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { isRequestErrorReported } from '@/utils/request'
 import { ElMessage } from 'element-plus/es/components/message/index'
 import type { FormInstance, FormRules } from 'element-plus'
 
@@ -74,16 +75,22 @@ const rules: FormRules = {
 }
 
 async function handleLogin() {
-  if (!formRef.value) return
-  await formRef.value.validate()
-
+  if (!formRef.value || loading.value) return
   loading.value = true
   try {
+    try {
+      await formRef.value.validate()
+    } catch {
+      // 字段错误由表单展示；校验期间仍持有提交锁。
+      return
+    }
     await userStore.login(loginForm.username, loginForm.password)
     ElMessage.success('登录成功')
     router.push('/dashboard')
   } catch (error: any) {
-    ElMessage.error(error.message || '登录失败')
+    if (!isRequestErrorReported(error)) {
+      ElMessage.error(error.message || '登录失败')
+    }
   } finally {
     loading.value = false
   }

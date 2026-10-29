@@ -20,6 +20,15 @@ import org.springframework.data.jpa.repository.Modifying;
 
 @Repository
 public interface ArticleRepository extends JpaRepository<Article, Long> {
+    @Query("SELECT a.id AS id, a.title AS title, a.viewCount AS viewCount FROM Article a "
+            + "WHERE a.published = true ORDER BY a.viewCount DESC")
+    List<com.myblog.dto.admin.DashboardReadRows.PopularArticle> findDashboardPopular(Pageable pageable);
+
+    @Query("SELECT CAST(a.createdAt AS date) AS day, COUNT(a) AS count FROM Article a "
+            + "WHERE a.createdAt >= :start AND a.createdAt < :end GROUP BY CAST(a.createdAt AS date)")
+    List<com.myblog.dto.admin.DashboardReadRows.DailyCount> countDashboardDays(
+            @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
     // Fetch collections only after pagination so Hibernate never paginates a collection join in memory.
     @Query("SELECT DISTINCT a FROM Article a LEFT JOIN FETCH a.author LEFT JOIN FETCH a.category "
             + "LEFT JOIN FETCH a.tags WHERE a.id IN :ids")
